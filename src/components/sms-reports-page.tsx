@@ -90,9 +90,9 @@ export default function SmsReportsPage() {
       header: 'Time',
       render: (item) => <span className="text-xs text-[#6B7280]">{formatDate(item.receivedAt)}</span>,
     },
-    { key: 'number', header: 'Number', render: (item) => <span className="font-semibold text-xs">{item.number}</span> },
-    { key: 'from', header: 'From', render: (item) => <span className="text-xs">{item.from || '—'}</span> },
-    { key: 'to', header: 'To', render: (item) => <span className="text-xs">{item.to || '—'}</span> },
+    { key: 'number', header: 'Recipient Number', render: (item) => <span className="font-semibold text-xs">{item.number}</span> },
+    { key: 'from', header: 'Sender (Service)', render: (item) => <span className="text-xs">{item.from || '—'}</span> },
+    { key: 'to', header: 'To (Recipient)', render: (item) => <span className="text-xs">{item.to || '—'}</span> },
     { key: 'service', header: 'Service', render: (item) => <ServiceBadge service={item.service} /> },
     { key: 'country', header: 'Country', render: (item) => <span className="text-xs">{item.country || '—'}</span> },
     {

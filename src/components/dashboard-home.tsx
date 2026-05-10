@@ -118,13 +118,13 @@ export default function DashboardHome() {
       header: 'Time',
       render: (item) => <span className="text-xs text-[#6B7280]">{formatDate(item.receivedAt)}</span>,
     },
-    { key: 'number', header: 'Number', render: (item) => <span className="font-medium">{item.number}</span> },
+    { key: 'number', header: 'Recipient Number', render: (item) => <span className="font-medium">{item.number}</span> },
     {
       key: 'service',
       header: 'Service',
       render: (item) => <ServiceBadge service={item.service} />,
     },
-    { key: 'from', header: 'From', render: (item) => <span className="text-xs">{item.from || '—'}</span> },
+    { key: 'from', header: 'Sender (Service)', render: (item) => <span className="text-xs">{item.from || '—'}</span> },
     {
       key: 'otp',
       header: 'OTP',
