@@ -60,7 +60,7 @@ export default function DashboardSidebar({
           <Send size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-white font-bold text-base tracking-tight">Fly SMS</h1>
+          <h1 className="text-white font-bold text-base tracking-tight">SIGMAPANEL</h1>
           <p className="text-white/40 text-[10px] uppercase tracking-widest">SMS Panel</p>
         </div>
       </div>

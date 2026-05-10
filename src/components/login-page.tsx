@@ -145,7 +145,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 <h2
                   className="text-white text-[1.1rem] font-semibold text-center leading-relaxed max-w-[320px]"
                 >
-                  &quot;Welcome to Fly SMS. Your one stop solutions for all A2P, P2P SMS with
+                  &quot;Welcome to SIGMAPANEL. Your one stop solutions for all A2P, P2P SMS with
                   High Availabilty and Worldwide Access&quot;
                 </h2>
               </div>

@@ -9,7 +9,7 @@ const quicksand = Quicksand({
 });
 
 export const metadata: Metadata = {
-  title: "Fly SMS | Login",
+  title: "SIGMAPANEL | Login",
   description: "Your one stop solutions for all A2P, P2P SMS with High Availability and Worldwide Access",
   icons: {
     icon: "/favicon.ico",

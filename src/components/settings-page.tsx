@@ -22,7 +22,7 @@ export default function SettingsPage() {
   const { addToast } = useToast();
 
   // Local form values
-  const [siteName, setSiteName] = useState('Fly SMS');
+  const [siteName, setSiteName] = useState('SIGMAPANEL');
   const [logoUrl, setLogoUrl] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
 
@@ -35,7 +35,7 @@ export default function SettingsPage() {
 
       // Populate form values
       const get = (key: string) => items.find((s) => s.settingKey === key)?.settingValue || '';
-      setSiteName(get('site_name') || 'Fly SMS');
+      setSiteName(get('site_name') || 'SIGMAPANEL');
       setLogoUrl(get('logo_url') || '');
       setWebhookUrl(get('webhook_url') || '');
     } catch {
@@ -138,7 +138,7 @@ export default function SettingsPage() {
               value={siteName}
               onChange={(e) => setSiteName(e.target.value)}
               className="flysms-input"
-              placeholder="Fly SMS"
+              placeholder="SIGMAPANEL"
             />
           </div>
 
