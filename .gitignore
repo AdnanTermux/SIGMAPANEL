@@ -30,12 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
 .vercel
-
 
 # typescript
 *.tsbuildinfo
@@ -46,13 +45,20 @@ local-*
 *.log
 dev.log
 dev.out.log
-test
-prompt
-
 server.log
-# Skills directory
-/skills/.zscripts/
+
+# Database
 *.db
+db/
+
+# Not part of the project
+skills/
+download/
+examples/
+mini-services/
+upload/
 sigmapanel/
 ai-website-cloner-template/
-download/
+worklog.md
+Caddyfile
+.zscripts/
