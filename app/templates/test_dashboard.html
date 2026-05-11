@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Test Dashboard - Sigma SMS A2P{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50" x-data="testDashboard()">
+    <!-- Top Bar -->
+    <header class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-flask text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold">Test Panel</h1>
+                        <p class="text-sm text-blue-100" x-text="'Welcome, ' + username"></p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="glass-effect px-4 py-2 rounded-lg">
+                        <span class="text-sm">Numbers:</span>
+                        <span class="font-bold ml-2" x-text="myNumbers.length + '/' + numberLimit"></span>
+                    </div>
+                    <button @click="logout" class="px-4 py-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- My Numbers -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg p-6 animate-fadeInUp">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">
+                            <i class="fas fa-phone text-blue-600 mr-2"></i>My Numbers
+                        </h2>
+                        <button @click="showAvailableNumbers = true" 
+                                :disabled="myNumbers.length >= numberLimit"
+                                class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-plus mr-1"></i>Add
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        <template x-for="number in myNumbers" :key="number.id">
+                            <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <p class="font-mono font-semibold text-gray-800" x-text="number.number"></p>
+                                        <p class="text-xs text-gray-500">
+                                            <span x-text="number.country_name"></span> • 
+                                            <span x-text="number.service || 'Any'"></span>
+                                        </p>
+                                    </div>
+                                    <button @click="releaseNumber(number.id)" 
+                                            class="text-red-500 hover:text-red-700 transition">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="myNumbers.length === 0" class="text-center py-8 text-gray-400">
+                            <i class="fas fa-phone-slash text-4xl mb-2"></i>
+                            <p>No numbers allocated</p>
+                            <p class="text-sm">Click "Add" to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- OTPs -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg p-6 animate-fadeInUp" style="animation-delay: 0.1s;">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">
+                            <i class="fas fa-key text-purple-600 mr-2"></i>Received OTPs
+                        </h2>
+                        <button @click="loadOTPs" class="text-purple-600 hover:text-purple-700 transition">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        <template x-for="otp in otps" :key="otp.id">
+                            <div class="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg hover:shadow-md transition cursor-pointer"
+                                 @click="selectedOTP = otp">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <span class="px-2 py-1 bg-purple-600 text-white rounded text-xs font-semibold" 
+                                                  x-text="otp.service"></span>
+                                            <span class="font-mono text-sm text-gray-600" x-text="otp.number"></span>
+                                        </div>
+                                        <div class="flex items-center space-x-4">
+                                            <div>
+                                                <p class="text-xs text-gray-500">OTP Code</p>
+                                                <p class="text-2xl font-bold text-green-600" x-text="otp.otp || 'N/A'"></p>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="text-xs text-gray-500">Message</p>
+                                                <p class="text-sm text-gray-600" x-text="otp.message"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-gray-500" x-text="formatDate(otp.received_at)"></p>
+                                        <button @click.stop="copyToClipboard(otp.otp)" 
+                                                class="mt-2 px-3 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition">
+                                            <i class="fas fa-copy mr-1"></i>Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="otps.length === 0" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-inbox text-5xl mb-3 animate-float"></i>
+                            <p class="text-lg">No OTPs received yet</p>
+                            <p class="text-sm">Allocate numbers and use them to receive OTPs</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Available Numbers Modal -->
+    <div x-show="showAvailableNumbers" 
+         x-transition
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         @click.self="showAvailableNumbers = false">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-list text-blue-600 mr-2"></i>Available Numbers
+                    </h3>
+                    <button @click="showAvailableNumbers = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="mt-4 flex space-x-3">
+                    <input type="text" 
+                           x-model="searchCountry"
+                           placeholder="Search country..."
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button @click="loadAvailableNumbers" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto max-h-96">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <template x-for="number in availableNumbers" :key="number.id">
+                        <div class="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <p class="font-mono font-semibold text-gray-800" x-text="number.number"></p>
+                                    <p class="text-sm text-gray-600">
+                                        <span x-text="number.country_name"></span>
+                                        <span x-show="number.service" class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded text-xs" x-text="number.service"></span>
+                                    </p>
+                                </div>
+                                <button @click="allocateNumber(number.id)" 
+                                        class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">
+                                    <i class="fas fa-plus mr-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <div x-show="availableNumbers.length === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-search text-4xl mb-2"></i>
+                    <p>No numbers available</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- OTP Detail Modal -->
+    <div x-show="selectedOTP" 
+         x-transition
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         @click.self="selectedOTP = null">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full" x-show="selectedOTP">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-800">OTP Details</h3>
+                    <button @click="selectedOTP = null" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6" x-show="selectedOTP">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-500">Service</label>
+                        <p class="text-lg font-semibold" x-text="selectedOTP?.service_full"></p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">Number</label>
+                        <p class="text-lg font-mono" x-text="selectedOTP?.number"></p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">OTP Code</label>
+                        <div class="flex items-center space-x-3">
+                            <p class="text-3xl font-bold text-green-600" x-text="selectedOTP?.otp"></p>
+                            <button @click="copyToClipboard(selectedOTP?.otp)" 
+                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <i class="fas fa-copy mr-2"></i>Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">Full Message</label>
+                        <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg" x-text="selectedOTP?.message_full"></p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">Received At</label>
+                        <p class="text-sm" x-text="formatDate(selectedOTP?.received_at)"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function testDashboard() {
+        return {
+            username: '',
+            numberLimit: 10,
+            myNumbers: [],
+            otps: [],
+            availableNumbers: [],
+            showAvailableNumbers: false,
+            selectedOTP: null,
+            searchCountry: '',
+            
+            async init() {
+                await this.loadMyNumbers();
+                await this.loadOTPs();
+                
+                // Auto-refresh OTPs every 5 seconds
+                setInterval(() => this.loadOTPs(), 5000);
+            },
+            
+            async loadMyNumbers() {
+                try {
+                    const response = await fetch('/api/test/my-numbers');
+                    if (response.ok) {
+                        this.myNumbers = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load numbers:', error);
+                }
+            },
+            
+            async loadOTPs() {
+                try {
+                    const response = await fetch('/api/test/otps');
+                    if (response.ok) {
+                        this.otps = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load OTPs:', error);
+                }
+            },
+            
+            async loadAvailableNumbers() {
+                try {
+                    const url = `/api/test/numbers/available?limit=50${this.searchCountry ? '&country=' + this.searchCountry : ''}`;
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        this.availableNumbers = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load available numbers:', error);
+                }
+            },
+            
+            async allocateNumber(numberId) {
+                try {
+                    const response = await fetch('/api/test/numbers/allocate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ number_id: numberId })
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Number allocated successfully!', 'success');
+                        await this.loadMyNumbers();
+                        this.showAvailableNumbers = false;
+                    } else {
+                        const data = await response.json();
+                        showToast(data.detail || 'Failed to allocate number', 'error');
+                    }
+                } catch (error) {
+                    showToast('Network error', 'error');
+                }
+            },
+            
+            async releaseNumber(numberId) {
+                if (!confirm('Release this number?')) return;
+                
+                try {
+                    const response = await fetch('/api/test/numbers/release', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ number_id: numberId })
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Number released', 'success');
+                        await this.loadMyNumbers();
+                    }
+                } catch (error) {
+                    showToast('Failed to release number', 'error');
+                }
+            },
+            
+            async logout() {
+                try {
+                    await fetch('/api/test/logout', { method: 'POST' });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+                window.location.href = '/test-login';
+            },
+            
+            formatDate(dateString) {
+                return new Date(dateString).toLocaleString();
+            }
+        }
+    }
+</script>
+{% endblock %}

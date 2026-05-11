@@ -1,0 +1,47 @@
+[Unit]
+Description=Sigma SMS A2P - Professional SMS OTP Management System
+Documentation=https://github.com/your-repo/sigma-sms-a2p
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/sigma-sms/python_version
+Environment="PATH=/var/www/sigma-sms/python_version/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Main process
+ExecStart=/var/www/sigma-sms/python_version/venv/bin/uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 4 \
+    --log-level info \
+    --access-log \
+    --use-colors
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=200
+StartLimitBurst=5
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/sigma-sms/python_version/logs
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sigma-sms
+
+[Install]
+WantedBy=multi-user.target

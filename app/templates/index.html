@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}Sigma SMS - A Symbol of trust in Telecommunication Industry{% endblock %}
+
+{% block body %}
+<!-- Navigation -->
+<nav class="bg-white shadow-lg fixed w-full top-0 z-50">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="text-2xl font-bold" style="color:#735DFF;">
+                <i class="fas fa-bolt text-orange-500"></i> Sigma SMS
+            </div>
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#home" class="text-gray-700 hover:text-#735DFF transition">Home</a>
+                <a href="#services" class="text-gray-700 hover:text-#735DFF transition">Services</a>
+                <a href="#about" class="text-gray-700 hover:text-#735DFF transition">About</a>
+                <a href="#ranges" class="text-gray-700 hover:text-#735DFF transition">Ranges</a>
+                <a href="#faq" class="text-gray-700 hover:text-#735DFF transition">FAQ</a>
+                <a href="#contact" class="text-gray-700 hover:text-#735DFF transition">Contact Us</a>
+                <a href="/login" class="text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition" style="background:#735DFF;">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                </a>
+            </div>
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-gray-700" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden mt-4 space-y-2">
+            <a href="#home" class="block text-gray-700 hover:text-#735DFF py-2">Home</a>
+            <a href="#services" class="block text-gray-700 hover:text-#735DFF py-2">Services</a>
+            <a href="#about" class="block text-gray-700 hover:text-#735DFF py-2">About</a>
+            <a href="#ranges" class="block text-gray-700 hover:text-#735DFF py-2">Ranges</a>
+            <a href="#faq" class="block text-gray-700 hover:text-#735DFF py-2">FAQ</a>
+            <a href="#contact" class="block text-gray-700 hover:text-#735DFF py-2">Contact Us</a>
+            <a href="/login" class="block bg-#735DFF text-white px-6 py-2 rounded-full text-center">Sign In</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<div id="home" class="min-h-screen bg-gradient-to-br from-#735DFF via-#5a45e0 to-pink-900 relative overflow-hidden pt-20">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-float"></div>
+        <div class="absolute top-40 right-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute bottom-20 left-1/2 w-72 h-72 bg-#735DFF rounded-full mix-blend-multiply filter blur-xl animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <!-- Hero Content -->
+    <div class="relative z-10 container mx-auto px-6 py-32 text-center">
+        <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 animate-slideInDown">
+            We Provide The Best Services
+        </h1>
+        <p class="text-2xl md:text-3xl text-gray-200 mb-12 animate-fadeInUp">
+            throughout the industry
+        </p>
+        <div class="flex flex-col md:flex-row gap-4 justify-center animate-fadeInUp" style="animation-delay: 0.2s;">
+            <a href="#services" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
+                <i class="fas fa-rocket mr-2"></i> Our Services
+            </a>
+            <a href="#contact" class="bg-white text-#735DFF px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
+                <i class="fas fa-envelope mr-2"></i> Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Services Section -->
+<div id="services" class="py-20 bg-gray-50">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Our Services</h2>
+            <p class="text-xl text-gray-600">Premium SMS and Telecommunication Solutions</p>
+        </div>
+        <div class="grid md:grid-cols-4 gap-8">
+            <!-- Service 1 -->
+            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-#735DFF rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <i class="fas fa-mobile-alt text-white text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">A2P SMS</h3>
+                <p class="text-gray-600">Application to Person messaging for business communications</p>
+            </div>
+
+            <!-- Service 2 -->
+            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <i class="fas fa-comments text-white text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">P2P SMS</h3>
+                <p class="text-gray-600">Person to Person messaging solutions</p>
+            </div>
+
+            <!-- Service 3 -->
+            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <i class="fas fa-paper-plane text-white text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Wholesale SMS</h3>
+                <p class="text-gray-600">Bulk SMS services for enterprises</p>
+            </div>
+
+            <!-- Service 4 -->
+            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <i class="fas fa-broadcast-tower text-white text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Telecommunication Services</h3>
+                <p class="text-gray-600">Complete telecom infrastructure solutions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Section -->
+<div id="about" class="py-20 bg-white">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Sigma SMS</h2>
+            <p class="text-2xl text-#735DFF font-semibold">A Symbol of trust in Telecommunication Industry</p>
+        </div>
+        <div class="max-w-4xl mx-auto text-gray-700 text-lg leading-relaxed space-y-6">
+            <p>
+                <strong>Sigma SMS</strong> is a world leading organisation offering fixed and premium SMS services in the national and international telecommunications market. We are partners with large international tier 1 carriers. We have many direct contracts with carriers.
+            </p>
+            <p>
+                Long established relationships enable us to arrange number ranges and rates to be added to many large carriers rate cards. Sigma SMS is a leading SMS provider of international and domestic premium rate services for various customers around the globe.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="py-20 bg-gradient-to-br from-#735DFF to-#5a45e0 text-white">
+    <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-3 gap-12 text-center">
+            <div class="animate-fadeInUp">
+                <div class="text-6xl font-bold mb-4 text-yellow-400">20000+</div>
+                <div class="text-2xl font-semibold mb-2">Ranges</div>
+                <div class="text-gray-300">Get variety of SMS Ranges.</div>
+            </div>
+            <div class="animate-fadeInUp" style="animation-delay: 0.1s;">
+                <div class="text-6xl font-bold mb-4 text-green-400">10M+</div>
+                <div class="text-2xl font-semibold mb-2">Numbers</div>
+                <div class="text-gray-300">A huge collection of Numbers, ready for traffic.</div>
+            </div>
+            <div class="animate-fadeInUp" style="animation-delay: 0.2s;">
+                <div class="text-6xl font-bold mb-4 text-pink-400">1000+</div>
+                <div class="text-2xl font-semibold mb-2">Satisfied Clients</div>
+                <div class="text-gray-300">Our clients are our power. You can bet on us.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ranges Section -->
+<div id="ranges" class="py-20 bg-gray-50">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Our Ranges</h2>
+            <p class="text-xl text-gray-600">Some of our Exclusive Ranges of A2P and P2P SMS</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-xl p-12 text-center">
+            <div class="text-6xl mb-6">
+                <i class="fas fa-phone-alt text-#735DFF"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-800 mb-4">Premium Number Ranges</h3>
+            <p class="text-xl text-gray-600 mb-8">Access to exclusive international and domestic number ranges</p>
+            <a href="/login" class="inline-block bg-gradient-to-r from-#735DFF to-#735DFF text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
+                <i class="fas fa-sign-in-alt mr-2"></i> Login to View Ranges
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div id="faq" class="py-20 bg-white">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">FAQs</h2>
+            <p class="text-xl text-gray-600">Here are the Frequently Asked Questions about the system</p>
+        </div>
+        <div class="max-w-4xl mx-auto space-y-6">
+            <!-- FAQ 1 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    What is a Premium Rate Number?
+                </h3>
+                <p class="text-gray-700">A Premium Rate Number, sometimes abbreviated as PRN, is a phone number which usually incurs a higher caller cost than a regular landline or fixed number.</p>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    What are A2P/P2P messages?
+                </h3>
+                <p class="text-gray-700">The significant difference between A2P and P2P messaging is often their purpose and send volume. P2P messages are often used for personal reasons and between one sender and one recipient. A2P messages are often used for commercial or marketing purposes and can be sent to thousands of recipients at once. Normally A2P messages are sent Apps to Persons.</p>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    Can the SMS be routed to our platform?
+                </h3>
+                <p class="text-gray-700">Yes, SMS can be routed to your platform via HTTP or SMPP Protocols.</p>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    Can the calls be routed to our platform/call centre/IVR?
+                </h3>
+                <p class="text-gray-700">Yes, Calls can be routed to your platform IP Address or on SIP Accounts.</p>
+            </div>
+
+            <!-- FAQ 5 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    Can you host my IVR application?
+                </h3>
+                <p class="text-gray-700">We can host your IVR application for FREE on our platform. Just contact the helpdesk for set up and technical details.</p>
+            </div>
+
+            <!-- FAQ 6 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    How much do I pay to Sign up?
+                </h3>
+                <p class="text-gray-700">Signing up is for free. There are no hidden charges. Sigma SMS Services pays you for every minute delivered but you never pay Sigma SMS.</p>
+            </div>
+
+            <!-- FAQ 7 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    What are the payterms? How do I get paid if I select different payterms?
+                </h3>
+                <p class="text-gray-700">Payterms are the payment term (cycle), according to these payment cycle you will get payments. There are numerous payment terms offered by us, you can choose your term according to your convenience. For eg. if you choose Weekly 7/2 term then the work you done during current week will be paid to you after 2 days delay.</p>
+            </div>
+
+            <!-- FAQ 8 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    What are the guarantees that I will receive my money?
+                </h3>
+                <p class="text-gray-700">Sigma SMS Services plays a significant role in the international premium rate industry. With millions of minutes of monthly turnover, we can ensure our customers and resellers that they will always be paid on time.</p>
+            </div>
+
+            <!-- FAQ 9 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    How are the calls delivered?
+                </h3>
+                <p class="text-gray-700">They can either terminate on our IVR to an existing service, a sound file you provide, or our IVR technicians can design a bespoke service for you. We can also VOIP them without charge to your IVR. Alternatively, we can route calls to PSTNs; this service carries a nominal routing fee.</p>
+            </div>
+
+            <!-- FAQ 10 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    Why are so many countries offered?
+                </h3>
+                <p class="text-gray-700">Different countries have different levels of access to solutions. We aim to address every need so we are continually offering new terminations and striking deals with international transit carriers to improve access to our solutions.</p>
+            </div>
+
+            <!-- FAQ 11 -->
+            <div class="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-#735DFF mr-2"></i>
+                    I am already a client with another company, can I be yours too at the same time?
+                </h3>
+                <p class="text-gray-700">Sure. A lot of our clients primarily use our services and other companies, but after working with us for few weeks, we find that trust is established and clients then prefer dealing with us.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Section -->
+<div id="contact" class="py-20 bg-gradient-to-br from-#735DFF to-#5a45e0 text-white">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4">Contact Us</h2>
+            <p class="text-xl text-gray-300">Feel free to Contact us via the below form</p>
+        </div>
+        <div class="max-w-2xl mx-auto">
+            <form class="bg-white rounded-2xl shadow-2xl p-8 space-y-6" onsubmit="return handleContactForm(event)">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Name</label>
+                    <input type="text" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-#735DFF focus:ring-2 focus:outline-none transition text-gray-800" placeholder="Your Name">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                    <input type="email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-#735DFF focus:ring-2 focus:outline-none transition text-gray-800" placeholder="your@email.com">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Phone</label>
+                    <input type="tel" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-#735DFF focus:ring-2 focus:outline-none transition text-gray-800" placeholder="+1234567890">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Message</label>
+                    <textarea required rows="5" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-#735DFF focus:ring-2 focus:outline-none transition text-gray-800" placeholder="Your message..."></textarea>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-#735DFF to-#735DFF text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
+                    <i class="fas fa-paper-plane mr-2"></i> Submit Request
+                </button>
+            </form>
+        </div>
+        <div class="text-center mt-12">
+            <div class="inline-block bg-white/10 backdrop-blur-lg rounded-2xl p-8">
+                <i class="fas fa-map-marker-alt text-3xl text-yellow-400 mb-4"></i>
+                <p class="text-lg">G-847, SHREE RAM PRODUCT, ROAD NO 14</p>
+                <p class="text-lg">VKIA AREA SIKAR ROAD JAIPUR</p>
+                <p class="text-lg">RAJASTHAN PIN CODE 302013</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-white py-12">
+    <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-4 gap-8 mb-8">
+            <!-- Column 1 -->
+            <div>
+                <h3 class="text-xl font-bold mb-4">Services</h3>
+                <ul class="space-y-2 text-gray-400">
+                    <li><a href="#services" class="hover:text-white transition">A2P SMS</a></li>
+                    <li><a href="#services" class="hover:text-white transition">P2P SMS</a></li>
+                    <li><a href="#services" class="hover:text-white transition">Wholesale SMS</a></li>
+                    <li><a href="#services" class="hover:text-white transition">Telecommunication Services</a></li>
+                </ul>
+            </div>
+            <!-- Column 2 -->
+            <div>
+                <h3 class="text-xl font-bold mb-4">Links</h3>
+                <ul class="space-y-2 text-gray-400">
+                    <li><a href="#about" class="hover:text-white transition">About Us</a></li>
+                    <li><a href="#contact" class="hover:text-white transition">Contact Us</a></li>
+                    <li><a href="#" class="hover:text-white transition">Terms of Services</a></li>
+                    <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <!-- Column 3 -->
+            <div class="md:col-span-2">
+                <h3 class="text-xl font-bold mb-4">Subscribe Newsletters</h3>
+                <p class="text-gray-400 mb-4">Get our latest news and ideas to your inbox</p>
+                <form class="flex gap-2" onsubmit="return handleNewsletterForm(event)">
+                    <input type="email" required placeholder="Your email" class="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-#735DFF focus:ring-2 focus:outline-none transition">
+                    <button type="submit" class="bg-gradient-to-r from-#735DFF to-#735DFF px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition">
+                        Subscribe
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+            <p>&copy; 2026 Sigma SMS. All Rights Reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<script>
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    menu.classList.toggle('hidden');
+}
+
+function handleContactForm(event) {
+    event.preventDefault();
+    alert('Thank you for your message! We will get back to you soon.');
+    event.target.reset();
+    return false;
+}
+
+function handleNewsletterForm(event) {
+    event.preventDefault();
+    alert('Thank you for subscribing to our newsletter!');
+    event.target.reset();
+    return false;
+}
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+            // Close mobile menu if open
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (!mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

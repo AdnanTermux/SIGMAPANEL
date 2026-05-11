@@ -1,0 +1,1019 @@
+{% extends "base.html" %}
+
+{% block title %}Sigma SMS A2P{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50" x-data="dashboardApp()">
+
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 text-white shadow-2xl z-40 transform transition-transform duration-300"
+           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+           style="background: linear-gradient(180deg, #735DFF 0%, #5a45e0 100%);">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="p-2 bg-white rounded-lg"><i class="fas fa-sms text-2xl" style="color:#735DFF;"></i></div>
+                <div><h1 class="text-xl font-bold">Sigma SMS</h1><p class="text-xs" style="color:#c4b5fd;">A2P Panel</p></div>
+            </div>
+            <div class="rounded-lg p-4 mb-6" style="background:rgba(255,255,255,0.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.18);">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-xl" style="color:#735DFF;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold" x-text="user.username"></p>
+                        <p class="text-xs" style="color:#c4b5fd;" x-text="user.role"></p>
+                    </div>
+                </div>
+            </div>
+            <nav class="space-y-1">
+                <a href="/dashboard" @click.prevent="navigate('/dashboard')"
+                   :class="currentPage==='/dashboard'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-home w-5"></i><span>Dashboard</span></a>
+                <a href="/numbers" @click.prevent="navigate('/numbers')"
+                   :class="currentPage==='/numbers'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-phone w-5"></i><span>Numbers</span></a>
+                <a href="/ranges" @click.prevent="navigate('/ranges')"
+                   :class="currentPage==='/ranges'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-layer-group w-5"></i><span>Ranges</span></a>
+                <a href="/sms-reports" @click.prevent="navigate('/sms-reports')"
+                   :class="currentPage==='/sms-reports'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-envelope w-5"></i><span>SMS Reports</span></a>
+                <a href="#" @click.prevent="openHTTPModal()" x-show="user.role==='admin'"
+                   class="hover:bg-white hover:bg-opacity-10 flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-network-wired w-5"></i><span>HTTP Connection</span></a>
+                <a href="/users" @click.prevent="navigate('/users')" x-show="user.role==='admin'"
+                   :class="currentPage==='/users'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-users w-5"></i><span>Users</span></a>
+                <a href="/crypto-wallets" @click.prevent="navigate('/crypto-wallets')"
+                   :class="currentPage==='/crypto-wallets'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-wallet w-5"></i><span>Crypto Wallets</span></a>
+                <a href="/payments" @click.prevent="navigate('/payments')"
+                   :class="currentPage==='/payments'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-money-bill-wave w-5"></i><span>Payments</span></a>
+                <a href="/test-users" @click.prevent="navigate('/test-users')" x-show="user.role==='admin'"
+                   :class="currentPage==='/test-users'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-flask w-5"></i><span>Test Users</span></a>
+                <a href="/profile" @click.prevent="navigate('/profile')"
+                   :class="currentPage==='/profile'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-user-circle w-5"></i><span>Profile</span></a>
+                <button @click="logout"
+                   class="hover:bg-white hover:bg-opacity-10 flex items-center space-x-3 px-4 py-3 rounded-lg transition w-full text-left cursor-pointer">
+                    <i class="fas fa-sign-out-alt w-5"></i><span>Logout</span></button>
+            </nav>
+        </div>
+    </aside>
+
+    <div x-show="sidebarOpen" @click="sidebarOpen=false"
+         class="fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden" style="display:none;"></div>
+
+    <div class="md:ml-64 min-h-screen">
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-6 py-4">
+                <div class="flex items-center space-x-4">
+                    <button @click="sidebarOpen=!sidebarOpen" class="md:hidden text-gray-600">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-2xl font-bold" style="color:#735DFF;" x-text="pageTitle"></h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 text-gray-600 hover:text-purple-600 transition">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div class="px-4 py-2 rounded-lg" style="background:linear-gradient(135deg,#735DFF11,#735DFF22);border:1px solid #735DFF33;">
+                        <span class="text-sm text-gray-600">Balance:</span>
+                        <span class="font-bold ml-2" style="color:#735DFF;" x-text="formatCurrency(stats.balance||0)"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-6">
+
+            <!-- DASHBOARD -->
+            <div x-show="currentPage==='/dashboard'">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-lg" style="background:#735DFF15;"><i class="fas fa-envelope text-2xl" style="color:#735DFF;"></i></div>
+                            <span class="text-sm text-green-600 font-semibold"><i class="fas fa-arrow-up"></i> +12%</span>
+                        </div>
+                        <h3 class="text-gray-600 text-sm mb-1">Today's SMS</h3>
+                        <p class="text-3xl font-bold text-gray-800" x-text="stats.today_sms||0"></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-lg" style="background:#735DFF15;"><i class="fas fa-chart-line text-2xl" style="color:#735DFF;"></i></div>
+                            <span class="text-sm text-green-600 font-semibold"><i class="fas fa-arrow-up"></i> +8%</span>
+                        </div>
+                        <h3 class="text-gray-600 text-sm mb-1">This Week</h3>
+                        <p class="text-3xl font-bold text-gray-800" x-text="stats.week_sms||0"></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-green-100 rounded-lg"><i class="fas fa-dollar-sign text-2xl text-green-600"></i></div>
+                            <span class="text-sm text-green-600 font-semibold"><i class="fas fa-arrow-up"></i> +15%</span>
+                        </div>
+                        <h3 class="text-gray-600 text-sm mb-1">Today's Profit</h3>
+                        <p class="text-3xl font-bold text-gray-800" x-text="formatCurrency(stats.today_profit||0)"></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-yellow-100 rounded-lg"><i class="fas fa-phone text-2xl text-yellow-600"></i></div>
+                            <span class="text-sm text-gray-600 font-semibold"><span x-text="stats.active_numbers||0"></span>/<span x-text="stats.total_numbers||0"></span></span>
+                        </div>
+                        <h3 class="text-gray-600 text-sm mb-1">Active Numbers</h3>
+                        <p class="text-3xl font-bold text-gray-800" x-text="stats.active_numbers||0"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-clock mr-2" style="color:#735DFF;"></i>SMS Activity (24 Hours)</h3>
+                        <canvas id="smsHourChart" height="250"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-chart-pie mr-2" style="color:#735DFF;"></i>SMS by Service</h3>
+                        <canvas id="smsServiceChart" height="250"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-history mr-2" style="color:#735DFF;"></i>Recent SMS</h3>
+                        <button @click="loadRecentSMS()" class="hover:opacity-80 transition text-sm" style="color:#735DFF;"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Recipient (To)</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Service (From)</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">OTP</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Message</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Time</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Profit</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="sms in recentSMS" :key="sms.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-mono" x-text="sms.number"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="sms.service"></span></td>
+                                        <td class="py-3 px-4 text-sm font-bold text-green-600" x-text="sms.otp"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="sms.message"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(sms.received_at)"></td>
+                                        <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(sms.profit)"></td>
+                                    </tr>
+                                </template>
+                                <tr x-show="recentSMS.length===0"><td colspan="6" class="text-center py-8 text-gray-400">No SMS yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RANGES -->
+            <div x-show="currentPage==='/ranges'">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div class="flex flex-wrap gap-3">
+                            <input x-model="rangesData.search" @input.debounce="loadRanges()" type="text" placeholder="Search ranges..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:outline-none" style="--tw-ring-color:#735DFF;">
+                            <select x-model="rangesData.filterStatus" @change="loadRanges()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="openCreateRangeModal()" x-show="user.role==='admin'" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                                <i class="fas fa-plus mr-2"></i>Add Range</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Total: <strong x-text="rangesData.total"></strong></span>
+                        <button @click="loadRanges()" class="hover:opacity-80 text-sm" style="color:#735DFF;"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Range Name</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Country</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Rate</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Margin</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Numbers</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">SMS</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="r in rangesData.data" :key="r.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-semibold" x-text="r.name"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs" x-text="(r.country_name||r.country_code)"></span></td>
+                                        <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(r.rate)"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="r.profit_margin + '%'"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="r.total_numbers"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="r.total_sms"></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="r.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="r.status"></span></td>
+                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="openEditRangeModal(r)" class="px-2 py-1 rounded text-xs hover:opacity-80" style="background:#735DFF15;color:#735DFF;">Edit</button>
+                                                <button @click="deleteRange(r.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="rangesData.data.length===0"><td colspan="8" class="text-center py-8 text-gray-400">No ranges found</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 flex items-center justify-between">
+                        <button @click="rangesData.skip=Math.max(0,rangesData.skip-rangesData.limit);loadRanges()" :disabled="rangesData.skip===0" class="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50">Prev</button>
+                        <span class="text-sm text-gray-600">Page <span x-text="Math.floor(rangesData.skip/rangesData.limit)+1"></span></span>
+                        <button @click="rangesData.skip+=rangesData.limit;loadRanges()" :disabled="rangesData.skip+rangesData.limit>=rangesData.total" class="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NUMBERS -->
+            <div x-show="currentPage==='/numbers'">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div class="flex flex-wrap gap-3">
+                            <input x-model="numbers.search" @input.debounce="loadNumbers()" type="text" placeholder="Search..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:outline-none" style="--tw-ring-color:#735DFF;">
+                            <select x-model="numbers.filterStatus" @change="loadNumbers()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <button @click="openAddNumberModal()" x-show="user.role==='admin'" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                            <i class="fas fa-plus mr-2"></i>Add Number</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Total: <strong x-text="numbers.total"></strong></span>
+                        <button @click="loadNumbers()" class="hover:opacity-80 text-sm" style="color:#735DFF;"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Number</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Country</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Service</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Range</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">SMS</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Rate</th>
+                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Act</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="num in numbers.data" :key="num.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-mono font-bold" x-text="num.number"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="num.country_name||num.country"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs" x-text="num.service"></span></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="num.range_name"></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="num.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="num.status"></span></td>
+                                        <td class="py-3 px-4 text-sm" x-text="num.total_sms"></td>
+                                        <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(num.rate)"></td>
+                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                            <button @click="deleteNumber(num.id)" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="numbers.data.length===0"><td colspan="8" class="text-center py-8 text-gray-400">No numbers found</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 flex items-center justify-between">
+                        <button @click="numbers.skip=Math.max(0,numbers.skip-numbers.limit);loadNumbers()" :disabled="numbers.skip===0" class="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50">Prev</button>
+                        <span class="text-sm text-gray-600">Page <span x-text="Math.floor(numbers.skip/numbers.limit)+1"></span></span>
+                        <button @click="numbers.skip+=numbers.limit;loadNumbers()" :disabled="numbers.skip+numbers.limit>=numbers.total" class="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SMS REPORTS -->
+            <div x-show="currentPage==='/sms-reports'">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between gap-4">
+                        <input x-model="smsReports.search" @input.debounce="loadSMSReports()" type="text" placeholder="Search number or service..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:outline-none flex-1" style="--tw-ring-color:#735DFF;">
+                        <button @click="loadSMSReports()" class="hover:opacity-80 text-sm" style="color:#735DFF;"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Recipient (To)</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Service (From)</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">OTP</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Message</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Country</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Received</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Profit</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="sms in smsReports.data" :key="sms.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-mono" x-text="sms.number"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="sms.service"></span></td>
+                                        <td class="py-3 px-4 text-sm font-bold text-green-600" x-text="sms.otp"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" x-text="sms.message"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="sms.country"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(sms.received_at)"></td>
+                                        <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(sms.profit)"></td>
+                                    </tr>
+                                </template>
+                                <tr x-show="smsReports.data.length===0"><td colspan="7" class="text-center py-8 text-gray-400">No SMS records</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USERS -->
+            <div x-show="currentPage==='/users'">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div class="flex flex-wrap gap-3">
+                            <input x-model="usersData.search" @input.debounce="loadUsers()" type="text" placeholder="Search users..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:outline-none" style="--tw-ring-color:#735DFF;">
+                            <select x-model="usersData.filterStatus" @change="loadUsers()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">All Status</option><option value="active">Active</option><option value="blocked">Blocked</option>
+                            </select>
+                        </div>
+                        <button @click="openCreateUserModal()" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                            <i class="fas fa-plus mr-2"></i>Add User</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Username</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Email</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Role</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Balance</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="u in usersData.list" :key="u.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-semibold" x-text="u.username"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="u.email"></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="u.role==='admin'?'bg-purple-100 text-purple-600':'bg-blue-100 text-blue-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="u.role"></span></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="u.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="u.status"></span></td>
+                                        <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(u.balance||0)"></td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <div class="flex items-center space-x-2">
+                                                <button x-show="u.status==='active'" @click="blockUser(u.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">Block</button>
+                                                <button x-show="u.status!=='active'" @click="unblockUser(u.id)" class="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200">Unblock</button>
+                                                <button @click="deleteUser(u.id)" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="usersData.list.length===0"><td colspan="6" class="text-center py-8 text-gray-400">No users found</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRYPTO WALLETS -->
+            <div x-show="currentPage==='/crypto-wallets'">
+                <div class="flex justify-end mb-6">
+                    <button @click="openAddWalletModal()" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                        <i class="fas fa-plus mr-2"></i>Add Wallet</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <template x-for="w in wallets.list" :key="w.id">
+                        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <span :class="w.wallet_type==='USDT_TRC20'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'" class="inline-block px-3 py-1 rounded-full text-sm font-semibold mb-2" x-text="w.wallet_type"></span>
+                                    <p class="text-xs text-gray-500">Label</p>
+                                    <p class="font-semibold text-gray-800" x-text="w.label||w.wallet_label||'Unnamed'"></p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button x-show="!w.is_primary" @click="setPrimaryWallet(w.id)" class="px-3 py-1 rounded text-xs hover:opacity-80" style="background:#735DFF15;color:#735DFF;">Set Primary</button>
+                                    <span x-show="w.is_primary" class="px-3 py-1 text-white rounded text-xs" style="background:#735DFF;">Primary</span>
+                                    <button @click="deleteWallet(w.id)" class="px-3 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-xs text-gray-500 mb-1">Address</p>
+                                <p class="font-mono text-sm text-gray-800 break-all" x-text="w.wallet_address||w.address"></p>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="wallets.list.length===0" class="col-span-2 bg-white rounded-xl shadow-lg p-12 text-center">
+                        <i class="fas fa-wallet text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-400">No wallets added yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAYMENTS -->
+            <div x-show="currentPage==='/payments'">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-800">Payment Requests</h3>
+                        <button @click="loadPayments()" class="hover:opacity-80 text-sm" style="color:#735DFF;"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">ID</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Method</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Address</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="p in payments.list" :key="p.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm text-gray-500">#<span x-text="p.id"></span></td>
+                                        <td class="py-3 px-4 text-sm font-bold" x-text="formatCurrency(p.amount)"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs" x-text="p.payout_method"></span></td>
+                                        <td class="py-3 px-4 text-sm font-mono text-xs text-gray-600 max-w-xs truncate" x-text="p.payout_address||p.wallet_address"></td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <span :class="{'bg-yellow-100 text-yellow-600':p.status==='pending','bg-green-100 text-green-600':p.status==='approved','bg-red-100 text-red-600':p.status==='rejected'}" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="p.status"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(p.created_at)"></td>
+                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                            <div class="flex space-x-1">
+                                                <button x-show="p.status==='pending'" @click="approvePayment(p.id)" class="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200">Approve</button>
+                                                <button x-show="p.status==='pending'" @click="rejectPayment(p.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">Reject</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="payments.list.length===0"><td colspan="7" class="text-center py-8 text-gray-400">No payment requests</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEST USERS -->
+            <div x-show="currentPage==='/test-users'">
+                <div class="flex items-center justify-between mb-6">
+                    <a href="/test-dashboard" target="_blank" class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition text-sm font-semibold" style="border-color:#735DFF;color:#735DFF;">
+                        <i class="fas fa-external-link-alt mr-2"></i>Open Test Panel</a>
+                    <button @click="openCreateTestUserModal()" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                        <i class="fas fa-plus mr-2"></i>Add Test User</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Username</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Limit</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Last Login</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="tu in testUsers.list" :key="tu.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-semibold" x-text="tu.username"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="tu.number_limit"></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="tu.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="tu.status"></span></td>
+                                        <td class="py-3 px-4 text-sm text-gray-500" x-text="tu.last_login?formatDate(tu.last_login):'Never'"></td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <div class="flex space-x-2">
+                                                <button x-show="tu.status==='active'" @click="blockTestUser(tu.username)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">Block</button>
+                                                <button x-show="tu.status!=='active'" @click="unblockTestUser(tu.username)" class="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200">Unblock</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="testUsers.list.length===0"><td colspan="5" class="text-center py-8 text-gray-400">No test users yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROFILE -->
+            <div x-show="currentPage==='/profile'">
+                <div class="max-w-2xl">
+                    <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                        <div class="flex items-center space-x-6 mb-8">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background:#735DFF;">
+                                <i class="fas fa-user text-white text-3xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800" x-text="user.username"></h3>
+                                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="user.role"></span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            <div class="bg-gray-50 rounded-lg p-4"><p class="text-xs text-gray-500 mb-1">Username</p><p class="font-semibold text-gray-800" x-text="user.username"></p></div>
+                            <div class="bg-gray-50 rounded-lg p-4"><p class="text-xs text-gray-500 mb-1">Role</p><p class="font-semibold text-gray-800" x-text="user.role"></p></div>
+                            <div class="bg-gray-50 rounded-lg p-4"><p class="text-xs text-gray-500 mb-1">Balance</p><p class="font-semibold text-green-600" x-text="formatCurrency(stats.balance||0)"></p></div>
+                            <div class="bg-gray-50 rounded-lg p-4"><p class="text-xs text-gray-500 mb-1">Total SMS</p><p class="font-semibold text-gray-800" x-text="stats.total_sms||0"></p></div>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">Change Password</h4>
+                        <div class="space-y-4">
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                                <input type="password" x-model="profile.currentPassword" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Current password" style="--tw-ring-color:#735DFF;"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                                <input type="password" x-model="profile.newPassword" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="New password" style="--tw-ring-color:#735DFF;"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                                <input type="password" x-model="profile.confirmPassword" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Confirm new password" style="--tw-ring-color:#735DFF;"></div>
+                            <button @click="changePassword()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 transition font-semibold" style="background:#735DFF;">
+                                <i class="fas fa-key mr-2"></i>Change Password</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- HTTP Modal -->
+    <div x-show="httpModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="httpModalOpen=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 z-10 max-h-screen overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-network-wired mr-2" style="color:#735DFF;"></i>HTTP Connection</h2>
+                <button @click="httpModalOpen=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="rounded-xl p-4 mb-4" style="background:#735DFF08;border:1px solid #735DFF33;">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><p class="text-xs text-gray-500">Server IP</p><p class="font-mono text-sm font-bold" x-text="httpSettings.ip||'Detecting...'"></p></div>
+                    <div><p class="text-xs text-gray-500">Port</p><p class="font-mono text-sm font-bold" x-text="httpSettings.port||'8000'"></p></div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Delivery URL</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" x-model="httpSettings.delivery_url" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm" placeholder="/api/webhook/sms">
+                    <button @click="copyURL()" class="px-4 py-3 text-white rounded-lg hover:opacity-90" style="background:#735DFF;"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="text-xs text-gray-500 mb-2 font-semibold">Supported Formats:</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">JSON</span> - {"to":"+...", "from":"Service", "msg":"..."}</div>
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">Form</span> - to=+...&from=Service&msg=...</div>
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">Array</span> - [{"to":"+...", "msg":"..."}, ...]</div>
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">Nested</span> - {"data": {"sms": {...}}}</div>
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">Text</span> - Raw text or key=value lines</div>
+                    <div class="bg-gray-50 rounded-lg p-2 text-xs"><span class="font-bold" style="color:#735DFF;">aaData</span> - DataTables bulk format</div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">Recipient Field (to)</p><p class="font-mono font-bold">to / number / phone / msisdn</p></div>
+                    <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">Service Field (from)</p><p class="font-mono font-bold">from / service</p></div>
+                    <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">Message Field</p><p class="font-mono font-bold">msg / message / text / body</p></div>
+                    <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">Unique ID Field</p><p class="font-mono font-bold">uuid / id / msgid</p></div>
+                </div>
+            </div>
+            <div class="mb-6 bg-gray-900 rounded-xl p-4">
+                <p class="text-xs text-green-400 font-semibold mb-2">Example POST (JSON):</p>
+                <pre class="text-xs text-gray-300 overflow-x-auto"><code>POST <span x-text="httpSettings.delivery_url||'/api/webhook/sms'"></span>
+{"to":"+923001234567","from":"WhatsApp","msg":"Your code is 123456","uuid":"uid-001"}</code></pre>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Enable HTTP Delivery</label>
+                    <label class="flex items-center cursor-pointer">
+                        <div class="relative">
+                            <input type="checkbox" x-model="httpSettings.enabled" class="sr-only">
+                            <div class="w-10 h-6 rounded-full transition" :class="httpSettings.enabled?'bg-purple-600':'bg-gray-300'" :style="httpSettings.enabled?'background:#735DFF':''"></div>
+                            <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition" :class="httpSettings.enabled?'translate-x-4':'translate-x-0'"></div>
+                        </div>
+                        <span class="ml-3 text-sm text-gray-600" x-text="httpSettings.enabled?'Enabled':'Disabled'"></span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Method</label>
+                    <select x-model="httpSettings.method" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="POST">POST</option><option value="GET">GET</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button @click="httpModalOpen=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="saveHTTPSettings()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;"><i class="fas fa-save mr-2"></i>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Range Modal -->
+    <div x-show="rangeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="rangeModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800" x-text="editingRange?'Edit Range':'Add Range'"></h2>
+                <button @click="rangeModal=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Range Name</label><input type="text" x-model="newRange.name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="e.g. PK-Mobilink" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Country Code</label><input type="text" x-model="newRange.country_code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="PK" maxlength="2" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Country Name</label><input type="text" x-model="newRange.country_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Pakistan" style="--tw-ring-color:#735DFF;"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Rate (USD)</label><input type="number" step="0.01" x-model="newRange.rate" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="0.10" style="--tw-ring-color:#735DFF;"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Margin (%)</label><input type="number" step="1" x-model="newRange.profit_margin" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="50" style="--tw-ring-color:#735DFF;"></div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="rangeModal=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="submitRange()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;" x-text="editingRange?'Update':'Create'"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Number Modal -->
+    <div x-show="addNumberModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="addNumberModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Add Number</h2>
+                <button @click="addNumberModal=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label><input type="text" x-model="newNumber.number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="+923001234567" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Country Code</label><input type="text" x-model="newNumber.country" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="PK" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Country Name</label><input type="text" x-model="newNumber.country_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Pakistan" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Service</label><input type="text" x-model="newNumber.service" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="WhatsApp" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Range Name</label><input type="text" x-model="newNumber.range_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Range A" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Rate (USD)</label><input type="number" step="0.01" x-model="newNumber.rate" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="0.10" style="--tw-ring-color:#735DFF;"></div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="addNumberModal=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="submitAddNumber()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;">Add Number</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div x-show="createUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="createUserModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Create User</h2>
+                <button @click="createUserModal=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Username</label><input type="text" x-model="newUser.username" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="username" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" x-model="newUser.email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="user@example.com" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" x-model="newUser.password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Password" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select x-model="newUser.role" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" style="--tw-ring-color:#735DFF;">
+                        <option value="user">User</option><option value="admin">Admin</option></select></div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="createUserModal=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="submitCreateUser()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Wallet Modal -->
+    <div x-show="addWalletModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="addWalletModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Add Wallet</h2>
+                <button @click="addWalletModal=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Wallet Type</label>
+                    <select x-model="newWallet.wallet_type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" style="--tw-ring-color:#735DFF;">
+                        <option value="USDT_TRC20">USDT TRC20</option><option value="BINANCE_ID">Binance ID</option></select></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Address / Binance ID</label><input type="text" x-model="newWallet.address" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Wallet address" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Label (optional)</label><input type="text" x-model="newWallet.label" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="My wallet" style="--tw-ring-color:#735DFF;"></div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="addWalletModal=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="submitAddWallet()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;">Add Wallet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Test User Modal -->
+    <div x-show="createTestUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="createTestUserModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Create Test User</h2>
+                <button @click="createTestUserModal=false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Username</label><input type="text" x-model="newTestUser.username" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="testuser" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" x-model="newTestUser.password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="Password" style="--tw-ring-color:#735DFF;"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Number Limit</label><input type="number" x-model="newTestUser.number_limit" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none" placeholder="10" style="--tw-ring-color:#735DFF;"></div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="createTestUserModal=false" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button @click="submitCreateTestUser()" class="px-6 py-3 text-white rounded-lg hover:opacity-90 font-semibold" style="background:#735DFF;">Create</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function dashboardApp() {
+    return {
+        sidebarOpen: false,
+        user: {},
+        stats: {},
+        recentSMS: [],
+        currentPage: window.location.pathname,
+        httpModalOpen: false,
+        addNumberModal: false,
+        createUserModal: false,
+        addWalletModal: false,
+        createTestUserModal: false,
+        rangeModal: false,
+        editingRange: false,
+        editingRangeId: null,
+        httpSettings: { delivery_url:'', ip:'', port:'', method:'POST', enabled:false },
+        numbers: { data:[], total:0, skip:0, limit:100, search:'', filterStatus:'' },
+        smsReports: { data:[], search:'' },
+        usersData: { list:[], search:'', filterStatus:'' },
+        wallets: { list:[] },
+        payments: { list:[] },
+        testUsers: { list:[] },
+        rangesData: { data:[], total:0, skip:0, limit:100, search:'', filterStatus:'' },
+        newNumber: { number:'', country:'', country_name:'', service:'', range_name:'', rate:0.1 },
+        newUser: { username:'', email:'', password:'', role:'user' },
+        newWallet: { wallet_type:'USDT_TRC20', address:'', label:'' },
+        newTestUser: { username:'', password:'', number_limit:10 },
+        newRange: { name:'', country_code:'', country_name:'', rate:0.0, profit_margin:50.0 },
+        profile: { currentPassword:'', newPassword:'', confirmPassword:'' },
+
+        get pageTitle() {
+            const map = {
+                '/dashboard':'Dashboard','/numbers':'Numbers','/ranges':'Ranges','/sms-reports':'SMS Reports',
+                '/users':'Users','/crypto-wallets':'Crypto Wallets','/payments':'Payments',
+                '/test-users':'Test Users','/profile':'Profile'
+            };
+            return map[this.currentPage]||'Dashboard';
+        },
+
+        navigate(path) {
+            history.pushState({}, '', path);
+            this.currentPage = path;
+            this.sidebarOpen = false;
+            this.loadPageData(path);
+        },
+
+        async init() {
+            this.user = JSON.parse(localStorage.getItem('user')||'{}');
+            if (!localStorage.getItem('access_token')) { window.location.href='/login'; return; }
+            await this.loadStats();
+            this.loadPageData(this.currentPage);
+            window.addEventListener('popstate', () => {
+                this.currentPage = window.location.pathname;
+                this.loadPageData(this.currentPage);
+            });
+            setInterval(() => this.loadStats(), 30000);
+        },
+
+        loadPageData(path) {
+            if (path==='/dashboard') { this.loadRecentSMS(); this.loadCharts(); }
+            else if (path==='/numbers') this.loadNumbers();
+            else if (path==='/ranges') this.loadRanges();
+            else if (path==='/sms-reports') this.loadSMSReports();
+            else if (path==='/users') this.loadUsers();
+            else if (path==='/crypto-wallets') this.loadWallets();
+            else if (path==='/payments') this.loadPayments();
+            else if (path==='/test-users') this.loadTestUsers();
+        },
+
+        async apiCall(url, options={}) {
+            const token = localStorage.getItem('access_token');
+            const r = await fetch(url, {
+                ...options,
+                headers: { 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json', ...(options.headers||{}) }
+            });
+            if (r.status===401) { localStorage.removeItem('access_token'); localStorage.removeItem('user'); window.location.href='/login'; }
+            return r;
+        },
+
+        async loadStats() {
+            try { const r = await this.apiCall('/api/dashboard/stats'); if(r.ok) this.stats=await r.json(); } catch(e){}
+        },
+
+        async loadCharts() {
+            try {
+                const r = await this.apiCall('/api/dashboard/charts');
+                if (r.ok) { const d=await r.json(); this.renderCharts(d); }
+            } catch(e){}
+        },
+
+        renderCharts(data) {
+            const PURPLE = '#735DFF';
+            const hCtx = document.getElementById('smsHourChart');
+            if (hCtx && data.sms_by_hour) {
+                if (hCtx._chart) hCtx._chart.destroy();
+                hCtx._chart = new Chart(hCtx, {
+                    type:'line',
+                    data:{ labels:data.sms_by_hour.labels, datasets:[{ label:'SMS', data:data.sms_by_hour.data, borderColor:PURPLE, backgroundColor:PURPLE+'1A', tension:0.4, fill:true }] },
+                    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+                });
+            }
+            const sCtx = document.getElementById('smsServiceChart');
+            if (sCtx && data.sms_by_service) {
+                if (sCtx._chart) sCtx._chart.destroy();
+                const keys=Object.keys(data.sms_by_service);
+                const colors = [PURPLE,'#5a45e0','#8B5CF6','#6366F1','#A78BFA'];
+                sCtx._chart = new Chart(sCtx, {
+                    type:'doughnut',
+                    data:{ labels:keys, datasets:[{ data:Object.values(data.sms_by_service), backgroundColor:colors }] },
+                    options:{ responsive:true, maintainAspectRatio:false }
+                });
+            }
+        },
+
+        async loadRecentSMS() {
+            try { const r=await this.apiCall('/api/dashboard/recent-sms?limit=20'); if(r.ok) this.recentSMS=await r.json(); } catch(e){}
+        },
+
+        // ── Ranges ──
+        async loadRanges() {
+            try {
+                let url=`/api/ranges?skip=${this.rangesData.skip}&limit=${this.rangesData.limit}`;
+                if(this.rangesData.search) url+=`&search=${encodeURIComponent(this.rangesData.search)}`;
+                if(this.rangesData.filterStatus) url+=`&status=${this.rangesData.filterStatus}`;
+                const r=await this.apiCall(url);
+                if(r.ok){ const d=await r.json(); this.rangesData.data=d.data; this.rangesData.total=d.total; }
+            } catch(e){}
+        },
+
+        openCreateRangeModal() { this.newRange={name:'',country_code:'',country_name:'',rate:0.0,profit_margin:50.0}; this.editingRange=false; this.editingRangeId=null; this.rangeModal=true; },
+        openEditRangeModal(r) { this.newRange={name:r.name,country_code:r.country_code,country_name:r.country_name,rate:r.rate,profit_margin:r.profit_margin}; this.editingRange=true; this.editingRangeId=r.id; this.rangeModal=true; },
+
+        async submitRange() {
+            try {
+                let url, opts;
+                if (this.editingRange && this.editingRangeId) {
+                    url = `/api/ranges/${this.editingRangeId}`;
+                    opts = {method:'PUT', body:JSON.stringify(this.newRange)};
+                } else {
+                    url = '/api/ranges';
+                    opts = {method:'POST', body:JSON.stringify(this.newRange)};
+                }
+                const r=await this.apiCall(url, opts);
+                if(r.ok){showToast(this.editingRange?'Range updated!':'Range created!','success');this.rangeModal=false;this.loadRanges();}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+
+        async deleteRange(id) {
+            if(!confirm('Delete this range?')) return;
+            try { const r=await this.apiCall(`/api/ranges/${id}`,{method:'DELETE'}); if(r.ok){showToast('Deleted','success');this.loadRanges();} } catch(e){showToast('Network error','error');}
+        },
+
+        // ── Numbers ──
+        async loadNumbers() {
+            try {
+                let url=`/api/numbers?skip=${this.numbers.skip}&limit=${this.numbers.limit}`;
+                if(this.numbers.search) url+=`&search=${encodeURIComponent(this.numbers.search)}`;
+                if(this.numbers.filterStatus) url+=`&status=${this.numbers.filterStatus}`;
+                const r=await this.apiCall(url);
+                if(r.ok) { const d=await r.json(); this.numbers.data=d.data; this.numbers.total=d.total; }
+            } catch(e){}
+        },
+
+        openAddNumberModal() { this.newNumber={number:'',country:'',country_name:'',service:'',range_name:'',rate:0.1}; this.addNumberModal=true; },
+
+        async submitAddNumber() {
+            try {
+                const r=await this.apiCall('/api/numbers',{method:'POST',body:JSON.stringify(this.newNumber)});
+                if(r.ok){showToast('Number added!','success');this.addNumberModal=false;this.loadNumbers();}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+
+        async deleteNumber(id) {
+            if(!confirm('Delete this number?')) return;
+            try { const r=await this.apiCall(`/api/numbers/${id}`,{method:'DELETE'}); if(r.ok){showToast('Deleted','success');this.loadNumbers();} } catch(e){showToast('Network error','error');}
+        },
+
+        // ── SMS Reports ──
+        async loadSMSReports() {
+            try {
+                const r=await this.apiCall('/api/dashboard/recent-sms?limit=200');
+                if(r.ok){
+                    let data=await r.json();
+                    if(this.smsReports.search){const q=this.smsReports.search.toLowerCase();data=data.filter(s=>s.number?.toLowerCase().includes(q)||s.service?.toLowerCase().includes(q));}
+                    this.smsReports.data=data;
+                }
+            } catch(e){}
+        },
+
+        // ── Users ──
+        async loadUsers() {
+            try {
+                let url='/api/users?limit=100';
+                if(this.usersData.search) url+=`&search=${encodeURIComponent(this.usersData.search)}`;
+                if(this.usersData.filterStatus) url+=`&status=${this.usersData.filterStatus}`;
+                const r=await this.apiCall(url);
+                if(r.ok) this.usersData.list=await r.json();
+            } catch(e){}
+        },
+
+        openCreateUserModal() { this.newUser={username:'',email:'',password:'',role:'user'}; this.createUserModal=true; },
+
+        async submitCreateUser() {
+            try {
+                const r=await this.apiCall('/api/users',{method:'POST',body:JSON.stringify(this.newUser)});
+                if(r.ok){showToast('User created!','success');this.createUserModal=false;this.loadUsers();}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+
+        async blockUser(id) { try { const r=await this.apiCall(`/api/users/${id}/block`,{method:'POST'}); if(r.ok){showToast('Blocked','success');this.loadUsers();} } catch(e){} },
+        async unblockUser(id) { try { const r=await this.apiCall(`/api/users/${id}/unblock`,{method:'POST'}); if(r.ok){showToast('Unblocked','success');this.loadUsers();} } catch(e){} },
+        async deleteUser(id) { if(!confirm('Delete user?')) return; try { const r=await this.apiCall(`/api/users/${id}`,{method:'DELETE'}); if(r.ok){showToast('Deleted','success');this.loadUsers();} } catch(e){} },
+
+        // ── Wallets ──
+        async loadWallets() { try { const r=await this.apiCall('/api/crypto/wallets'); if(r.ok) this.wallets.list=await r.json(); } catch(e){} },
+        openAddWalletModal() { this.newWallet={wallet_type:'USDT_TRC20',address:'',label:''}; this.addWalletModal=true; },
+        async submitAddWallet() {
+            try {
+                const r=await this.apiCall('/api/crypto/wallets',{method:'POST',body:JSON.stringify(this.newWallet)});
+                if(r.ok){showToast('Wallet added!','success');this.addWalletModal=false;this.loadWallets();}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+        async setPrimaryWallet(id) { try { const r=await this.apiCall(`/api/crypto/wallets/${id}/primary`,{method:'PUT'}); if(r.ok){showToast('Set as primary','success');this.loadWallets();} } catch(e){} },
+        async deleteWallet(id) { if(!confirm('Delete wallet?')) return; try { const r=await this.apiCall(`/api/crypto/wallets/${id}`,{method:'DELETE'}); if(r.ok){showToast('Deleted','success');this.loadWallets();} } catch(e){} },
+
+        // ── Payments ──
+        async loadPayments() { try { const r=await this.apiCall('/api/payments/requests'); if(r.ok) this.payments.list=await r.json(); } catch(e){} },
+        async approvePayment(id) { try { const r=await this.apiCall(`/api/payments/requests/${id}`,{method:'PUT',body:JSON.stringify({status:'approved'})}); if(r.ok){showToast('Approved!','success');this.loadPayments();} else{const d=await r.json();showToast(d.detail||'Failed','error');} } catch(e){showToast('Network error','error');} },
+        async rejectPayment(id) { try { const r=await this.apiCall(`/api/payments/requests/${id}`,{method:'PUT',body:JSON.stringify({status:'rejected'})}); if(r.ok){showToast('Rejected','success');this.loadPayments();} } catch(e){showToast('Network error','error');} },
+
+        // ── Test Users ──
+        async loadTestUsers() { try { const r=await this.apiCall('/api/test/admin/users'); if(r.ok) this.testUsers.list=await r.json(); } catch(e){} },
+        openCreateTestUserModal() { this.newTestUser={username:'',password:'',number_limit:10}; this.createTestUserModal=true; },
+        async submitCreateTestUser() {
+            try {
+                const r=await this.apiCall('/api/test/admin/users',{method:'POST',body:JSON.stringify(this.newTestUser)});
+                if(r.ok){showToast('Test user created!','success');this.createTestUserModal=false;this.loadTestUsers();}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+        async blockTestUser(username) { try { const r=await this.apiCall(`/api/test/admin/users/${username}/block`,{method:'POST'}); if(r.ok){showToast('Blocked','success');this.loadTestUsers();} } catch(e){} },
+        async unblockTestUser(username) { try { const r=await this.apiCall(`/api/test/admin/users/${username}/unblock`,{method:'POST'}); if(r.ok){showToast('Unblocked','success');this.loadTestUsers();} } catch(e){} },
+
+        // ── Profile ──
+        async changePassword() {
+            if(this.profile.newPassword!==this.profile.confirmPassword){showToast('Passwords do not match','error');return;}
+            if(this.profile.newPassword.length<6){showToast('Min 6 characters','error');return;}
+            try {
+                const r=await this.apiCall(`/api/users/${this.user.id}`,{method:'PUT',body:JSON.stringify({password:this.profile.newPassword,current_password:this.profile.currentPassword})});
+                if(r.ok){showToast('Password changed!','success');this.profile={currentPassword:'',newPassword:'',confirmPassword:''};}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+
+        // ── HTTP Settings ──
+        async openHTTPModal() {
+            this.httpModalOpen=true;
+            try { const r=await this.apiCall('/api/dashboard/http-settings'); if(r.ok) this.httpSettings=await r.json(); } catch(e){}
+        },
+        async saveHTTPSettings() {
+            try {
+                const r=await this.apiCall('/api/dashboard/http-settings',{method:'POST',body:JSON.stringify(this.httpSettings)});
+                if(r.ok){showToast('Saved!','success');this.httpModalOpen=false;}
+                else{const d=await r.json();showToast(d.detail||'Failed','error');}
+            } catch(e){showToast('Network error','error');}
+        },
+        copyURL() {
+            navigator.clipboard.writeText(this.httpSettings.delivery_url||'')
+                .then(()=>showToast('Copied!','success')).catch(()=>showToast('Copy failed','error'));
+        },
+
+        async logout() {
+            try { await this.apiCall('/api/auth/logout',{method:'POST'}); } catch(e){}
+            localStorage.removeItem('access_token'); localStorage.removeItem('user');
+            window.location.href='/login';
+        },
+
+        formatCurrency(v) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(v); },
+        formatDate(d) { return d ? new Date(d).toLocaleString() : '-'; }
+    }
+}
+</script>
+{% endblock %}

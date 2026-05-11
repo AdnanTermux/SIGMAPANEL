@@ -1,0 +1,152 @@
+﻿╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║                    SIGMA SMS A2P - ADMIN ACCESS GUIDE                     ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+You've successfully deployed Sigma SMS A2P! Here's how to access the admin panel:
+
+═══════════════════════════════════════════════════════════════════════════
+  METHOD 1: QUICK SETUP SCRIPT (EASIEST)
+═══════════════════════════════════════════════════════════════════════════
+
+Run this command in your python_version directory:
+
+    bash setup_admin.sh
+
+Choose option 1 for quick setup with default credentials:
+    Username: admin
+    Password: admin123
+
+Or choose option 2 to set custom credentials.
+
+═══════════════════════════════════════════════════════════════════════════
+  METHOD 2: PYTHON SCRIPT (RECOMMENDED)
+═══════════════════════════════════════════════════════════════════════════
+
+If you're using virtual environment:
+
+    cd python_version
+    source venv/bin/activate  # Linux/Mac
+    # OR
+    venv\Scripts\activate     # Windows
+    
+    python create_admin.py
+
+Follow the prompts to create your admin account with custom credentials.
+
+═══════════════════════════════════════════════════════════════════════════
+  METHOD 3: SQL SCRIPT (QUICK)
+═══════════════════════════════════════════════════════════════════════════
+
+Run the SQL script to create admin with default credentials:
+
+    mysql -u root -p sigma_sms_a2p < create_admin.sql
+
+Default credentials:
+    Username: admin
+    Password: admin123
+
+⚠️  CHANGE PASSWORD IMMEDIATELY AFTER FIRST LOGIN!
+
+═══════════════════════════════════════════════════════════════════════════
+  METHOD 4: MANUAL SQL (ADVANCED)
+═══════════════════════════════════════════════════════════════════════════
+
+Connect to your database:
+
+    mysql -u root -p sigma_sms_a2p
+
+Run this SQL:
+
+    DELETE FROM users WHERE username = 'admin';
+    
+    INSERT INTO users (username, email, password, role, status)
+    VALUES (
+        'admin',
+        'admin@sigma-sms.com',
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7qXqKqKqKq',
+        'admin',
+        'active'
+    );
+
+This creates:
+    Username: admin
+    Password: admin123
+
+═══════════════════════════════════════════════════════════════════════════
+  LOGIN INFORMATION
+═══════════════════════════════════════════════════════════════════════════
+
+After creating the admin account, access your panel:
+
+    🌐 Login URL:
+       http://localhost:8000/login
+       http://your-domain.com/login
+
+    👤 Default Credentials:
+       Username: admin
+       Password: admin123
+
+    📱 Test Panel:
+       http://localhost:8000/test-login
+       Username: test123
+       Password: test123
+
+═══════════════════════════════════════════════════════════════════════════
+  IMPORTANT SECURITY NOTES
+═══════════════════════════════════════════════════════════════════════════
+
+⚠️  CRITICAL: Change the default password immediately after first login!
+
+1. Login with default credentials
+2. Go to Profile/Settings
+3. Change your password to a strong one
+4. Update your email address
+5. Enable two-factor authentication (if available)
+
+═══════════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+❌ Can't login?
+   - Check if admin user exists: SELECT * FROM users WHERE username='admin';
+   - Verify application is running: curl http://localhost:8000/health
+   - Check logs: docker-compose logs -f app
+
+❌ Database connection error?
+   - Verify DATABASE_URL in .env file
+   - Check MySQL is running: systemctl status mysql
+   - Test connection: mysql -u root -p sigma_sms_a2p
+
+❌ Password not working?
+   - Re-run the setup script to reset password
+   - Make sure you're using the correct username (case-sensitive)
+
+═══════════════════════════════════════════════════════════════════════════
+  NEXT STEPS
+═══════════════════════════════════════════════════════════════════════════
+
+After logging in as admin:
+
+1. ✅ Change default password
+2. ✅ Configure system settings
+3. ✅ Add phone numbers
+4. ✅ Create user accounts (managers, resellers)
+5. ✅ Set up crypto wallets for payouts
+6. ✅ Configure webhook URL with your SMS provider
+7. ✅ Test SMS receiving functionality
+
+═══════════════════════════════════════════════════════════════════════════
+  SUPPORT
+═══════════════════════════════════════════════════════════════════════════
+
+📚 Documentation: See README.md for complete documentation
+🐛 Issues: Check logs in /var/log/sigma-sms/ or docker logs
+📧 Contact: admin@sigma-sms.com
+
+═══════════════════════════════════════════════════════════════════════════
+
+                    🎉 Welcome to Sigma SMS A2P! 🎉
+
+═══════════════════════════════════════════════════════════════════════════

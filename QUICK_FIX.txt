@@ -1,0 +1,83 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║                    🔧 QUICK FIX FOR LOGIN ISSUES 🔧                       ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+You're getting "Invalid username or password" error. This is because the 
+password hashes in the database don't match the Python bcrypt format.
+
+═══════════════════════════════════════════════════════════════════════════
+  🚀 QUICK FIX (Run this command)
+═══════════════════════════════════════════════════════════════════════════
+
+cd python_version
+python fix_accounts.py
+
+This will:
+✓ Create/update admin account with correct password hash
+✓ Create/update test account with correct password hash
+✓ Verify passwords work
+✓ Show you the login credentials
+
+═══════════════════════════════════════════════════════════════════════════
+  📋 STEP BY STEP
+═══════════════════════════════════════════════════════════════════════════
+
+1. Navigate to python_version directory:
+   cd python_version
+
+2. If using virtual environment, activate it:
+   source venv/bin/activate     # Linux/Mac
+   venv\Scripts\activate        # Windows
+
+3. Run the fix script:
+   python fix_accounts.py
+
+4. Try logging in again:
+   Admin:  http://localhost:8000/login (admin / admin123)
+   Test:   http://localhost:8000/test-login (test123 / test123)
+
+═══════════════════════════════════════════════════════════════════════════
+  ❓ WHY THIS HAPPENED
+═══════════════════════════════════════════════════════════════════════════
+
+The SQL schema had a PHP bcrypt hash ($2y$...) but Python uses $2b$ format.
+The fix_accounts.py script generates proper Python-compatible hashes.
+
+═══════════════════════════════════════════════════════════════════════════
+  🔍 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+If fix_accounts.py fails:
+
+1. Check .env file exists and has DATABASE_URL
+2. Verify MySQL is running:
+   systemctl status mysql
+
+3. Test database connection:
+   mysql -u root -p sigma_sms_a2p
+
+4. Make sure schemas are imported:
+   mysql -u root -p sigma_sms_a2p < database/schema.sql
+   mysql -u root -p sigma_sms_a2p < database/schema_test_panel.sql
+
+═══════════════════════════════════════════════════════════════════════════
+  ✅ AFTER FIXING
+═══════════════════════════════════════════════════════════════════════════
+
+Login credentials:
+
+Admin Panel:
+  URL:      http://localhost:8000/login
+  Username: admin
+  Password: admin123
+
+Test Panel:
+  URL:      http://localhost:8000/test-login
+  Username: test123
+  Password: test123
+
+⚠️  Change passwords immediately after first login!
+
+═══════════════════════════════════════════════════════════════════════════
