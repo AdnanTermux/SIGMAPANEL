@@ -9,6 +9,9 @@ from .payment_request import PaymentRequest
 from .test_user import TestUser, TestUserNumber
 from .notification import Notification
 from .security_log import SecurityLog
+from .smpp_connection import SMPPConnection
+from .transaction import TransactionLedger
+from .audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -19,5 +22,8 @@ __all__ = [
     "TestUser",
     "TestUserNumber",
     "Notification",
-    "SecurityLog"
+    "SecurityLog",
+    "SMPPConnection",
+    "TransactionLedger",
+    "AuditLog"
 ]

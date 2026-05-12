@@ -2,7 +2,7 @@
 Number Management API Routes
 CRUD operations for phone numbers
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -23,6 +23,7 @@ async def list_numbers(
     service: Optional[str] = None,
     status: Optional[str] = None,
     search: Optional[str] = None,
+    available_only: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
@@ -34,6 +35,9 @@ async def list_numbers(
     # Filter by assignment (non-admin users see only their numbers)
     if current_user.role != "admin":
         query = query.filter(Number.assigned_to == current_user.username)
+    
+    if available_only:
+        query = query.filter(Number.assigned_to == None)
     
     # Apply filters
     if country:
@@ -285,3 +289,77 @@ async def bulk_import_numbers(
         "error_count": error_count,
         "errors": errors[:10]  # Limit errors
     }
+
+
+@router.post("/bulk-upload-txt")
+async def bulk_upload_txt(
+    file: UploadFile,
+    range_name: Optional[str] = None,
+    range_id: Optional[str] = None,
+    country: str = "US",
+    rate: float = 0.0,
+    profit_margin: float = 50.0,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Bulk upload numbers from txt file (one number per line)"""
+    if not file.filename.endswith('.txt'):
+        raise HTTPException(status_code=400, detail="Only .txt files are supported")
+    
+    content = await file.read()
+    text = content.decode('utf-8', errors='replace')
+    lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
+    
+    success_count = 0
+    error_count = 0
+    errors = []
+    
+    for idx, line in enumerate(lines):
+        number = line.strip().strip('\r')
+        if not number:
+            continue
+        
+        try:
+            if db.query(Number).filter(Number.number == number).first():
+                error_count += 1
+                errors.append(f"Line {idx+1}: Number already exists")
+                continue
+            
+            new_number = Number(
+                number=number, country=country, range_name=range_name,
+                range_id=range_id, rate=rate, profit_margin=profit_margin, status="active"
+            )
+            db.add(new_number)
+            success_count += 1
+        except Exception as e:
+            error_count += 1
+            errors.append(f"Line {idx+1}: {str(e)}")
+    
+    db.commit()
+    return {"success_count": success_count, "error_count": error_count, "errors": errors[:10]}
+
+
+@router.post("/self-allocate")
+async def self_allocate_numbers(
+    numbers: List[int],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Self-allocate numbers to current user (Reseller+ only)"""
+    from ..core.deps import has_permission
+    if not has_permission(current_user, "self_allocate"):
+        raise HTTPException(status_code=403, detail="Self-allocation not allowed for your role")
+    
+    success_count = 0
+    for num_id in numbers:
+        num = db.query(Number).filter(Number.id == num_id).first()
+        if not num:
+            continue
+        if num.assigned_to is not None:
+            continue
+        num.assigned_to = current_user.username
+        num.assigned_at = datetime.utcnow()
+        success_count += 1
+    
+    db.commit()
+    return {"message": f"Successfully allocated {success_count} numbers", "allocated_count": success_count}

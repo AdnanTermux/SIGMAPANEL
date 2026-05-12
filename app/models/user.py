@@ -8,10 +8,12 @@ import enum
 
 
 class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     MANAGER = "manager"
     RESELLER = "reseller"
     SUB_RESELLER = "sub_reseller"
+    USER = "user"
 
 
 class UserStatus(str, enum.Enum):
@@ -57,6 +59,14 @@ class User(Base):
     # Security
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime(timezone=True), nullable=True)
+    
+    # Business
+    notes = Column(Text, nullable=True)
+    tags = Column(String(255), nullable=True)
+    commission_rate = Column(Numeric(5, 2), default=0.00)
+    profit_share = Column(Numeric(5, 2), default=0.00)
+    api_quota = Column(Integer, default=1000)
+    impersonated_by = Column(Integer, nullable=True)
     
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"

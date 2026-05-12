@@ -2,7 +2,7 @@
 Range Management API Routes
 Full CRUD for number ranges
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
@@ -120,12 +120,7 @@ async def create_range(
 @router.put("/{range_id}")
 async def update_range(
     range_id: int,
-    name: Optional[str] = None,
-    country_code: Optional[str] = None,
-    country_name: Optional[str] = None,
-    rate: Optional[float] = None,
-    profit_margin: Optional[float] = None,
-    status: Optional[str] = None,
+    request: Request,
     current_user: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ) -> dict:
@@ -134,18 +129,20 @@ async def update_range(
     if not r:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Range not found")
 
-    if name is not None:
-        r.name = name
-    if country_code is not None:
-        r.country_code = country_code
-    if country_name is not None:
-        r.country_name = country_name
-    if rate is not None:
-        r.rate = rate
-    if profit_margin is not None:
-        r.profit_margin = profit_margin
-    if status is not None:
-        r.status = status
+    body = await request.json()
+    
+    if "name" in body and body["name"]:
+        r.name = body["name"]
+    if "country_code" in body and body["country_code"]:
+        r.country_code = body["country_code"]
+    if "country_name" in body and body["country_name"] is not None:
+        r.country_name = body["country_name"]
+    if "rate" in body and body["rate"] is not None:
+        r.rate = body["rate"]
+    if "profit_margin" in body and body["profit_margin"] is not None:
+        r.profit_margin = body["profit_margin"]
+    if "status" in body and body["status"]:
+        r.status = body["status"]
 
     db.commit()
     db.refresh(r)

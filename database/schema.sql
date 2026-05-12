@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `username`   VARCHAR(30)  NOT NULL UNIQUE,
   `email`      VARCHAR(100) DEFAULT NULL,
   `password`   VARCHAR(255) NOT NULL,
-  `role`       ENUM('admin','manager','reseller','sub_reseller') NOT NULL DEFAULT 'reseller',
+  `role`       ENUM('super_admin','admin','manager','reseller','sub_reseller','user') NOT NULL DEFAULT 'reseller',
   `status`     ENUM('active','pending','blocked') NOT NULL DEFAULT 'active',
   `parent_id`  INT UNSIGNED DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -188,7 +188,13 @@ ALTER TABLE `users`
   ADD COLUMN IF NOT EXISTS `updated_at`            DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   ADD COLUMN IF NOT EXISTS `last_login`            DATETIME DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS `failed_login_attempts` INT NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `locked_until`          DATETIME DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS `locked_until`          DATETIME DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `notes`                 TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `tags`                  VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `commission_rate`       DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS `profit_share`          DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS `api_quota`             INT NOT NULL DEFAULT 1000,
+  ADD COLUMN IF NOT EXISTS `impersonated_by`       INT UNSIGNED DEFAULT NULL;
 
 -- ── Default settings ──────────────────────────────────────────────────────────
 INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
@@ -202,3 +208,55 @@ INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
 -- CHANGE IMMEDIATELY after installation!
 INSERT IGNORE INTO `users` (`username`, `email`, `password`, `role`, `status`) VALUES
   ('admin', 'admin@sigma-sms.com', '$2b$12$a6PLoHNC2AYPD4aC.YRjs.Ow9jnYQXETA1R9tNmBa6niBMaGx7CKO', 'admin', 'active');
+
+-- ── 14. SMPP Connections ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `smpp_connections` (
+  `id`                 INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `name`               VARCHAR(100) NOT NULL,
+  `host`               VARCHAR(255) NOT NULL,
+  `port`               INT NOT NULL DEFAULT 2775,
+  `system_id`          VARCHAR(50) NOT NULL,
+  `password`           VARCHAR(255) NOT NULL,
+  `system_type`        VARCHAR(20) DEFAULT 'SMPP',
+  `interface_version`  VARCHAR(10) DEFAULT '3.4',
+  `status`             ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  `created_at`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`         DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `last_activity_at`   DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── 15. Transaction Ledger (Double-entry) ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `transaction_ledger` (
+  `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id`         INT UNSIGNED NOT NULL,
+  `transaction_type` ENUM('credit','debit','commission','payout','refund','transfer','adjustment') NOT NULL,
+  `amount`          DECIMAL(12,4) NOT NULL,
+  `balance_before`  DECIMAL(12,4) NOT NULL,
+  `balance_after`   DECIMAL(12,4) NOT NULL,
+  `currency`        VARCHAR(3) NOT NULL DEFAULT 'USD',
+  `reference_type`  VARCHAR(50) DEFAULT NULL,
+  `reference_id`    INT UNSIGNED DEFAULT NULL,
+  `description`     TEXT,
+  `created_by`      INT UNSIGNED DEFAULT NULL,
+  `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_user_id`  (`user_id`),
+  KEY `idx_type_date` (`transaction_type`, `created_at`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── 16. Audit Logs ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id`        INT UNSIGNED DEFAULT NULL,
+  `action`         VARCHAR(100) NOT NULL,
+  `resource_type`  VARCHAR(50) DEFAULT NULL,
+  `resource_id`    INT UNSIGNED DEFAULT NULL,
+  `old_values`     JSON DEFAULT NULL,
+  `new_values`     JSON DEFAULT NULL,
+  `ip_address`     VARCHAR(45) DEFAULT NULL,
+  `user_agent`     VARCHAR(255) DEFAULT NULL,
+  `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_user_id`    (`user_id`),
+  KEY `idx_action`     (`action`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

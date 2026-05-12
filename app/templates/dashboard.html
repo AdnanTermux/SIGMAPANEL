@@ -42,10 +42,14 @@
                    :class="currentPage==='/sms-reports'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
                     <i class="fas fa-envelope w-5"></i><span>SMS Reports</span></a>
-                <a href="#" @click.prevent="openHTTPModal()" x-show="user.role==='admin'"
+                <a href="#" @click.prevent="openHTTPModal()" x-show="['super_admin','admin'].includes(user.role)"
                    class="hover:bg-white hover:bg-opacity-10 flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
                     <i class="fas fa-network-wired w-5"></i><span>HTTP Connection</span></a>
-                <a href="/users" @click.prevent="navigate('/users')" x-show="user.role==='admin'"
+                <a href="#" @click.prevent="navigate('/smpp')" x-show="['super_admin','admin'].includes(user.role)"
+                   :class="currentPage==='/smpp'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-plug w-5"></i><span>SMPP Connections</span></a>
+                <a href="/users" @click.prevent="navigate('/users')" x-show="['super_admin','admin'].includes(user.role)"
                    :class="currentPage==='/users'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
                     <i class="fas fa-users w-5"></i><span>Users</span></a>
@@ -57,7 +61,7 @@
                    :class="currentPage==='/payments'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
                     <i class="fas fa-money-bill-wave w-5"></i><span>Payments</span></a>
-                <a href="/test-users" @click.prevent="navigate('/test-users')" x-show="user.role==='admin'"
+                <a href="/test-users" @click.prevent="navigate('/test-users')" x-show="['super_admin','admin'].includes(user.role)"
                    :class="currentPage==='/test-users'?'bg-white bg-opacity-20':'hover:bg-white hover:bg-opacity-10'"
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition cursor-pointer">
                     <i class="fas fa-flask w-5"></i><span>Test Users</span></a>
@@ -164,9 +168,9 @@
                                 <template x-for="sms in recentSMS" :key="sms.id">
                                     <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
                                         <td class="py-3 px-4 text-sm font-mono" x-text="sms.number"></td>
-                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="sms.service"></span></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="shouldMaskData() ? (sms.service ? sms.service.substring(0,2) + '\u2022\u2022\u2022\u2022\u2022\u2022' : 'Unknown') : sms.service"></span></td>
                                         <td class="py-3 px-4 text-sm font-bold text-green-600" x-text="sms.otp"></td>
-                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="sms.message"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600" x-text="shouldMaskData() ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : sms.message"></td>
                                         <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(sms.received_at)"></td>
                                         <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(sms.profit)"></td>
                                     </tr>
@@ -189,7 +193,7 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <button @click="openCreateRangeModal()" x-show="user.role==='admin'" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                            <button @click="openCreateRangeModal()" x-show="['super_admin','admin'].includes(user.role)" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
                                 <i class="fas fa-plus mr-2"></i>Add Range</button>
                         </div>
                     </div>
@@ -209,7 +213,7 @@
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Numbers</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">SMS</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                                <th x-show="['super_admin','admin'].includes(user.role)" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                             </tr></thead>
                             <tbody>
                                 <template x-for="r in rangesData.data" :key="r.id">
@@ -221,7 +225,7 @@
                                         <td class="py-3 px-4 text-sm" x-text="r.total_numbers"></td>
                                         <td class="py-3 px-4 text-sm" x-text="r.total_sms"></td>
                                         <td class="py-3 px-4 text-sm"><span :class="r.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="r.status"></span></td>
-                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                        <td class="py-3 px-4 text-sm" x-show="['super_admin','admin'].includes(user.role)">
                                             <div class="flex items-center space-x-2">
                                                 <button @click="openEditRangeModal(r)" class="px-2 py-1 rounded text-xs hover:opacity-80" style="background:#735DFF15;color:#735DFF;">Edit</button>
                                                 <button @click="deleteRange(r.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"><i class="fas fa-trash"></i></button>
@@ -241,6 +245,57 @@
                 </div>
             </div>
 
+            <!-- SMPP CONNECTIONS -->
+            <div x-show="currentPage==='/smpp'">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-plug mr-2" style="color:#735DFF;"></i>SMPP Connections (v3.4)</h3>
+                        <div class="flex gap-2">
+                            <button @click="loadSMPPConnections()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                            <button @click="smppModal=true;editingSMPP=false;newSMPP={name:'',host:'',port:2775,system_id:'',password:'',system_type:'SMPP',interface_version:'3.4'}" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                                <i class="fas fa-plus mr-2"></i>Add SMPP</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 rounded-lg" style="background:#f0f9ff;border:1px solid #bae6fd;">
+                        <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i>SMPP 3.4 Protocol - Supported encodings: GSM7 (English), UCS2 (Unicode). Destination address must be in international format. Retry depends on number of routes.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Name</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Host:Port</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">System ID</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Version</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Last Activity</th>
+                                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="c in smppConnections" :key="c.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-3 px-4 text-sm font-semibold" x-text="c.name"></td>
+                                        <td class="py-3 px-4 text-sm font-mono" x-text="c.host + ':' + c.port"></td>
+                                        <td class="py-3 px-4 text-sm" x-text="c.system_id"></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs" x-text="c.interface_version"></span></td>
+                                        <td class="py-3 px-4 text-sm"><span :class="c.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="c.status"></span></td>
+                                        <td class="py-3 px-4 text-sm text-gray-500" x-text="c.last_activity_at ? formatDate(c.last_activity_at) : 'Never'"></td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="testSMPP(c.id)" class="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs hover:bg-blue-200">Test</button>
+                                                <button @click="deleteSMPP(c.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="smppConnections.length===0"><td colspan="7" class="text-center py-8 text-gray-400">No SMPP connections configured</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- NUMBERS -->
             <div x-show="currentPage==='/numbers'">
                 <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -250,9 +305,21 @@
                             <select x-model="numbers.filterStatus" @change="loadNumbers()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
                                 <option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
                             </select>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm cursor-pointer">
+                                <input type="checkbox" x-model="numbers.availableOnly" @change="loadNumbers()" class="rounded">
+                                <span class="text-blue-700 font-medium">Available Only</span>
+                            </label>
                         </div>
-                        <button @click="openAddNumberModal()" x-show="user.role==='admin'" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
-                            <i class="fas fa-plus mr-2"></i>Add Number</button>
+                        <div class="flex gap-2">
+                            <button @click="openAddNumberModal()" x-show="['super_admin','admin'].includes(user.role)" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold" style="background:#735DFF;">
+                                <i class="fas fa-plus mr-2"></i>Add Number</button>
+                            <label x-show="['super_admin','admin'].includes(user.role)" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm font-semibold cursor-pointer">
+                                <i class="fas fa-upload mr-2"></i>Bulk Upload TXT
+                                <input type="file" accept=".txt" @change="bulkUploadTXT($event)" class="hidden">
+                            </label>
+                            <button @click="selfAllocateSelected()" x-show="['reseller','sub_reseller','super_admin','admin'].includes(user.role)" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
+                                <i class="fas fa-hand-holding mr-2"></i>Self Allocate</button>
+                        </div>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -270,7 +337,7 @@
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">SMS</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Rate</th>
-                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Act</th>
+                                <th x-show="['super_admin','admin'].includes(user.role)" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Act</th>
                             </tr></thead>
                             <tbody>
                                 <template x-for="num in numbers.data" :key="num.id">
@@ -282,7 +349,7 @@
                                         <td class="py-3 px-4 text-sm"><span :class="num.status==='active'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="num.status"></span></td>
                                         <td class="py-3 px-4 text-sm" x-text="num.total_sms"></td>
                                         <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(num.rate)"></td>
-                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                        <td class="py-3 px-4 text-sm" x-show="['super_admin','admin'].includes(user.role)">
                                             <button @click="deleteNumber(num.id)" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                                         </td>
                                     </tr>
@@ -323,9 +390,9 @@
                                 <template x-for="sms in smsReports.data" :key="sms.id">
                                     <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
                                         <td class="py-3 px-4 text-sm font-mono" x-text="sms.number"></td>
-                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="sms.service"></span></td>
+                                        <td class="py-3 px-4 text-sm"><span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#735DFF15;color:#735DFF;" x-text="shouldMaskData() ? (sms.service ? sms.service.substring(0,2) + '\u2022\u2022\u2022\u2022\u2022\u2022' : 'Unknown') : sms.service"></span></td>
                                         <td class="py-3 px-4 text-sm font-bold text-green-600" x-text="sms.otp"></td>
-                                        <td class="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" x-text="sms.message"></td>
+                                        <td class="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" x-text="shouldMaskData() ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : sms.message"></td>
                                         <td class="py-3 px-4 text-sm" x-text="sms.country"></td>
                                         <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(sms.received_at)"></td>
                                         <td class="py-3 px-4 text-sm font-semibold text-green-600" x-text="formatCurrency(sms.profit)"></td>
@@ -437,7 +504,7 @@
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Address</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
                                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Date</th>
-                                <th x-show="user.role==='admin'" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                                <th x-show="['super_admin','admin'].includes(user.role)" class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                             </tr></thead>
                             <tbody>
                                 <template x-for="p in payments.list" :key="p.id">
@@ -450,7 +517,7 @@
                                             <span :class="{'bg-yellow-100 text-yellow-600':p.status==='pending','bg-green-100 text-green-600':p.status==='approved','bg-red-100 text-red-600':p.status==='rejected'}" class="px-2 py-1 rounded-full text-xs font-semibold" x-text="p.status"></span>
                                         </td>
                                         <td class="py-3 px-4 text-sm text-gray-500" x-text="formatDate(p.created_at)"></td>
-                                        <td class="py-3 px-4 text-sm" x-show="user.role==='admin'">
+                                        <td class="py-3 px-4 text-sm" x-show="['super_admin','admin'].includes(user.role)">
                                             <div class="flex space-x-1">
                                                 <button x-show="p.status==='pending'" @click="approvePayment(p.id)" class="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200">Approve</button>
                                                 <button x-show="p.status==='pending'" @click="rejectPayment(p.id)" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200">Reject</button>
@@ -746,7 +813,7 @@ function dashboardApp() {
         editingRange: false,
         editingRangeId: null,
         httpSettings: { delivery_url:'', ip:'', port:'', method:'POST', enabled:false },
-        numbers: { data:[], total:0, skip:0, limit:100, search:'', filterStatus:'' },
+        numbers: { data:[], total:0, skip:0, limit:100, search:'', filterStatus:'', availableOnly:false },
         smsReports: { data:[], search:'' },
         usersData: { list:[], search:'', filterStatus:'' },
         wallets: { list:[] },
@@ -758,12 +825,16 @@ function dashboardApp() {
         newWallet: { wallet_type:'USDT_TRC20', address:'', label:'' },
         newTestUser: { username:'', password:'', number_limit:10 },
         newRange: { name:'', country_code:'', country_name:'', rate:0.0, profit_margin:50.0 },
+        smppConnections: [],
+        newSMPP: {name:'',host:'',port:2775,system_id:'',password:'',system_type:'SMPP',interface_version:'3.4'},
+        editingSMPP: false,
+        smppModal: false,
         profile: { currentPassword:'', newPassword:'', confirmPassword:'' },
 
         get pageTitle() {
             const map = {
                 '/dashboard':'Dashboard','/numbers':'Numbers','/ranges':'Ranges','/sms-reports':'SMS Reports',
-                '/users':'Users','/crypto-wallets':'Crypto Wallets','/payments':'Payments',
+                '/smpp':'SMPP Connections','/users':'Users','/crypto-wallets':'Crypto Wallets','/payments':'Payments',
                 '/test-users':'Test Users','/profile':'Profile'
             };
             return map[this.currentPage]||'Dashboard';
@@ -796,6 +867,7 @@ function dashboardApp() {
             else if (path==='/users') this.loadUsers();
             else if (path==='/crypto-wallets') this.loadWallets();
             else if (path==='/payments') this.loadPayments();
+            else if (path==='/smpp') this.loadSMPPConnections();
             else if (path==='/test-users') this.loadTestUsers();
         },
 
@@ -886,7 +958,7 @@ function dashboardApp() {
         // ── Numbers ──
         async loadNumbers() {
             try {
-                let url=`/api/numbers?skip=${this.numbers.skip}&limit=${this.numbers.limit}`;
+                let url=`/api/numbers?skip=${this.numbers.skip}&limit=${this.numbers.limit}${this.numbers.availableOnly ? '&available_only=true' : ''}`;
                 if(this.numbers.search) url+=`&search=${encodeURIComponent(this.numbers.search)}`;
                 if(this.numbers.filterStatus) url+=`&status=${this.numbers.filterStatus}`;
                 const r=await this.apiCall(url);
@@ -1009,6 +1081,55 @@ function dashboardApp() {
             try { await this.apiCall('/api/auth/logout',{method:'POST'}); } catch(e){}
             localStorage.removeItem('access_token'); localStorage.removeItem('user');
             window.location.href='/login';
+        },
+
+        shouldMaskData() { return ['reseller','sub_reseller','user'].includes(this.user.role); },
+
+        async loadSMPPConnections() {
+            try {
+                const r = await this.apiCall('/api/smpp/connections');
+                if(r.ok) { const d = await r.json(); this.smppConnections = d.data || []; }
+            } catch(e) { console.error('Failed to load SMPP connections'); }
+        },
+
+        async testSMPP(id) {
+            try {
+                const r = await this.apiCall(`/api/smpp/connections/${id}/test`, {method:'POST'});
+                if(r.ok) { const d = await r.json(); showToast(d.message, d.status==='success'?'success':'error'); this.loadSMPPConnections(); }
+            } catch(e) { showToast('Connection test failed','error'); }
+        },
+
+        async deleteSMPP(id) {
+            if(!confirm('Delete this SMPP connection?')) return;
+            try {
+                const r = await this.apiCall(`/api/smpp/connections/${id}`, {method:'DELETE'});
+                if(r.ok) { showToast('SMPP connection deleted','success'); this.loadSMPPConnections(); }
+            } catch(e) { showToast('Failed to delete','error'); }
+        },
+
+        async bulkUploadTXT(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('country', prompt('Country code (e.g. US, GB):') || 'US');
+            formData.append('range_name', prompt('Range name (optional):') || '');
+            try {
+                const r = await fetch('/api/numbers/bulk-upload-txt', { method:'POST', headers:{'Authorization':'Bearer '+localStorage.getItem('access_token')}, body:formData });
+                if(r.ok) { const d = await r.json(); showToast(`Uploaded ${d.success_count} numbers, ${d.error_count} errors`,'success'); this.loadNumbers(); }
+                else showToast('Upload failed','error');
+            } catch(e) { showToast('Upload error','error'); }
+            event.target.value = '';
+        },
+
+        async selfAllocateSelected() {
+            const available = this.numbers.data.filter(n => !n.assigned_to).map(n => n.id);
+            if(available.length === 0) { showToast('No available numbers to allocate','warning'); return; }
+            if(!confirm(`Allocate ${available.length} available numbers to yourself?`)) return;
+            try {
+                const r = await this.apiCall('/api/numbers/self-allocate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(available)});
+                if(r.ok) { const d = await r.json(); showToast(d.message,'success'); this.loadNumbers(); }
+            } catch(e) { showToast('Allocation failed','error'); }
         },
 
         formatCurrency(v) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(v); },

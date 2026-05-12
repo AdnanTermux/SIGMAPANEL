@@ -17,7 +17,7 @@ import sys
 
 from .config import settings
 from .database import engine, Base
-from .api import auth, webhook, dashboard, users, numbers, ranges, crypto, payments, test_panel
+from .api import auth, webhook, dashboard, users, numbers, ranges, crypto, payments, test_panel, smpp
 
 # Configure logging
 logger.remove()
@@ -84,6 +84,7 @@ app.include_router(crypto.router, prefix="/api/crypto", tags=["Crypto Wallets"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(test_panel.router, prefix="/api/test", tags=["Test Panel"])
 app.include_router(ranges.router, prefix="/api/ranges", tags=["Ranges"])
+app.include_router(smpp.router, prefix="/api/smpp", tags=["SMPP"])
 
 
 # Root endpoints

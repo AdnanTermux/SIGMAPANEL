@@ -33,7 +33,7 @@ async def get_dashboard_stats(
     month_start = today_start - timedelta(days=30)
     
     # Base query filter (admin sees all, others see only their data)
-    if current_user.role == "admin":
+    if current_user.role in ("admin", "super_admin"):
         sms_filter = True
         user_filter = True
     else:
@@ -68,18 +68,18 @@ async def get_dashboard_stats(
     
     # Numbers count
     total_numbers = db.query(func.count(Number.id)).filter(
-        Number.assigned_to == current_user.username if current_user.role != "admin" else True
+        Number.assigned_to == current_user.username if current_user.role not in ("admin", "super_admin") else True
     ).scalar() or 0
     
     active_numbers = db.query(func.count(Number.id)).filter(
         and_(
             Number.status == "active",
-            Number.assigned_to == current_user.username if current_user.role != "admin" else True
+            Number.assigned_to == current_user.username if current_user.role not in ("admin", "super_admin") else True
         )
     ).scalar() or 0
     
     # Users count (admin only)
-    if current_user.role == "admin":
+    if current_user.role in ("admin", "super_admin"):
         total_users = db.query(func.count(User.id)).scalar() or 0
         active_users = db.query(func.count(User.id)).filter(
             User.status == "active"
@@ -94,14 +94,14 @@ async def get_dashboard_stats(
     pending_payments = db.query(func.count(PaymentRequest.id)).filter(
         and_(
             PaymentRequest.status == "pending",
-            PaymentRequest.user_id == current_user.id if current_user.role != "admin" else True
+            PaymentRequest.user_id == current_user.id if current_user.role not in ("admin", "super_admin") else True
         )
     ).scalar() or 0
     
     pending_payments_amount = db.query(func.sum(PaymentRequest.amount)).filter(
         and_(
             PaymentRequest.status == "pending",
-            PaymentRequest.user_id == current_user.id if current_user.role != "admin" else True
+            PaymentRequest.user_id == current_user.id if current_user.role not in ("admin", "super_admin") else True
         )
     ).scalar() or 0.0
     
@@ -130,7 +130,7 @@ async def get_dashboard_charts(
     Get dashboard charts data
     """
     # Base filter
-    if current_user.role == "admin":
+    if current_user.role in ("admin", "super_admin"):
         sms_filter = True
     else:
         sms_filter = SMSReceived.assigned_to == current_user.username
@@ -232,7 +232,7 @@ async def get_recent_sms(
     Get recent SMS
     """
     # Base filter
-    if current_user.role == "admin":
+    if current_user.role in ("admin", "super_admin"):
         sms_filter = True
     else:
         sms_filter = SMSReceived.assigned_to == current_user.username
@@ -337,7 +337,7 @@ async def save_http_settings(
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """Save HTTP delivery settings (admin only)"""
-    if current_user.role.value != "admin":
+    if current_user.role.value not in ("admin", "super_admin"):
         from fastapi import HTTPException, status
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
 
