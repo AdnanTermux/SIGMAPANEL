@@ -29,6 +29,11 @@ class UserUpdate(BaseModel):
     country: Optional[str] = None
     timezone: Optional[str] = None
     language: Optional[str] = None
+    notes: Optional[str] = None
+    tags: Optional[str] = None
+    commission_rate: Optional[float] = None
+    profit_share: Optional[float] = None
+    api_quota: Optional[int] = None
 
 
 class UserResponse(BaseModel):
@@ -41,6 +46,11 @@ class UserResponse(BaseModel):
     balance: float
     created_at: datetime
     last_login: Optional[datetime]
+    notes: Optional[str] = None
+    tags: Optional[str] = None
+    commission_rate: Optional[float] = None
+    profit_share: Optional[float] = None
+    api_quota: int = 1000
     
     class Config:
         from_attributes = True
