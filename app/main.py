@@ -29,9 +29,6 @@ logger.add(
 
 # logger.add("logs/sigma-sms/app.log")  # Enable for file logging  # or just remove file logging
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
@@ -330,10 +327,15 @@ async def debug_login():
 # Startup event
 @app.on_event("startup")
 async def startup_event():
-    """Run on application startup"""
+    """Run on application startup - initialize DB safely"""
     logger.info(f"Starting {settings.APP_NAME} v2.0.0")
     logger.info(f"Environment: {settings.APP_ENV}")
     logger.info(f"Debug mode: {settings.APP_DEBUG}")
+    # Safe table creation: checkfirst avoids errors on existing tables
+    # Migrates missing columns for tables that already exist
+    from .database import init_db
+    init_db()
+    logger.info("Database tables verified/created successfully")
 
 
 # Shutdown event
