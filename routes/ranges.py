@@ -1,4 +1,4 @@
-"""Ranges CRUD routes"""
+"""Ranges CRUD - Admin only can create/delete, all roles can view"""
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -8,11 +8,11 @@ from auth import verify_token, extract_token, generate_id
 
 router = APIRouter(prefix="/api/ranges", tags=["ranges"])
 
-def _authenticate(request: Request):
-    token = extract_token(request.headers.get('Authorization'))
-    if not token:
-        return None
-    return verify_token(token)
+def _require(request: Request):
+    tok = extract_token(request.headers.get("Authorization"))
+    p = verify_token(tok) if tok else None
+    if not p: raise HTTPException(401, "Authentication required")
+    return p
 
 class RangeCreate(BaseModel):
     name: str
@@ -25,8 +25,8 @@ class RangeCreate(BaseModel):
     otpDailyResetHour: Optional[int] = 0
     allocationLimitGlobal: Optional[int] = 10000
     allocationLimitPerUser: Optional[int] = 100
-    allocationPeriod: Optional[str] = 'daily'
-    status: Optional[str] = 'active'
+    allocationPeriod: Optional[str] = "monthly"
+    status: Optional[str] = "active"
 
 class RangeUpdate(BaseModel):
     name: Optional[str] = None
@@ -42,133 +42,106 @@ class RangeUpdate(BaseModel):
     allocationPeriod: Optional[str] = None
     status: Optional[str] = None
 
+FIELD_MAP = {
+    "name": "name", "providerId": "provider_id", "countryCode": "country_code",
+    "countryName": "country_name", "rate": "rate", "profitMargin": "profit_margin",
+    "otpLimitPerDay": "otp_limit_per_day", "otpDailyResetHour": "otp_daily_reset_hour",
+    "allocationLimitGlobal": "allocation_limit_global",
+    "allocationLimitPerUser": "allocation_limit_per_user",
+    "allocationPeriod": "allocation_period", "status": "status",
+}
+
 @router.get("")
 async def list_ranges(
     request: Request,
-    country: str = Query(None),
-    status: str = Query(None),
+    country: str = Query(None), status: str = Query(None),
     search: str = Query(None),
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
 ):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
+    p = _require(request)
     offset = (page - 1) * limit
-    conditions = []
-    params = []
-    
-    if country:
-        conditions.append("country_code = ?")
-        params.append(country)
-    if status:
-        conditions.append("status = ?")
-        params.append(status)
+    conds, params = [], []
+    if country: conds.append("country_code = ?"); params.append(country)
+    if status:  conds.append("status = ?");      params.append(status)
     if search:
-        conditions.append("(name LIKE ? OR country_name LIKE ?)")
-        params.extend([f"%{search}%", f"%{search}%"])
-    
-    where = " AND ".join(conditions) if conditions else "1=1"
-    
+        conds.append("(name LIKE ? OR country_name LIKE ?)"); params.extend([f"%{search}%"]*2)
+    where = " AND ".join(conds) if conds else "1=1"
     with get_db() as conn:
         rows = conn.execute(
-            f"""SELECT r.*, (SELECT COUNT(*) FROM numbers WHERE range_id = r.id) as numbers_count
+            f"""SELECT r.*,
+                (SELECT COUNT(*) FROM numbers WHERE range_name = r.name) as numbers_count,
+                (SELECT COUNT(*) FROM numbers WHERE range_name = r.name AND (assigned_to IS NULL OR assigned_to='')) as available_count
                 FROM ranges r WHERE {where} ORDER BY r.created_at DESC LIMIT ? OFFSET ?""",
-            params + [limit, offset]
+            params + [limit, offset],
         ).fetchall()
-        
         total = conn.execute(f"SELECT COUNT(*) FROM ranges WHERE {where}", params).fetchone()[0]
-    
     data = []
     for row in rows:
         d = dict(row)
-        d['_count'] = {'numbers': d.pop('numbers_count', 0)}
+        d["_count"] = {"numbers": d.pop("numbers_count", 0), "available": d.pop("available_count", 0)}
         data.append(d)
-    
-    return {
-        "data": data,
-        "pagination": {
-            "total": total, "page": page, "limit": limit,
-            "totalPages": (total + limit - 1) // limit,
-            "hasMore": offset + limit < total,
-        },
-    }
+    return {"data": data, "pagination": {"total": total, "page": page, "limit": limit, "totalPages": (total+limit-1)//limit, "hasMore": offset+limit<total}}
 
 @router.post("")
 async def create_range(request: Request, body: RangeCreate):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    if payload['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+    p = _require(request)
+    if p["role"] != "admin":
+        raise HTTPException(403, "Only Admin can create ranges")
     with get_db() as conn:
-        existing = conn.execute("SELECT id FROM ranges WHERE name = ?", (body.name,)).fetchone()
-        if existing:
-            raise HTTPException(status_code=409, detail="Range name already exists")
-        
-        range_id = generate_id()
+        if conn.execute("SELECT id FROM ranges WHERE name=?", (body.name,)).fetchone():
+            raise HTTPException(409, "Range name already exists")
+        rid = generate_id()
         conn.execute(
-            """INSERT INTO ranges (id, name, provider_id, country_code, country_name, rate, profit_margin,
-               otp_limit_per_day, otp_daily_reset_hour, allocation_limit_global, allocation_limit_per_user,
-               allocation_period, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (range_id, body.name, body.providerId, body.countryCode, body.countryName,
+            """INSERT INTO ranges (id,name,provider_id,country_code,country_name,rate,profit_margin,
+               otp_limit_per_day,otp_daily_reset_hour,allocation_limit_global,allocation_limit_per_user,
+               allocation_period,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (rid, body.name, body.providerId, body.countryCode, body.countryName,
              body.rate, body.profitMargin, body.otpLimitPerDay, body.otpDailyResetHour,
-             body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status)
+             body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status),
         )
-        
-        row = conn.execute("SELECT * FROM ranges WHERE id = ?", (range_id,)).fetchone()
-        return JSONResponse(status_code=201, content={"data": dict(row)})
+        row = conn.execute("SELECT * FROM ranges WHERE id=?", (rid,)).fetchone()
+    return JSONResponse(status_code=201, content={"data": dict(row)})
+
+@router.get("/{item_id}")
+async def get_range(request: Request, item_id: str):
+    _require(request)
+    with get_db() as conn:
+        row = conn.execute(
+            """SELECT r.*,
+               (SELECT COUNT(*) FROM numbers WHERE range_name=r.name) as numbers_count,
+               (SELECT COUNT(*) FROM numbers WHERE range_name=r.name AND (assigned_to IS NULL OR assigned_to='')) as available_count
+               FROM ranges r WHERE r.id=?""", (item_id,)
+        ).fetchone()
+    if not row: raise HTTPException(404, "Range not found")
+    d = dict(row)
+    d["_count"] = {"numbers": d.pop("numbers_count", 0), "available": d.pop("available_count", 0)}
+    return {"data": d}
 
 @router.put("/{item_id}")
 async def update_range(request: Request, item_id: str, body: RangeUpdate):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
+    p = _require(request)
+    if p["role"] != "admin":
+        raise HTTPException(403, "Only Admin can edit ranges")
     with get_db() as conn:
-        existing = conn.execute("SELECT id FROM ranges WHERE id = ?", (item_id,)).fetchone()
-        if not existing:
-            raise HTTPException(status_code=404, detail="Range not found")
-        
-        field_map = {
-            'name': 'name', 'providerId': 'provider_id', 'countryCode': 'country_code',
-            'countryName': 'country_name', 'rate': 'rate', 'profitMargin': 'profit_margin',
-            'otpLimitPerDay': 'otp_limit_per_day', 'otpDailyResetHour': 'otp_daily_reset_hour',
-            'allocationLimitGlobal': 'allocation_limit_global', 'allocationLimitPerUser': 'allocation_limit_per_user',
-            'allocationPeriod': 'allocation_period', 'status': 'status',
-        }
-        
-        updates = {}
-        for py_key, db_key in field_map.items():
-            val = getattr(body, py_key, None)
-            if val is not None:
-                updates[db_key] = val
-        
+        if not conn.execute("SELECT id FROM ranges WHERE id=?", (item_id,)).fetchone():
+            raise HTTPException(404, "Range not found")
+        updates = {db: getattr(body, py) for py, db in FIELD_MAP.items() if getattr(body, py, None) is not None}
         if updates:
-            set_clause = ", ".join(f"{k} = ?" for k in updates)
-            conn.execute(f"UPDATE ranges SET {set_clause} WHERE id = ?", list(updates.values()) + [item_id])
-        
-        row = conn.execute("SELECT * FROM ranges WHERE id = ?", (item_id,)).fetchone()
-        return {"data": dict(row)}
+            conn.execute(
+                f"UPDATE ranges SET {','.join(f'{k}=?' for k in updates)},updated_at=datetime('now') WHERE id=?",
+                list(updates.values()) + [item_id],
+            )
+        row = conn.execute("SELECT * FROM ranges WHERE id=?", (item_id,)).fetchone()
+    return {"data": dict(row)}
 
 @router.delete("/{item_id}")
 async def delete_range(request: Request, item_id: str):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    if payload['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+    p = _require(request)
+    if p["role"] != "admin":
+        raise HTTPException(403, "Only Admin can delete ranges")
     with get_db() as conn:
-        existing = conn.execute("SELECT * FROM ranges WHERE id = ?", (item_id,)).fetchone()
-        if not existing:
-            raise HTTPException(status_code=404, detail="Range not found")
-        
-        # Remove rangeId from associated numbers
-        conn.execute("UPDATE numbers SET range_id = NULL, range_name = NULL WHERE range_id = ?", (item_id,))
-        conn.execute("DELETE FROM ranges WHERE id = ?", (item_id,))
-        
-        return {"message": "Range deleted successfully", "deletedRange": existing['name']}
+        existing = conn.execute("SELECT * FROM ranges WHERE id=?", (item_id,)).fetchone()
+        if not existing: raise HTTPException(404, "Range not found")
+        conn.execute("UPDATE numbers SET range_id=NULL,range_name=NULL WHERE range_id=?", (item_id,))
+        conn.execute("DELETE FROM ranges WHERE id=?", (item_id,))
+    return {"message": "Range deleted", "deletedRange": existing["name"]}

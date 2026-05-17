@@ -1,18 +1,23 @@
-"""Numbers CRUD routes"""
+"""Numbers routes - role-based: admin/manager full control, reseller assigns to users, user read-only"""
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+import re
 from database import get_db
 from auth import verify_token, extract_token, generate_id
+from datetime import datetime
 
 router = APIRouter(prefix="/api/numbers", tags=["numbers"])
 
-def _authenticate(request: Request):
-    token = extract_token(request.headers.get('Authorization'))
-    if not token:
-        return None
-    return verify_token(token)
+def _auth(req: Request):
+    tok = extract_token(req.headers.get("Authorization"))
+    return verify_token(tok) if tok else None
+
+def _require(req: Request):
+    p = _auth(req)
+    if not p: raise HTTPException(401, "Authentication required")
+    return p
 
 class NumberCreate(BaseModel):
     number: str
@@ -21,7 +26,7 @@ class NumberCreate(BaseModel):
     rangeName: Optional[str] = None
     rangeId: Optional[str] = None
     service: Optional[str] = None
-    status: Optional[str] = 'active'
+    status: Optional[str] = "active"
     assignedTo: Optional[str] = None
     rate: Optional[float] = 0
     profitMargin: Optional[float] = 0
@@ -37,6 +42,24 @@ class NumberUpdate(BaseModel):
     rate: Optional[float] = None
     profitMargin: Optional[float] = None
 
+class BulkImport(BaseModel):
+    numbersText: str
+    country: str
+    countryName: Optional[str] = None
+    rangeName: Optional[str] = None
+    rangeId: Optional[str] = None
+    rate: Optional[float] = 0.0
+    profitMargin: Optional[float] = 50.0
+
+class AssignBody(BaseModel):
+    numberIds: list
+    assignTo: str
+
+class ReturnBody(BaseModel):
+    username: Optional[str] = None
+    rangeName: Optional[str] = None
+    numberIds: Optional[list] = None
+
 @router.get("")
 async def list_numbers(
     request: Request,
@@ -45,53 +68,55 @@ async def list_numbers(
     status: str = Query(None),
     search: str = Query(None),
     rangeName: str = Query(None),
+    assignedTo: str = Query(None),
+    available: str = Query(None),   # "true" = only unassigned
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=500),
 ):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
+    p = _require(request)
     offset = (page - 1) * limit
-    conditions = []
-    params = []
-    
+    conds, params = [], []
+
+    role = p["role"]
+
+    if role == "end_user":
+        # Users only see their own numbers
+        conds.append("n.assigned_to = ?")
+        params.append(p["username"])
+    elif role == "reseller":
+        # Resellers see numbers assigned to them OR to their sub-users
+        conds.append("(n.assigned_to = ? OR n.assigned_to IN (SELECT username FROM users WHERE parent_id = ?))")
+        params.extend([p["username"], p["userId"]])
+    # admin and manager see all
+
     if country:
-        conditions.append("n.country = ?")
-        params.append(country)
+        conds.append("n.country = ?"); params.append(country)
     if service:
-        conditions.append("n.service LIKE ?")
-        params.append(f"%{service}%")
+        conds.append("n.service LIKE ?"); params.append(f"%{service}%")
     if status:
-        conditions.append("n.status = ?")
-        params.append(status)
+        conds.append("n.status = ?"); params.append(status)
     if rangeName:
-        conditions.append("n.range_name = ?")
-        params.append(rangeName)
+        conds.append("n.range_name = ?"); params.append(rangeName)
+    if assignedTo:
+        conds.append("n.assigned_to = ?"); params.append(assignedTo)
     if search:
-        conditions.append("(n.number LIKE ? OR n.country_name LIKE ? OR n.service LIKE ?)")
-        params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
-    
-    if payload['role'] != 'admin':
-        conditions.append("n.assigned_to = ?")
-        params.append(payload['username'])
-    
-    where = " AND ".join(conditions) if conditions else "1=1"
-    
+        conds.append("(n.number LIKE ? OR n.country_name LIKE ? OR n.service LIKE ? OR n.range_name LIKE ?)")
+        params.extend([f"%{search}%"] * 4)
+    if available == "true":
+        conds.append("(n.assigned_to IS NULL OR n.assigned_to = '')")
+
+    where = " AND ".join(conds) if conds else "1=1"
+
     with get_db() as conn:
         rows = conn.execute(
-            f"""SELECT n.*, r.name as range_status_name, r.status as range_status
-                FROM numbers n LEFT JOIN ranges r ON n.range_id = r.id
-                WHERE {where} ORDER BY n.last_sms_at DESC LIMIT ? OFFSET ?""",
-            params + [limit, offset]
+            f"""SELECT n.* FROM numbers n WHERE {where}
+                ORDER BY n.created_at DESC LIMIT ? OFFSET ?""",
+            params + [limit, offset],
         ).fetchall()
-        
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM numbers n WHERE {where}", params
-        ).fetchone()[0]
-    
+        total = conn.execute(f"SELECT COUNT(*) FROM numbers n WHERE {where}", params).fetchone()[0]
+
     return {
-        "data": [dict(row) for row in rows],
+        "data": [dict(r) for r in rows],
         "pagination": {
             "total": total, "page": page, "limit": limit,
             "totalPages": (total + limit - 1) // limit,
@@ -101,72 +126,139 @@ async def list_numbers(
 
 @router.post("")
 async def create_number(request: Request, body: NumberCreate):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    if payload['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+    p = _require(request)
+    if p["role"] not in ("admin", "manager"):
+        raise HTTPException(403, "Admin or Manager required to add numbers")
     with get_db() as conn:
-        existing = conn.execute("SELECT id FROM numbers WHERE number = ?", (body.number,)).fetchone()
-        if existing:
-            raise HTTPException(status_code=409, detail="Number already exists")
-        
-        num_id = generate_id()
+        if conn.execute("SELECT id FROM numbers WHERE number=?", (body.number,)).fetchone():
+            raise HTTPException(409, "Number already exists")
+        nid = generate_id()
         conn.execute(
-            """INSERT INTO numbers (id, number, country, country_name, range_name, range_id, service, status, assigned_to, rate, profit_margin)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (num_id, body.number, body.country, body.countryName, body.rangeName, body.rangeId,
-             body.service, body.status, body.assignedTo, body.rate, body.profitMargin)
+            """INSERT INTO numbers (id,number,country,country_name,range_name,range_id,
+               service,status,assigned_to,rate,profit_margin)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (nid, body.number, body.country, body.countryName, body.rangeName,
+             body.rangeId, body.service, body.status, body.assignedTo, body.rate, body.profitMargin),
         )
-        
-        row = conn.execute("SELECT * FROM numbers WHERE id = ?", (num_id,)).fetchone()
-        return JSONResponse(status_code=201, content={"data": dict(row)})
+        row = conn.execute("SELECT * FROM numbers WHERE id=?", (nid,)).fetchone()
+    return JSONResponse(status_code=201, content={"data": dict(row)})
+
+@router.post("/bulk-import")
+async def bulk_import(request: Request, body: BulkImport):
+    p = _require(request)
+    if p["role"] not in ("admin", "manager"):
+        raise HTTPException(403, "Admin or Manager required")
+    lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
+    success, skipped, errors = 0, 0, []
+    with get_db() as conn:
+        for line in lines:
+            num = re.sub(r'[\s\-\(\)]', '', line)
+            if not num: continue
+            if not num.startswith('+'): num = '+' + num
+            if conn.execute("SELECT id FROM numbers WHERE number=?", (num,)).fetchone():
+                skipped += 1; continue
+            try:
+                conn.execute(
+                    """INSERT INTO numbers (id,number,country,country_name,range_name,range_id,rate,profit_margin,status)
+                       VALUES (?,?,?,?,?,?,?,?,'active')""",
+                    (generate_id(), num, body.country, body.countryName,
+                     body.rangeName, body.rangeId, body.rate, body.profitMargin),
+                )
+                success += 1
+            except Exception as e:
+                errors.append(f"{num}: {e}")
+    return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines)}
+
+@router.post("/assign")
+async def assign_numbers(request: Request, body: AssignBody):
+    """Admin/Manager assign numbers; Reseller assigns to their own users"""
+    p = _require(request)
+    if p["role"] not in ("admin", "manager", "reseller"):
+        raise HTTPException(403, "Not authorized to assign numbers")
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        # Reseller can only assign numbers assigned to them
+        if p["role"] == "reseller":
+            target_user = conn.execute(
+                "SELECT * FROM users WHERE username=? AND parent_id=?",
+                (body.assignTo, p["userId"])
+            ).fetchone()
+            if not target_user:
+                raise HTTPException(403, "You can only assign numbers to your own users")
+        count = 0
+        for nid in body.numberIds:
+            num = conn.execute("SELECT * FROM numbers WHERE id=?", (nid,)).fetchone()
+            if not num: continue
+            conn.execute("UPDATE numbers SET assigned_to=?,assigned_at=? WHERE id=?",
+                         (body.assignTo, now, nid))
+            count += 1
+    return {"assigned": count, "to": body.assignTo}
+
+@router.post("/return")
+async def return_numbers(request: Request, body: ReturnBody):
+    p = _require(request)
+    if p["role"] not in ("admin", "manager"):
+        raise HTTPException(403, "Admin or Manager required")
+    with get_db() as conn:
+        if body.numberIds:
+            placeholders = ",".join("?" * len(body.numberIds))
+            r = conn.execute(
+                f"UPDATE numbers SET assigned_to=NULL,assigned_at=NULL WHERE id IN ({placeholders})",
+                body.numberIds
+            )
+            count = r.rowcount
+        elif body.username and body.rangeName:
+            r = conn.execute(
+                "UPDATE numbers SET assigned_to=NULL,assigned_at=NULL WHERE assigned_to=? AND range_name=?",
+                (body.username, body.rangeName)
+            )
+            count = r.rowcount
+        elif body.username:
+            r = conn.execute(
+                "UPDATE numbers SET assigned_to=NULL,assigned_at=NULL WHERE assigned_to=?",
+                (body.username,)
+            )
+            count = r.rowcount
+        elif body.rangeName:
+            r = conn.execute(
+                "UPDATE numbers SET assigned_to=NULL,assigned_at=NULL WHERE range_name=?",
+                (body.rangeName,)
+            )
+            count = r.rowcount
+        else:
+            raise HTTPException(400, "Specify username, rangeName, or numberIds")
+    return {"returned": count}
 
 @router.put("/{item_id}")
 async def update_number(request: Request, item_id: str, body: NumberUpdate):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
+    p = _require(request)
+    if p["role"] not in ("admin", "manager"):
+        raise HTTPException(403, "Admin or Manager required")
     with get_db() as conn:
-        existing = conn.execute("SELECT id FROM numbers WHERE id = ?", (item_id,)).fetchone()
-        if not existing:
-            raise HTTPException(status_code=404, detail="Number not found")
-        
+        if not conn.execute("SELECT id FROM numbers WHERE id=?", (item_id,)).fetchone():
+            raise HTTPException(404, "Number not found")
         updates = {}
-        if body.country is not None: updates['country'] = body.country
-        if body.countryName is not None: updates['country_name'] = body.countryName
-        if body.rangeName is not None: updates['range_name'] = body.rangeName
-        if body.rangeId is not None: updates['range_id'] = body.rangeId
-        if body.service is not None: updates['service'] = body.service
-        if body.status is not None: updates['status'] = body.status
-        if body.assignedTo is not None: updates['assigned_to'] = body.assignedTo
-        if body.rate is not None: updates['rate'] = body.rate
-        if body.profitMargin is not None: updates['profit_margin'] = body.profitMargin
-        
+        fm = {"country":"country","countryName":"country_name","rangeName":"range_name",
+              "rangeId":"range_id","service":"service","status":"status",
+              "assignedTo":"assigned_to","rate":"rate","profitMargin":"profit_margin"}
+        for k, db in fm.items():
+            v = getattr(body, k, None)
+            if v is not None: updates[db] = v
         if updates:
-            set_clause = ", ".join(f"{k} = ?" for k in updates)
-            conn.execute(f"UPDATE numbers SET {set_clause} WHERE id = ?", list(updates.values()) + [item_id])
-        
-        row = conn.execute("SELECT * FROM numbers WHERE id = ?", (item_id,)).fetchone()
-        return {"data": dict(row)}
+            conn.execute(
+                f"UPDATE numbers SET {','.join(f'{k}=?' for k in updates)} WHERE id=?",
+                list(updates.values()) + [item_id]
+            )
+        row = conn.execute("SELECT * FROM numbers WHERE id=?", (item_id,)).fetchone()
+    return {"data": dict(row)}
 
 @router.delete("/{item_id}")
 async def delete_number(request: Request, item_id: str):
-    payload = _authenticate(request)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    if payload['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+    p = _require(request)
+    if p["role"] not in ("admin", "manager"):
+        raise HTTPException(403, "Admin or Manager required")
     with get_db() as conn:
-        existing = conn.execute("SELECT * FROM numbers WHERE id = ?", (item_id,)).fetchone()
-        if not existing:
-            raise HTTPException(status_code=404, detail="Number not found")
-        
-        number_val = existing['number']
-        conn.execute("DELETE FROM sms_received WHERE number = ?", (number_val,))
-        conn.execute("DELETE FROM numbers WHERE id = ?", (item_id,))
-        
-        return {"message": "Number deleted successfully", "deletedNumber": number_val}
+        row = conn.execute("SELECT * FROM numbers WHERE id=?", (item_id,)).fetchone()
+        if not row: raise HTTPException(404, "Number not found")
+        conn.execute("DELETE FROM numbers WHERE id=?", (item_id,))
+    return {"message": "Deleted", "number": row["number"]}
