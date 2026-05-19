@@ -16,6 +16,7 @@ def _require(request: Request):
 
 class RangeCreate(BaseModel):
     name: str
+    numberPrefix: str
     providerId: Optional[str] = None
     countryCode: Optional[str] = None
     countryName: Optional[str] = None
@@ -30,6 +31,7 @@ class RangeCreate(BaseModel):
 
 class RangeUpdate(BaseModel):
     name: Optional[str] = None
+    numberPrefix: Optional[str] = None
     providerId: Optional[str] = None
     countryCode: Optional[str] = None
     countryName: Optional[str] = None
@@ -43,7 +45,7 @@ class RangeUpdate(BaseModel):
     status: Optional[str] = None
 
 FIELD_MAP = {
-    "name": "name", "providerId": "provider_id", "countryCode": "country_code",
+    "name": "name", "numberPrefix": "number_prefix", "providerId": "provider_id", "countryCode": "country_code",
     "countryName": "country_name", "rate": "rate", "profitMargin": "profit_margin",
     "otpLimitPerDay": "otp_limit_per_day", "otpDailyResetHour": "otp_daily_reset_hour",
     "allocationLimitGlobal": "allocation_limit_global",
@@ -92,10 +94,10 @@ async def create_range(request: Request, body: RangeCreate):
             raise HTTPException(409, "Range name already exists")
         rid = generate_id()
         conn.execute(
-            """INSERT INTO ranges (id,name,provider_id,country_code,country_name,rate,profit_margin,
+            """INSERT INTO ranges (id,name,number_prefix,provider_id,country_code,country_name,rate,profit_margin,
                otp_limit_per_day,otp_daily_reset_hour,allocation_limit_global,allocation_limit_per_user,
-               allocation_period,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (rid, body.name, body.providerId, body.countryCode, body.countryName,
+               allocation_period,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (rid, body.name, body.numberPrefix, body.providerId, body.countryCode, body.countryName,
              body.rate, body.profitMargin, body.otpLimitPerDay, body.otpDailyResetHour,
              body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status),
         )

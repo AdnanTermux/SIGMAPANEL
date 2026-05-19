@@ -71,8 +71,10 @@ const ROLE_COLORS = { admin:'badge-danger', manager:'badge-warning', reseller:'b
 const NAV_ITEMS = [
     { key: 'dashboard',     label: 'Dashboard',    icon: ICONS.dashboard, roles: null },
     { key: 'numbers',       label: 'Numbers',       icon: ICONS.phone,    roles: null },
-    { key: 'ranges',        label: 'Ranges',        icon: ICONS.layers,   roles: null },
-    { key: 'allocations',   label: 'Allocations',   icon: ICONS.chart,    roles: null },
+    { key: 'ranges',        label: 'Ranges',        icon: ICONS.layers,   roles: ['admin','manager'] },
+    { key: 'sms-ranges',    label: 'SMS Ranges',    icon: ICONS.layers,   roles: ['reseller','sub_reseller','end_user'] },
+    { key: 'allocations',   label: 'Allocations',   icon: ICONS.chart,    roles: ['admin','manager'] },
+    { key: 'self-alloc',    label: 'Self Allocation',icon: ICONS.chart,   roles: ['reseller','sub_reseller','end_user'] },
     { key: 'sms-reports',   label: 'SMS Reports',   icon: ICONS.sms,      roles: null },
     { key: 'users',         label: 'Users',         icon: ICONS.users,    roles: ['admin','manager'] },
     { key: 'providers',     label: 'Providers',     icon: ICONS.server,   roles: ['admin'] },
@@ -81,14 +83,16 @@ const NAV_ITEMS = [
     { key: 'transactions',  label: 'Ledger',        icon: ICONS.transfer, roles: null },
     { key: 'audit-logs',    label: 'Audit Logs',    icon: ICONS.shield,   roles: ['admin'] },
     { key: 'support',       label: 'Support',       icon: ICONS.ticket,   roles: null },
+    { key: 'api-management',label: 'API',           icon: ICONS.key,      roles: null },
     { key: 'settings',      label: 'Settings',      icon: ICONS.settings, roles: null },
 ];
 
 const PAGE_TITLES = {
     'dashboard':'Dashboard','numbers':'Numbers','ranges':'Ranges','allocations':'Allocations',
+    'sms-ranges':'SMS Ranges','self-alloc':'Self Allocation',
     'sms-reports':'SMS Reports','users':'Users','providers':'Providers',
     'blacklist':'App Blacklist','pricing':'Pricing Rules','transactions':'Transaction Ledger',
-    'audit-logs':'Audit Logs','support':'Support Tickets','settings':'Settings',
+    'audit-logs':'Audit Logs','support':'Support Tickets','api-management':'API Management','settings':'Settings',
 };
 
 let currentPage = 'dashboard';
@@ -266,7 +270,9 @@ function renderDashboard() {
         case 'dashboard':    renderDashboardPage(content); break;
         case 'numbers':      renderNumbersPage(content); break;
         case 'ranges':       renderRangesPage(content); break;
+        case 'sms-ranges':   renderSmsRangesPage(content); break;
         case 'allocations':  renderAllocationsPage(content); break;
+        case 'self-alloc':   renderSelfAllocPage(content); break;
         case 'sms-reports':  renderSmsReportsPage(content); break;
         case 'users':        renderUsersPage(content); break;
         case 'providers':    renderProvidersPage(content); break;
@@ -275,6 +281,7 @@ function renderDashboard() {
         case 'transactions': renderTransactionsPage(content); break;
         case 'audit-logs':   renderAuditLogsPage(content); break;
         case 'support':      renderSupportPage(content); break;
+        case 'api-management':renderApiManagementPage(content); break;
         case 'settings':     renderSettingsPage(content); break;
         default:             renderDashboardPage(content);
     }
@@ -351,6 +358,7 @@ async function renderDashboardPage(container) {
 // ========== GENERIC CRUD PAGE ==========
 async function renderNumbersPage(container) {
     container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    const isAdmin = user && (user.role === 'admin' || user.role === 'manager');
     let page = 1;
     const load = async () => {
         try {
@@ -361,7 +369,9 @@ async function renderNumbersPage(container) {
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Numbers (${pg.total})</div>
-                    <button class="fly-btn fly-btn-sm" id="add-number-btn">${ICONS.plus} Add Number</button>
+                    <div class="card-header-actions">
+                        ${isAdmin ? `<button class="fly-btn fly-btn-sm" id="add-number-btn">${ICONS.plus} Add Number</button><button class="fly-btn fly-btn-sm secondary" id="bulk-import-btn">${ICONS.plus} Import Bulk</button>` : ''}
+                    </div>
                 </div>
                 <div class="filter-bar">
                     <input type="text" class="search-input" placeholder="Search numbers..." id="numbers-search">
@@ -379,8 +389,7 @@ async function renderNumbersPage(container) {
                                     <td><span class="badge ${n.status === 'active' ? 'badge-success' : n.status === 'inactive' ? 'badge-danger' : 'badge-warning'}">${n.status}</span></td>
                                     <td>${n.total_sms}</td>
                                     <td class="actions-cell">
-                                        <button class="action-btn" onclick="editNumber('${n.id}')">${ICONS.edit}</button>
-                                        <button class="action-btn delete" onclick="deleteNumber('${n.id}','${escapeHtml(n.number)}')">${ICONS.trash}</button>
+                                        ${isAdmin ? `<button class="action-btn" onclick="editNumber('${n.id}')">${ICONS.edit}</button><button class="action-btn delete" onclick="deleteNumber('${n.id}','${escapeHtml(n.number)}')">${ICONS.trash}</button>` : '<span style="color:#9ca3af;font-size:11px">Read only</span>'}
                                     </td>
                                 </tr>
                             `).join('') : '<tr class="empty-row"><td colspan="7">No numbers found</td></tr>'}
@@ -392,6 +401,7 @@ async function renderNumbersPage(container) {
             <div id="modal-root"></div>`;
 
             document.getElementById('add-number-btn')?.addEventListener('click', () => showNumberModal());
+            document.getElementById('bulk-import-btn')?.addEventListener('click', () => showBulkImportModal(container));
             document.getElementById('numbers-search')?.addEventListener('input', debounce(async (e) => {
                 const q = e.target.value;
                 const data = await apiCall(`${API}/numbers?search=${encodeURIComponent(q)}&limit=50`);
@@ -455,7 +465,18 @@ async function showNumberModal(existing = null) {
         if (!body.number && !isEdit) { showToast('Number is required', 'error'); return; }
         try {
             if (isEdit) { await apiCall(`${API}/numbers/${existing.id}`, { method: 'PUT', body: JSON.stringify(body) }); showToast('Number updated', 'success'); }
-            else { await apiCall(`${API}/numbers`, { method: 'POST', body: JSON.stringify(body) }); showToast('Number created', 'success'); }
+            else {
+                const res = await apiCall(`${API}/numbers`, { method: 'POST', body: JSON.stringify(body) });
+                showToast('Number created', 'success');
+                // Auto-download .txt
+                if (res.number) {
+                    const blob = new Blob([res.number], {type: 'text/plain'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'number_' + Date.now() + '.txt'; a.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
             close(); renderDashboard();
         } catch (err) { showToast(err.message, 'error'); }
     };
@@ -536,6 +557,7 @@ async function showRangeModal(existing = null) {
             <div class="modal-header"><div class="modal-title">${isEdit ? 'Edit Range' : 'Add Range'}</div><button class="modal-close" id="close-modal">${ICONS.x}</button></div>
             <div class="modal-body">
                 <div class="form-group"><label>Range Name *</label><input class="fly-input" id="rng-name" value="${existing?.name || ''}" placeholder="US-Mobile"></div>
+                <div class="form-group"><label>Number Prefix *</label><input class="fly-input" id="rng-numberPrefix" value="${existing?.number_prefix || ''}" placeholder="+1 or +44"></div>
                 <div class="form-row">
                     <div class="form-group"><label>Country Code</label><input class="fly-input" id="rng-countryCode" value="${existing?.country_code || ''}" placeholder="US"></div>
                     <div class="form-group"><label>Country Name</label><input class="fly-input" id="rng-countryName" value="${existing?.country_name || ''}" placeholder="United States"></div>
@@ -565,6 +587,7 @@ async function showRangeModal(existing = null) {
     document.getElementById('save-modal').onclick = async () => {
         const body = {
             name: document.getElementById('rng-name').value.trim(),
+            numberPrefix: document.getElementById('rng-numberPrefix').value.trim() || '+',
             countryCode: document.getElementById('rng-countryCode').value.trim() || null,
             countryName: document.getElementById('rng-countryName').value.trim() || null,
             rate: parseFloat(document.getElementById('rng-rate').value) || 0,
@@ -1962,6 +1985,14 @@ window.showBulkImportModal = (container) => {
             r.style.display = 'block';
             r.innerHTML = `✓ <strong>${data.success}</strong> imported &nbsp;·&nbsp; <strong>${data.skipped}</strong> skipped${data.errors?.length ? ` &nbsp;·&nbsp; ${data.errors.length} errors` : ''}`;
             showToast(`Imported ${data.success} numbers`, 'success');
+            // Auto-download .txt
+            if (data.added_numbers && data.added_numbers.length > 0) {
+                const blob = new Blob([data.added_numbers.join('\n')], {type: 'text/plain'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'numbers_' + Date.now() + '.txt'; a.click();
+                URL.revokeObjectURL(url);
+            }
             setTimeout(() => { close(); renderDashboard(); }, 1800);
         } catch (err) {
             showToast(err.message, 'error');
@@ -2844,6 +2875,303 @@ renderNumbersPage = async (container) => {
         hdr.appendChild(btn);
     }
 };
+
+// ========== SMS RANGES PAGE (Reseller / End User - View Only) ==========
+async function renderSmsRangesPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    try {
+        const { data: rows, pagination } = await apiCall(`${API}/ranges?limit=100`);
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">SMS Ranges</div>
+                <div style="font-size:13px;color:#6B7280">Available ranges for your allocations</div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Name</th><th>Country</th><th>Rate</th><th>Profit %</th><th>Available</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>${rows.map(r => `<tr>
+                        <td style="font-weight:600">${escapeHtml(r.name)}</td>
+                        <td>${r.country_name || r.country_code || '-'}</td>
+                        <td>$${r.rate || 0}</td>
+                        <td>${r.profit_margin || 0}%</td>
+                        <td>${r._count?.available || 0}</td>
+                        <td>${r._count?.numbers || 0}</td>
+                        <td><span class="badge ${r.status === 'active' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
+                        <td class="actions-cell">
+                            ${r.status === 'active' && (r._count?.available || 0) > 0 ? `<button class="fly-btn fly-btn-sm" onclick="selfAllocFromRange('${escapeHtml(r.name)}')">Request</button>` : '<span style="color:#9CA3AF;font-size:12px">N/A</span>'}
+                        </td>
+                    </tr>`).join('')}</tbody>
+                </table>
+            </div>
+        </div>`;
+    } catch (err) { container.innerHTML = `<div class="card"><p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p></div>`; }
+}
+window.selfAllocFromRange = function(rangeName) {
+    currentPage = 'self-alloc';
+    renderDashboard();
+    setTimeout(() => {
+        const sel = document.getElementById('sa-range');
+        if (sel) { sel.value = rangeName; updateAllocInfo(); }
+    }, 100);
+};
+
+// ========== SELF ALLOCATION PAGE (Reseller / End User) ==========
+async function renderSelfAllocPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    let page = 1;
+    const load = async () => {
+        try {
+            const { data: rows } = await apiCall(`${API}/numbers-ext/allocations`);
+            const { data: ranges } = await apiCall(`${API}/ranges?limit=100`);
+            container.innerHTML = `
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header">
+                    <div class="card-title">My Allocations (${rows.length})</div>
+                    <button class="fly-btn fly-btn-sm" id="self-alloc-btn">${ICONS.plus} New Allocation</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>Range</th><th>Qty</th><th>Duration</th><th>Status</th><th>Expires</th><th>Created</th><th>Action</th></tr></thead>
+                        <tbody>${rows.length ? rows.map(r => `<tr>
+                            <td style="font-weight:600">${escapeHtml(r.range_name)}</td>
+                            <td>${r.quantity}</td>
+                            <td><span class="badge badge-secondary">${r.duration}</span></td>
+                            <td><span class="badge ${r.status === 'active' ? 'badge-success' : r.status === 'returned' ? 'badge-danger' : 'badge-warning'}">${r.status}</span></td>
+                            <td>${r.expires_at ? formatDate(r.expires_at) : '-'}</td>
+                            <td>${formatDate(r.created_at)}</td>
+                            <td class="actions-cell">${r.status === 'active' ? `<button class="action-btn delete" onclick="returnAlloc('${r.id}')" title="Return">${ICONS.trash}</button>` : '-'}</td>
+                        </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:32px">No allocations yet</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>`;
+            document.getElementById('self-alloc-btn').onclick = () => showSelfAllocModal(ranges);
+        } catch (err) { container.innerHTML = `<div class="card"><p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p></div>`; }
+    };
+    load();
+}
+window.returnAlloc = async (id) => {
+    if (!confirm('Return this allocation? Numbers will be unassigned.')) return;
+    try { await apiCall(`${API}/numbers-ext/allocations/${id}/return`, { method: 'POST' }); showToast('Allocation returned', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+window.showSelfAllocModal = async (ranges) => {
+    if (!ranges) {
+        const res = await apiCall(`${API}/ranges?limit=100`);
+        ranges = res.data;
+    }
+    const activeRanges = ranges.filter(r => r.status === 'active');
+    const root = _modal();
+    root.innerHTML = `
+    <div id="sa-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000">
+        <div class="modal" style="width:460px">
+            <div class="modal-header"><div class="modal-title">New Self Allocation</div><button class="modal-close" id="close-sa">${ICONS.x}</button></div>
+            <div class="modal-body" style="padding:20px">
+                <div class="form-group"><label class="fly-label">Range</label><select class="fly-input" id="sa-range" onchange="updateAllocInfo()">${activeRanges.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)} (${r._count?.available || 0} available)</option>`).join('')}</select></div>
+                <div id="sa-info" style="font-size:12px;color:#6B7280;margin-bottom:12px"></div>
+                <div class="form-group"><label class="fly-label">Quantity</label><input type="number" class="fly-input" id="sa-qty" value="1" min="1" max="100"></div>
+                <div class="form-group"><label class="fly-label">Duration</label><select class="fly-input" id="sa-dur"><option value="weekly">Weekly (7 days)</option><option value="monthly" selected>Monthly (30 days)</option><option value="yearly">Yearly (365 days)</option></select></div>
+                <div style="margin-top:16px"><button class="fly-btn" id="sa-submit" style="width:100%">Request Allocation</button></div>
+            </div>
+        </div>
+    </div>`;
+    const close = () => root.innerHTML = '';
+    document.getElementById('close-sa').onclick = close;
+    document.getElementById('sa-overlay').onclick = e => { if (e.target.id === 'sa-overlay') close(); };
+    window.updateAllocInfo = async () => {
+        const name = document.getElementById('sa-range').value;
+        try {
+            const { data } = await apiCall(`${API}/ranges?search=${encodeURIComponent(name)}`);
+            const r = data[0];
+            if (r) document.getElementById('sa-info').innerHTML = `Per-user limit: ${r.allocation_limit_per_user || 100} | Available: ${r._count?.available || 0} | Rate: $${r.rate || 0}`;
+        } catch {}
+    };
+    document.getElementById('sa-submit').onclick = async () => {
+        const rangeName = document.getElementById('sa-range').value;
+        const qty = parseInt(document.getElementById('sa-qty').value) || 1;
+        const dur = document.getElementById('sa-dur').value;
+        try {
+            const res = await apiCall(`${API}/numbers-ext/allocate`, { method: 'POST', body: JSON.stringify({ rangeName, quantity: qty, duration: dur }) });
+            showToast(`Allocated ${res.allocated} numbers`, 'success');
+            close(); renderDashboard();
+        } catch (err) { showToast(err.message, 'error'); }
+    };
+    updateAllocInfo();
+};
+
+// ========== API MANAGEMENT PAGE ==========
+async function renderApiManagementPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    const isAdmin = user && (user.role === 'admin' || user.role === 'manager');
+    try {
+        if (isAdmin) {
+            const { data: users } = await apiCall(`${API}/api-management/admin/tokens`);
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">API Token Management</div><div style="font-size:13px;color:#6B7280">All users and their API tokens</div></div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>API Token</th><th>Last Login</th><th>Actions</th></tr></thead>
+                        <tbody>${users.map(u => {
+                            const tok = u.api_token || '';
+                            const masked = tok ? tok.substring(0, 8) + '...' + tok.substring(tok.length - 4) : '<span style="color:#9CA3AF">No token</span>';
+                            return `<tr>
+                                <td style="font-weight:600">${escapeHtml(u.username)}</td>
+                                <td><span class="badge ${ROLE_COLORS[u.role] || 'badge-secondary'}">${ROLE_LABELS[u.role] || u.role}</span></td>
+                                <td><span class="badge ${u.status === 'active' ? 'badge-success' : 'badge-danger'}">${u.status}</span></td>
+                                <td style="font-family:monospace;font-size:12px">${tok ? `<span title="${escapeHtml(tok)}">${masked}</span> <button class="action-btn" onclick="copyText('${escapeHtml(tok)}')" title="Copy">${ICONS.copy || '📋'}</button>` : masked}</td>
+                                <td>${u.last_login ? formatDate(u.last_login) : 'Never'}</td>
+                                <td class="actions-cell">
+                                    <button class="action-btn" onclick="adminRegenToken('${u.id}')" title="Regenerate">${ICONS.edit}</button>
+                                    <button class="action-btn delete" onclick="adminRevokeToken('${u.id}')" title="Revoke">${ICONS.trash}</button>
+                                </td>
+                            </tr>`;
+                        }).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        } else {
+            // Reseller / End User view
+            const { token } = await apiCall(`${API}/api-management/my-token`);
+            const docs = await apiCall(`${API}/api-management/docs`);
+            container.innerHTML = `
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">My API Token</div></div>
+                <div style="padding:16px">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+                        <input type="text" class="fly-input" id="my-token" value="${escapeHtml(token)}" readonly style="flex:1;font-family:monospace;font-size:13px">
+                        <button class="fly-btn fly-btn-sm" onclick="copyText(document.getElementById('my-token').value)">Copy</button>
+                        <button class="fly-btn fly-btn-sm fly-btn-secondary" onclick="regenMyToken()">Regenerate</button>
+                    </div>
+                    <p style="font-size:12px;color:#9CA3AF;margin:0">Keep this token secure. Regenerating will invalidate the old token immediately.</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">Dynamic URL Builder</div></div>
+                <div style="padding:16px">
+                    <div class="form-group"><label class="fly-label">Webhook URL</label><input type="text" class="fly-input" id="api-url" value="${window.location.origin}/api/webhook/sms?token=${escapeHtml(token)}" readonly style="font-family:monospace;font-size:13px"></div>
+                    <div class="form-group"><label class="fly-label">Parameters</label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <input type="text" class="fly-input" id="api-param-num" placeholder="number (e.g. +1234567890)">
+                            <input type="text" class="fly-input" id="api-param-msg" placeholder="message">
+                            <input type="text" class="fly-input" id="api-param-from" placeholder="sender">
+                            <button class="fly-btn fly-btn-sm" onclick="buildApiUrl()">Build URL</button>
+                        </div>
+                    </div>
+                    <div id="api-built-url" style="display:none;margin-top:8px;padding:12px;background:#f3f4f6;border-radius:6px;font-family:monospace;font-size:12px;word-break:break-all"></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">API Documentation</div></div>
+                <div style="padding:16px">
+                    <div style="margin-bottom:16px"><h4 style="margin:0 0 8px;font-size:14px">Authentication</h4><p style="font-size:13px;color:#6B7280;margin:0">Include header: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">Authorization: Bearer {token}</code></p></div>
+                    ${docs.endpoints.map(ep => `
+                    <div style="margin-bottom:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px">
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                            <span class="badge ${ep.method === 'GET' ? 'badge-success' : 'badge-primary'}">${ep.method}</span>
+                            <code style="font-size:13px;font-weight:600">${ep.path}</code>
+                        </div>
+                        <p style="font-size:13px;color:#6B7280;margin:0 0 4px">${ep.desc}</p>
+                        ${ep.body ? `<pre style="font-size:11px;background:#f3f4f6;padding:8px;border-radius:4px;margin:4px 0 0;overflow-x:auto">${escapeHtml(JSON.stringify(ep.body, null, 2))}</pre>` : ''}
+                    </div>`).join('')}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><div class="card-title"><span>Live OTP Feed</span> <span id="otp-count" style="font-size:12px;color:#6B7280;font-weight:400"></span></div></div>
+                <div style="padding:0" id="otp-feed-container">
+                    <div class="loading-spinner" style="padding:32px"><div class="spinner"></div></div>
+                </div>
+            </div>`;
+            // Load OTP feed
+            loadOtpFeed();
+        }
+    } catch (err) { container.innerHTML = `<div class="card"><p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p></div>`; }
+}
+
+async function loadOtpFeed() {
+    const el = document.getElementById('otp-feed-container');
+    if (!el) return;
+    try {
+        const { data: otps } = await apiCall(`${API}/api-management/live-otp?limit=50`);
+        const countEl = document.getElementById('otp-count');
+        if (countEl) countEl.textContent = `(${otps.length} recent)`;
+        el.innerHTML = `
+        <table class="data-table">
+            <thead><tr><th>Time</th><th>Number</th><th>Service</th><th>OTP</th><th>Message</th></tr></thead>
+            <tbody>${otps.map(o => `<tr>
+                <td style="white-space:nowrap;font-size:12px">${formatDate(o.received_at)}</td>
+                <td style="font-weight:600">${escapeHtml(o.number)}</td>
+                <td><span class="badge badge-secondary">${escapeHtml(o.service || '-')}</span></td>
+                <td><span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600;font-family:monospace">${escapeHtml(o.otp)}</span></td>
+                <td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(o.message || '')}">${escapeHtml((o.message || '').substring(0, 80))}</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    } catch (err) { el.innerHTML = `<p style="padding:16px;color:#ef4444">Error loading OTP feed</p>`; }
+}
+
+window.copyText = function(text) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard', 'success')).catch(() => showToast('Copy failed', 'error'));
+};
+
+window.regenMyToken = async () => {
+    if (!confirm('Regenerate your API token? The old token will stop working immediately.')) return;
+    try {
+        const { token } = await apiCall(`${API}/api-management/regenerate-token`, { method: 'POST' });
+        const el = document.getElementById('my-token');
+        if (el) el.value = token;
+        const urlEl = document.getElementById('api-url');
+        if (urlEl) urlEl.value = window.location.origin + '/api/webhook/sms?token=' + token;
+        showToast('Token regenerated', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.adminRegenToken = async (userId) => {
+    if (!confirm('Regenerate this user\'s API token?')) return;
+    try { await apiCall(`${API}/api-management/admin/regenerate-token/${userId}`, { method: 'POST' }); showToast('Token regenerated', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.adminRevokeToken = async (userId) => {
+    if (!confirm('Revoke this user\'s API token?')) return;
+    try { await apiCall(`${API}/api-management/admin/revoke-token/${userId}`, { method: 'POST' }); showToast('Token revoked', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.buildApiUrl = function() {
+    const base = `${window.location.origin}/api/webhook/sms?token=${document.getElementById('my-token').value}`;
+    const params = [];
+    const num = document.getElementById('api-param-num').value.trim();
+    const msg = document.getElementById('api-param-msg').value.trim();
+    const from = document.getElementById('api-param-from').value.trim();
+    if (num) params.push(`number=${encodeURIComponent(num)}`);
+    if (msg) params.push(`message=${encodeURIComponent(msg)}`);
+    if (from) params.push(`sender=${encodeURIComponent(from)}`);
+    const url = base + (params.length ? '&' + params.join('&') : '');
+    const el = document.getElementById('api-built-url');
+    el.style.display = 'block';
+    el.textContent = url;
+};
+
+// Auto-refresh OTP feed every 10 seconds
+setInterval(() => {
+    if (currentPage === 'api-management' && user && user.role !== 'admin' && user.role !== 'manager') {
+        loadOtpFeed();
+    }
+}, 10000);
+
+// ========== AUTO-DOWNLOAD .txt ON NUMBER ADD ==========
+function downloadNumbersTxt(numbers) {
+    if (!numbers || numbers.length === 0) return;
+    const blob = new Blob([numbers.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `numbers_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 // ========== SHARED MODAL ROOT HELPER ==========
 function _modal() {

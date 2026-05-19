@@ -54,6 +54,14 @@ def _migrate(conn):
             except Exception:
                 pass
 
+    # Migrate ranges table
+    try:
+        range_cols = {r[1] for r in conn.execute("PRAGMA table_info(ranges)")}
+        if "number_prefix" not in range_cols:
+            conn.execute("ALTER TABLE ranges ADD COLUMN number_prefix TEXT")
+    except Exception:
+        pass
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -105,6 +113,7 @@ CREATE TABLE IF NOT EXISTS ranges (
     allocation_limit_per_user INTEGER DEFAULT 100,
     allocation_period TEXT DEFAULT 'monthly',
     allocated_numbers INTEGER DEFAULT 0,
+    number_prefix TEXT,
     status TEXT DEFAULT 'active',
     total_numbers INTEGER DEFAULT 0,
     total_sms INTEGER DEFAULT 0,

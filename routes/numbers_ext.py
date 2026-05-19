@@ -49,12 +49,21 @@ async def bulk_import(request: Request, body: BulkImport):
     _admin(request)
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
     success, skipped, errors = 0, 0, []
+    added_numbers = []
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
+        range_prefix = None
+        if body.rangeId:
+            rng = conn.execute("SELECT number_prefix FROM ranges WHERE id=?", (body.rangeId,)).fetchone()
+            if rng and rng['number_prefix']:
+                range_prefix = rng['number_prefix']
         for line in lines:
             num = re.sub(r'[\s\-\(\)]', '', line)
             if not num: continue
             if not num.startswith('+'): num = '+' + num
+            if range_prefix and not num.startswith(range_prefix):
+                errors.append(f"{num}: does not match range prefix '{range_prefix}'")
+                continue
             if conn.execute("SELECT id FROM numbers WHERE number=?", (num,)).fetchone():
                 skipped += 1; continue
             try:
@@ -62,12 +71,13 @@ async def bulk_import(request: Request, body: BulkImport):
                                 VALUES (?,?,?,?,?,?,?,?,'active',0)""",
                              (generate_id(), num, body.country, body.countryName, body.rangeName, body.rangeId, body.rate, body.profitMargin))
                 success += 1
+                added_numbers.append(num)
             except Exception as e:
                 errors.append(f"{num}: {e}")
         if body.rangeId:
             conn.execute("UPDATE ranges SET total_numbers=(SELECT COUNT(*) FROM numbers WHERE range_id=?) WHERE id=?",
                          (body.rangeId, body.rangeId))
-    return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines)}
+    return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines), "added_numbers": added_numbers}
 
 @router.post("/assign-range")
 async def assign_range(request: Request, body: AssignRange):
@@ -132,9 +142,17 @@ async def allocate_numbers(request: Request, body: AllocateNumbers):
                 raise HTTPException(400, "Self-allocation limit reached for this range. Contact support for additional numbers.")
             raise HTTPException(400, f"Only {remaining} allocation slots available. Contact support for more.")
 
-        available = conn.execute("""SELECT id,number FROM numbers WHERE range_name=? AND status='active'
-                                    AND (assigned_to IS NULL OR assigned_to='') LIMIT ?""",
-                                  (body.rangeName, body.quantity)).fetchall()
+        # Validate available numbers against range prefix
+        range_prefix = rng['number_prefix']
+        available_rows = conn.execute("""SELECT id,number FROM numbers WHERE range_name=? AND status='active'
+                                    AND (assigned_to IS NULL OR assigned_to='')""",
+                                  (body.rangeName,)).fetchall()
+        # Filter by prefix if set
+        if range_prefix:
+            available = [r for r in available_rows if r['number'].startswith(range_prefix)]
+        else:
+            available = available_rows
+        available = available[:body.quantity]
         if len(available) < body.quantity:
             raise HTTPException(400, f"Only {len(available)} numbers available in this range")
 

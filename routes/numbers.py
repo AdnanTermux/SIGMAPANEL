@@ -132,6 +132,12 @@ async def create_number(request: Request, body: NumberCreate):
     with get_db() as conn:
         if conn.execute("SELECT id FROM numbers WHERE number=?", (body.number,)).fetchone():
             raise HTTPException(409, "Number already exists")
+        # Validate prefix if rangeId is provided
+        if body.rangeId:
+            rng = conn.execute("SELECT number_prefix FROM ranges WHERE id=?", (body.rangeId,)).fetchone()
+            if rng and rng['number_prefix']:
+                if not body.number.startswith(rng['number_prefix']):
+                    raise HTTPException(400, f"Number must start with prefix '{rng['number_prefix']}' for this range")
         nid = generate_id()
         conn.execute(
             """INSERT INTO numbers (id,number,country,country_name,range_name,range_id,
@@ -141,7 +147,7 @@ async def create_number(request: Request, body: NumberCreate):
              body.rangeId, body.service, body.status, body.assignedTo, body.rate, body.profitMargin),
         )
         row = conn.execute("SELECT * FROM numbers WHERE id=?", (nid,)).fetchone()
-    return JSONResponse(status_code=201, content={"data": dict(row)})
+    return JSONResponse(status_code=201, content={"data": dict(row), "number": body.number})
 
 @router.post("/bulk-import")
 async def bulk_import(request: Request, body: BulkImport):
@@ -150,11 +156,20 @@ async def bulk_import(request: Request, body: BulkImport):
         raise HTTPException(403, "Admin or Manager required")
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
     success, skipped, errors = 0, 0, []
+    added_numbers = []
     with get_db() as conn:
+        range_prefix = None
+        if body.rangeId:
+            rng = conn.execute("SELECT number_prefix FROM ranges WHERE id=?", (body.rangeId,)).fetchone()
+            if rng and rng['number_prefix']:
+                range_prefix = rng['number_prefix']
         for line in lines:
             num = re.sub(r'[\s\-\(\)]', '', line)
             if not num: continue
             if not num.startswith('+'): num = '+' + num
+            if range_prefix and not num.startswith(range_prefix):
+                errors.append(f"{num}: does not match range prefix '{range_prefix}'")
+                continue
             if conn.execute("SELECT id FROM numbers WHERE number=?", (num,)).fetchone():
                 skipped += 1; continue
             try:
@@ -165,9 +180,10 @@ async def bulk_import(request: Request, body: BulkImport):
                      body.rangeName, body.rangeId, body.rate, body.profitMargin),
                 )
                 success += 1
+                added_numbers.append(num)
             except Exception as e:
                 errors.append(f"{num}: {e}")
-    return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines)}
+    return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines), "added_numbers": added_numbers}
 
 @router.post("/assign")
 async def assign_numbers(request: Request, body: AssignBody):
