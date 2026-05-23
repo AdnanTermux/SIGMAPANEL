@@ -17,6 +17,7 @@ from routes.providers import router as providers_router
 from routes.transactions import router as transactions_router
 from routes.numbers_ext import router as numbers_ext_router
 from routes.api_management import router as api_management_router
+from routes.notifications import router as notifications_router
 
 app = FastAPI(title="SIGMAPANEL", version="3.0")
 
@@ -36,6 +37,7 @@ app.include_router(providers_router)
 app.include_router(transactions_router)
 app.include_router(numbers_ext_router)
 app.include_router(api_management_router)
+app.include_router(notifications_router)
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

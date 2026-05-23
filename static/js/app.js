@@ -68,31 +68,57 @@ ICONS.transfer = '<svg width="20" height="20" fill="none" stroke="currentColor" 
 const ROLE_LABELS = { admin:'Admin', manager:'Manager', reseller:'Reseller', sub_reseller:'Sub Reseller', end_user:'End User', super_admin:'Super Admin' };
 const ROLE_COLORS = { admin:'badge-danger', manager:'badge-warning', reseller:'badge-primary', sub_reseller:'badge-secondary', end_user:'badge-secondary', super_admin:'badge-danger' };
 
+// Extra icons for new pages
+ICONS.home = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+ICONS.report = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+ICONS.request = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+ICONS.notif = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+ICONS.profit = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+ICONS.api = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+
 const NAV_ITEMS = [
-    { key: 'dashboard',     label: 'Dashboard',    icon: ICONS.dashboard, roles: null },
-    { key: 'numbers',       label: 'Numbers',       icon: ICONS.phone,    roles: null },
-    { key: 'ranges',        label: 'Ranges',        icon: ICONS.layers,   roles: ['admin','manager'] },
-    { key: 'sms-ranges',    label: 'SMS Ranges',    icon: ICONS.layers,   roles: ['reseller','sub_reseller','end_user'] },
-    { key: 'allocations',   label: 'Allocations',   icon: ICONS.chart,    roles: ['admin','manager'] },
-    { key: 'self-alloc',    label: 'Self Allocation',icon: ICONS.chart,   roles: ['reseller','sub_reseller','end_user'] },
-    { key: 'sms-reports',   label: 'SMS Reports',   icon: ICONS.sms,      roles: null },
-    { key: 'users',         label: 'Users',         icon: ICONS.users,    roles: ['admin','manager'] },
-    { key: 'providers',     label: 'Providers',     icon: ICONS.server,   roles: ['admin'] },
-    { key: 'blacklist',     label: 'App Blacklist', icon: ICONS.ban,      roles: ['admin','manager'] },
-    { key: 'pricing',       label: 'Pricing',       icon: ICONS.tag,      roles: ['admin','manager','reseller'] },
-    { key: 'transactions',  label: 'Ledger',        icon: ICONS.transfer, roles: null },
-    { key: 'audit-logs',    label: 'Audit Logs',    icon: ICONS.shield,   roles: ['admin'] },
-    { key: 'support',       label: 'Support',       icon: ICONS.ticket,   roles: null },
-    { key: 'api-management',label: 'API',           icon: ICONS.key,      roles: null },
-    { key: 'settings',      label: 'Settings',      icon: ICONS.settings, roles: null },
+    // Admin / Manager nav
+    { key: 'dashboard',      label: 'Dashboard',       icon: ICONS.dashboard, roles: ['admin','manager'] },
+    { key: 'numbers',        label: 'Numbers',          icon: ICONS.phone,    roles: ['admin','manager'] },
+    { key: 'ranges',         label: 'Ranges',           icon: ICONS.layers,   roles: ['admin','manager'] },
+    { key: 'allocations',    label: 'Allocations',      icon: ICONS.chart,    roles: ['admin','manager'] },
+    { key: 'sms-reports',    label: 'SMS Reports',      icon: ICONS.sms,      roles: ['admin','manager'] },
+    { key: 'users',          label: 'Users',            icon: ICONS.users,    roles: ['admin','manager'] },
+    { key: 'providers',      label: 'Providers',        icon: ICONS.server,   roles: ['admin'] },
+    { key: 'blacklist',      label: 'App Blacklist',    icon: ICONS.ban,      roles: ['admin','manager'] },
+    { key: 'pricing',        label: 'Pricing',          icon: ICONS.tag,      roles: ['admin','manager'] },
+    { key: 'transactions',   label: 'Ledger',           icon: ICONS.transfer, roles: ['admin','manager'] },
+    { key: 'audit-logs',     label: 'Audit Logs',       icon: ICONS.shield,   roles: ['admin'] },
+    { key: 'api-management', label: 'API Management',   icon: ICONS.api,      roles: ['admin','manager'] },
+    { key: 'support',        label: 'Support',          icon: ICONS.ticket,   roles: ['admin','manager'] },
+    { key: 'notifications',  label: 'Notifications',    icon: ICONS.notif,    roles: ['admin','manager'] },
+    { key: 'settings',       label: 'Settings',         icon: ICONS.settings, roles: ['admin','manager'] },
+    // Reseller nav
+    { key: 'dashboard',      label: 'Home',             icon: ICONS.home,     roles: ['reseller'] },
+    { key: 'sms-reports',    label: 'SMS Reports',      icon: ICONS.sms,      roles: ['reseller'] },
+    { key: 'sms-ranges',     label: 'Request Numbers',  icon: ICONS.request,  roles: ['reseller'] },
+    { key: 'numbers',        label: 'Assigned Numbers', icon: ICONS.phone,    roles: ['reseller'] },
+    { key: 'pricing',        label: 'Rate Card',        icon: ICONS.tag,      roles: ['reseller'] },
+    { key: 'transactions',   label: 'Ledger',           icon: ICONS.transfer, roles: ['reseller'] },
+    { key: 'api-management', label: 'API Management',   icon: ICONS.api,      roles: ['reseller'] },
+    { key: 'support',        label: 'Support',          icon: ICONS.ticket,   roles: ['reseller'] },
+    { key: 'notifications',  label: 'My Notifications', icon: ICONS.notif,    roles: ['reseller'] },
+    // Sub-reseller / End user nav
+    { key: 'dashboard',      label: 'Dashboard',        icon: ICONS.dashboard,roles: ['sub_reseller','end_user'] },
+    { key: 'numbers',        label: 'My Numbers',       icon: ICONS.phone,    roles: ['sub_reseller','end_user'] },
+    { key: 'sms-reports',    label: 'SMS Reports',      icon: ICONS.sms,      roles: ['sub_reseller','end_user'] },
+    { key: 'api-management', label: 'API',              icon: ICONS.api,      roles: ['sub_reseller','end_user'] },
+    { key: 'notifications',  label: 'Notifications',    icon: ICONS.notif,    roles: ['sub_reseller','end_user'] },
+    { key: 'support',        label: 'Support',          icon: ICONS.ticket,   roles: ['sub_reseller','end_user'] },
 ];
 
 const PAGE_TITLES = {
     'dashboard':'Dashboard','numbers':'Numbers','ranges':'Ranges','allocations':'Allocations',
-    'sms-ranges':'SMS Ranges','self-alloc':'Self Allocation',
+    'sms-ranges':'Request Numbers','self-alloc':'Self Allocation',
     'sms-reports':'SMS Reports','users':'Users','providers':'Providers',
-    'blacklist':'App Blacklist','pricing':'Pricing Rules','transactions':'Transaction Ledger',
-    'audit-logs':'Audit Logs','support':'Support Tickets','api-management':'API Management','settings':'Settings',
+    'blacklist':'App Blacklist','pricing':'Pricing / Rate Card','transactions':'Transaction Ledger',
+    'audit-logs':'Audit Logs','support':'Support Tickets','api-management':'API Management',
+    'settings':'Settings','notifications':'Notifications',
 };
 
 let currentPage = 'dashboard';
@@ -236,7 +262,7 @@ function renderDashboard() {
             <header class="top-bar">
                 <h2 class="top-bar-title">${PAGE_TITLES[currentPage] || 'Dashboard'}</h2>
                 <div class="top-bar-actions">
-                    <button style="position:relative;padding:8px;border-radius:8px;border:none;background:none;cursor:pointer;color:#6B7280">${ICONS.bell}<span style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:#ef4444;border-radius:50%"></span></button>
+                    <button id="notif-btn" onclick="goToPage('notifications')" style="position:relative;padding:8px;border-radius:8px;border:none;background:none;cursor:pointer;color:#6B7280">${ICONS.bell}<span id="notif-badge" style="display:none;position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 3px;background:#ef4444;color:white;font-size:9px;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center">0</span></button>
                     <div class="top-bar-user">
                         <div class="top-bar-avatar">${(user?.username || 'U').charAt(0).toUpperCase()}</div>
                         <div class="top-bar-user-name"><div style="font-size:12px;font-weight:600;color:#222F36">${user?.fullName || user?.username || 'User'}</div><div class="top-bar-user-role" style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em">${user?.role || 'admin'}</div></div>
@@ -282,9 +308,12 @@ function renderDashboard() {
         case 'audit-logs':   renderAuditLogsPage(content); break;
         case 'support':      renderSupportPage(content); break;
         case 'api-management':renderApiManagementPage(content); break;
-        case 'settings':     renderSettingsPage(content); break;
-        default:             renderDashboardPage(content);
+        case 'settings':      renderSettingsPage(content); break;
+        case 'notifications': renderNotificationsPage(content); break;
+        default:              renderDashboardPage(content);
     }
+    // Load notification count in background
+    loadNotifCount();
 }
 
 // ========== DASHBOARD PAGE ==========
@@ -3181,6 +3210,371 @@ function _modal() {
     }
     return r;
 }
+
+// ========== NOTIFICATIONS PAGE ==========
+async function renderNotificationsPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    const role = user?.role || 'admin';
+    const canCreate = ['admin','manager','reseller'].includes(role);
+    const load = async () => {
+        try {
+            const data = await apiCall(`${API}/notifications`);
+            const rows = data.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Notifications (${rows.length})</div>
+                    <div class="card-header-actions">
+                        <button class="fly-btn fly-btn-sm fly-btn-secondary" id="mark-all-read-btn">Mark all read</button>
+                        ${canCreate ? `<button class="fly-btn fly-btn-sm" id="new-notif-btn">${ICONS.plus} Send Notification</button>` : ''}
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    ${rows.length ? rows.map(n => `
+                    <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);background:${n.is_read ? 'transparent' : 'rgba(115,93,255,0.04)'}">
+                        <div style="width:8px;height:8px;border-radius:50%;background:${n.is_read ? '#e5e7eb' : '#735DFF'};margin-top:6px;flex-shrink:0"></div>
+                        <div style="flex:1">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                                <span style="font-weight:600;font-size:13px">${escapeHtml(n.title)}</span>
+                                <span class="badge badge-${n.type === 'danger' ? 'danger' : n.type === 'warning' ? 'warning' : n.type === 'success' ? 'success' : 'primary'}">${n.type || 'info'}</span>
+                                <span style="font-size:11px;color:#9ca3af">→ ${n.target_role || 'all'}</span>
+                            </div>
+                            <div style="font-size:13px;color:#6B7280">${escapeHtml(n.message)}</div>
+                            <div style="font-size:11px;color:#9ca3af;margin-top:4px">${formatDate(n.created_at)}</div>
+                        </div>
+                        <div style="display:flex;gap:6px">
+                            ${!n.is_read ? `<button class="action-btn" onclick="markNotifRead('${n.id}')">Read</button>` : ''}
+                            ${canCreate ? `<button class="action-btn delete" onclick="deleteNotif('${n.id}')">${ICONS.trash}</button>` : ''}
+                        </div>
+                    </div>`).join('') : '<div class="empty-state" style="padding:40px"><p>No notifications</p></div>'}
+                </div>
+            </div>
+            <div id="modal-root"></div>`;
+            document.getElementById('mark-all-read-btn').onclick = async () => {
+                await apiCall(`${API}/notifications/mark-all-read`, { method: 'POST' });
+                showToast('All marked as read', 'success');
+                load(); loadNotifCount();
+            };
+            document.getElementById('new-notif-btn')?.onclick = () => showNotifModal(load);
+        } catch (err) {
+            container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
+        }
+    };
+    await load();
+}
+
+async function loadNotifCount() {
+    try {
+        const data = await apiCall(`${API}/notifications?unread_only=true`);
+        const count = data.unread_count || 0;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+    } catch (e) {}
+}
+
+window.markNotifRead = async (id) => {
+    try { await apiCall(`${API}/notifications/${id}/read`, { method: 'POST' }); renderDashboard(); } catch (e) {}
+};
+window.deleteNotif = async (id) => {
+    if (!confirm('Delete this notification?')) return;
+    try { await apiCall(`${API}/notifications/${id}`, { method: 'DELETE' }); showToast('Deleted', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+
+function showNotifModal(reload) {
+    const root = _modal();
+    const role = user?.role || 'admin';
+    const targetOptions = role === 'reseller'
+        ? [['sub_reseller','Sub Resellers'],['end_user','End Users']]
+        : [['reseller','Resellers'],['sub_reseller','Sub Resellers'],['end_user','End Users']];
+    root.innerHTML = `
+    <div class="modal-overlay" id="notif-overlay">
+        <div class="modal" style="max-width:460px">
+            <div class="modal-header"><div class="modal-title">Send Notification</div><button class="modal-close" id="close-notif">${ICONS.x}</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label>Title *</label><input class="fly-input" id="notif-title" placeholder="Notification title"></div>
+                <div class="form-group" style="margin-top:12px"><label>Message *</label><textarea class="fly-input" id="notif-message" rows="3" style="resize:vertical" placeholder="Notification message"></textarea></div>
+                <div class="form-row" style="margin-top:12px">
+                    <div class="form-group"><label>Target</label>
+                        <select class="fly-input" id="notif-target">
+                            ${targetOptions.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Type</label>
+                        <select class="fly-input" id="notif-type">
+                            <option value="info">Info</option>
+                            <option value="success">Success</option>
+                            <option value="warning">Warning</option>
+                            <option value="danger">Danger</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="fly-btn fly-btn-secondary" id="cancel-notif">Cancel</button>
+                <button class="fly-btn" id="save-notif">Send</button>
+            </div>
+        </div>
+    </div>`;
+    const close = () => root.innerHTML = '';
+    document.getElementById('close-notif').onclick = close;
+    document.getElementById('cancel-notif').onclick = close;
+    document.getElementById('notif-overlay').onclick = e => { if (e.target.id === 'notif-overlay') close(); };
+    document.getElementById('save-notif').onclick = async () => {
+        const title = document.getElementById('notif-title').value.trim();
+        const message = document.getElementById('notif-message').value.trim();
+        if (!title || !message) { showToast('Title and message required', 'error'); return; }
+        try {
+            await apiCall(`${API}/notifications`, { method: 'POST', body: JSON.stringify({ title, message, type: document.getElementById('notif-type').value, targetRole: document.getElementById('notif-target').value }) });
+            showToast('Notification sent', 'success'); close(); if (reload) reload();
+        } catch (err) { showToast(err.message, 'error'); }
+    };
+}
+
+// ========== SMS RANGES PAGE (Request Numbers for Reseller) ==========
+async function renderSmsRangesPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    try {
+        const data = await apiCall(`${API}/ranges?status=active&limit=100`);
+        const ranges = data.data || [];
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Available Ranges — Request Numbers</div></div>
+            <div style="display:grid;gap:12px;padding:16px">
+                ${ranges.length ? ranges.map(r => `
+                <div style="border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;align-items:center;gap:16px;background:#fff">
+                    <div style="flex:1">
+                        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escapeHtml(r.name)}</div>
+                        <div style="font-size:12px;color:#6B7280">${r.country_name || r.country_code || '—'} &nbsp;·&nbsp; Rate: $${parseFloat(r.rate||0).toFixed(4)} &nbsp;·&nbsp; Available: <strong>${r._count?.available || 0}</strong></div>
+                        ${r.number_prefix ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">Prefix: <code>${r.number_prefix}</code></div>` : ''}
+                    </div>
+                    <div>
+                        <span class="badge ${r._count?.available > 0 ? 'badge-success' : 'badge-danger'}">${r._count?.available > 0 ? 'Available' : 'Full'}</span>
+                    </div>
+                    <button class="fly-btn fly-btn-sm" onclick="showRequestModal('${r.name}',${r._count?.available||0},${r.allocation_limit_per_user||100})" ${r._count?.available <= 0 ? 'disabled' : ''}>Request</button>
+                </div>`).join('') : '<div class="empty-state"><p>No active ranges available</p></div>'}
+            </div>
+        </div>
+        <div id="modal-root"></div>`;
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
+    }
+}
+
+window.showRequestModal = (rangeName, available, maxPerUser) => {
+    const root = _modal();
+    root.innerHTML = `
+    <div class="modal-overlay" id="req-overlay">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-header"><div class="modal-title">Request Numbers from ${escapeHtml(rangeName)}</div><button class="modal-close" id="close-req">${ICONS.x}</button></div>
+            <div class="modal-body">
+                <div style="padding:12px 14px;background:#f5f3ff;border:1px solid #e0e7ff;border-radius:8px;margin-bottom:16px;font-size:13px">
+                    <strong>Available:</strong> ${available} &nbsp;·&nbsp; <strong>Max per request:</strong> ${maxPerUser}
+                </div>
+                <div class="form-group"><label>Quantity *</label><input class="fly-input" id="req-qty" type="number" min="1" max="${Math.min(available, maxPerUser)}" placeholder="How many numbers"></div>
+                <div class="form-group" style="margin-top:12px">
+                    <label>Duration *</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+                        <button class="fly-btn fly-btn-secondary req-dur" data-v="weekly" onclick="setReqDur('weekly')">Weekly</button>
+                        <button class="fly-btn fly-btn-secondary req-dur" data-v="monthly" onclick="setReqDur('monthly')">Monthly</button>
+                        <button class="fly-btn fly-btn-secondary req-dur" data-v="yearly" onclick="setReqDur('yearly')">Yearly</button>
+                        <button class="fly-btn fly-btn-secondary req-dur" data-v="custom" onclick="setReqDur('custom')">Custom</button>
+                    </div>
+                    <input type="hidden" id="req-dur" value="monthly">
+                    <div id="req-custom" style="display:none;margin-top:8px">
+                        <input class="fly-input" id="req-days" type="number" min="1" placeholder="Number of days">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="fly-btn fly-btn-secondary" id="cancel-req">Cancel</button>
+                <button class="fly-btn" id="do-req">Request Numbers</button>
+            </div>
+        </div>
+    </div>`;
+    const close = () => root.innerHTML = '';
+    document.getElementById('close-req').onclick = close;
+    document.getElementById('cancel-req').onclick = close;
+    document.getElementById('req-overlay').onclick = e => { if (e.target.id === 'req-overlay') close(); };
+    document.getElementById('do-req').onclick = async () => {
+        const qty = parseInt(document.getElementById('req-qty').value);
+        const dur = document.getElementById('req-dur').value;
+        const days = dur === 'custom' ? parseInt(document.getElementById('req-days').value) : null;
+        if (!qty || qty < 1) { showToast('Enter a valid quantity', 'error'); return; }
+        try {
+            const d = await apiCall(`${API}/numbers-ext/allocate`, { method: 'POST', body: JSON.stringify({ rangeName, quantity: qty, duration: dur, customDays: days }) });
+            // Auto-download numbers as .txt
+            if (d.allocated > 0) {
+                const allocs = await apiCall(`${API}/numbers-ext/allocations?status=active`);
+                const thisAlloc = (allocs.data || []).find(a => a.id === d.allocation_id);
+                if (thisAlloc?.number_ids) {
+                    const nums = thisAlloc.number_ids.split(',').filter(Boolean).join('\n');
+                    const blob = new Blob([nums], { type: 'text/plain' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                    a.download = `${rangeName}_numbers.txt`; a.click();
+                    showToast(`Allocated ${d.allocated} numbers — downloading...`, 'success');
+                } else {
+                    showToast(`Allocated ${d.allocated} numbers`, 'success');
+                }
+            }
+            close(); renderDashboard();
+        } catch (err) { showToast(err.message, 'error'); }
+    };
+};
+
+window.setReqDur = (v) => {
+    document.getElementById('req-dur').value = v;
+    document.getElementById('req-custom').style.display = v === 'custom' ? 'block' : 'none';
+    document.querySelectorAll('.req-dur').forEach(b => {
+        const on = b.dataset.v === v;
+        b.style.background = on ? '#735DFF' : '';
+        b.style.color = on ? 'white' : '';
+        b.style.borderColor = on ? '#735DFF' : '';
+    });
+};
+
+// ========== API MANAGEMENT PAGE ==========
+async function renderApiManagementPage(container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    const role = user?.role || 'admin';
+    try {
+        if (['admin','manager'].includes(role)) {
+            // Admin/Manager: table of all users + tokens
+            const data = await apiCall(`${API}/api-management/admin/tokens`);
+            const rows = data.data || [];
+            container.innerHTML = `
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">API Token Management — All Users</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>API Token</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            ${rows.map(u => `
+                            <tr>
+                                <td style="font-weight:600">${escapeHtml(u.username)}</td>
+                                <td><span class="badge ${ROLE_COLORS[u.role]||'badge-secondary'}">${ROLE_LABELS[u.role]||u.role}</span></td>
+                                <td><span class="badge ${u.status==='active'?'badge-success':'badge-danger'}">${u.status}</span></td>
+                                <td>
+                                    ${u.api_token
+                                        ? `<div style="display:flex;align-items:center;gap:6px"><code style="font-size:11px;background:#f3f4f6;padding:2px 8px;border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis">${u.api_token.slice(0,20)}…</code><button class="action-btn" onclick="navigator.clipboard.writeText('${u.api_token}').then(()=>showToast('Copied','success'))">Copy</button></div>`
+                                        : '<span style="color:#9ca3af;font-size:12px">No token</span>'}
+                                </td>
+                                <td class="actions-cell">
+                                    <button class="action-btn" onclick="adminRegenToken('${u.id}')">Regenerate</button>
+                                    ${u.api_token ? `<button class="action-btn delete" onclick="adminRevokeToken('${u.id}')">Revoke</button>` : ''}
+                                </td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } else {
+            // Reseller / End user: own token + docs + URL builder + live OTP feed
+            const tokenData = await apiCall(`${API}/api-management/my-token`);
+            const token = tokenData.token || '';
+            const baseUrl = window.location.origin;
+            const webhookUrl = `${baseUrl}/api/webhook/sms`;
+            container.innerHTML = `
+            <div style="display:grid;gap:16px">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Your API Token</div></div>
+                    <div style="padding:20px">
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <input class="fly-input" id="my-token-input" value="${token}" readonly style="flex:1;font-family:monospace;font-size:13px;background:#f9fafb">
+                            <button class="fly-btn" onclick="navigator.clipboard.writeText('${token}').then(()=>showToast('Copied!','success'))">Copy</button>
+                            <button class="fly-btn fly-btn-secondary" onclick="regenMyToken()">Regenerate</button>
+                        </div>
+                        <div style="font-size:12px;color:#6B7280">Keep this token secret. Use it in the Authorization header for all API calls.</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Dynamic URL Builder</div></div>
+                    <div style="padding:20px">
+                        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Webhook POST URL</div>
+                        <div style="display:flex;gap:8px">
+                            <input class="fly-input" value="${webhookUrl}" readonly style="flex:1;font-family:monospace;font-size:12px;background:#f9fafb">
+                            <button class="fly-btn" onclick="navigator.clipboard.writeText('${webhookUrl}').then(()=>showToast('Copied!','success'))">Copy</button>
+                        </div>
+                        <div style="margin-top:16px;background:#1e1b4b;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;color:#a5b4fc;line-height:1.9">
+                            <div style="color:#6ee7b7"># POST your SMS here</div>
+                            <div>POST ${webhookUrl}</div>
+                            <div>Authorization: Bearer ${token}</div>
+                            <div>Content-Type: application/json</div>
+                            <div style="margin-top:8px">{</div>
+                            <div style="padding-left:16px">"to":   "+525529001312",</div>
+                            <div style="padding-left:16px">"from": "AmericanExpress",</div>
+                            <div style="padding-left:16px">"msg":  "Your OTP is 847291",</div>
+                            <div style="padding-left:16px">"uuid": "msg-204953"</div>
+                            <div>}</div>
+                            <div style="margin-top:8px;color:#6ee7b7"># Success response</div>
+                            <div>{ "status": "ok", "otp": "847291", "number": "+525529001312" }</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Live OTP Feed</div>
+                        <button class="fly-btn fly-btn-sm fly-btn-secondary" id="refresh-otp-btn">↻ Refresh</button>
+                    </div>
+                    <div id="live-otp-container">
+                        <div class="loading-spinner"><div class="spinner"></div></div>
+                    </div>
+                </div>
+            </div>`;
+            loadLiveOTP();
+            document.getElementById('refresh-otp-btn').onclick = loadLiveOTP;
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
+    }
+}
+
+async function loadLiveOTP() {
+    const el = document.getElementById('live-otp-container');
+    if (!el) return;
+    try {
+        const data = await apiCall(`${API}/api-management/live-otp?limit=50`);
+        const rows = data.data || [];
+        el.innerHTML = `
+        <div class="table-wrapper">
+            <table class="fly-table">
+                <thead><tr><th>Number</th><th>Service</th><th>OTP</th><th>Message Preview</th><th>Received</th></tr></thead>
+                <tbody>
+                    ${rows.length ? rows.map(r => `
+                    <tr>
+                        <td><code style="font-size:12px">${r.number}</code></td>
+                        <td>${r.service ? `<span class="badge badge-primary">${escapeHtml(r.service)}</span>` : '-'}</td>
+                        <td><span class="otp-code">${r.otp}</span></td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#6B7280">${escapeHtml(r.message)}</td>
+                        <td style="font-size:12px;color:#6B7280">${formatDate(r.received_at)}</td>
+                    </tr>`).join('') : '<tr class="empty-row"><td colspan="5">No OTPs received yet</td></tr>'}
+                </tbody>
+            </table>
+        </div>`;
+    } catch (err) {
+        el.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`;
+    }
+}
+
+window.regenMyToken = async () => {
+    try {
+        const data = await apiCall(`${API}/api-management/regenerate-token`, { method: 'POST' });
+        document.getElementById('my-token-input').value = data.token;
+        showToast('Token regenerated', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+};
+window.adminRegenToken = async (userId) => {
+    try { const d = await apiCall(`${API}/api-management/admin/regenerate-token/${userId}`, { method: 'POST' }); showToast('Token regenerated', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+window.adminRevokeToken = async (userId) => {
+    if (!confirm('Revoke this user\'s API token?')) return;
+    try { await apiCall(`${API}/api-management/admin/revoke-token/${userId}`, { method: 'POST' }); showToast('Token revoked', 'success'); renderDashboard(); } catch (err) { showToast(err.message, 'error'); }
+};
+
+// ========== HELPER: goToPage ==========
+window.goToPage = (page) => { currentPage = page; renderDashboard(); };
 
 // ========== INIT ==========
 init();

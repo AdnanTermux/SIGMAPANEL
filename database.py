@@ -54,6 +54,23 @@ def _migrate(conn):
             except Exception:
                 pass
 
+
+    # Migrate notification tables
+    try:
+        conn.executescript('''
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY, title TEXT NOT NULL, message TEXT NOT NULL,
+    type TEXT DEFAULT 'info', target_role TEXT, created_by TEXT,
+    created_by_role TEXT, created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS notification_reads (
+    id TEXT PRIMARY KEY, notification_id TEXT NOT NULL, user_id TEXT NOT NULL,
+    read_at TEXT DEFAULT (datetime('now')), UNIQUE(notification_id, user_id)
+);
+        ''')
+    except Exception:
+        pass
+
     # Migrate ranges table
     try:
         range_cols = {r[1] for r in conn.execute("PRAGMA table_info(ranges)")}
@@ -311,4 +328,26 @@ CREATE INDEX IF NOT EXISTS idx_ranges_status ON ranges(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_allocations_user_id ON allocations(user_id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT DEFAULT 'info',
+    target_role TEXT,
+    created_by TEXT,
+    created_by_role TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS notification_reads (
+    id TEXT PRIMARY KEY,
+    notification_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    read_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(notification_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_target ON notifications(target_role);
+CREATE INDEX IF NOT EXISTS idx_notif_reads_user ON notification_reads(user_id);
 """
