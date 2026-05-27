@@ -248,6 +248,45 @@ body {
     overflow-y: auto;
 }
 
+.sidebar-group {
+    margin-bottom: 8px;
+}
+
+.sidebar-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.sidebar-group-header:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar-group-items {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    max-height: 1000px;
+    opacity: 1;
+    overflow: hidden;
+}
+
+.sidebar-group.collapsed .sidebar-group-items {
+    max-height: 0;
+    opacity: 0;
+}
+
+.group-toggle {
+    display: flex;
+    align-items: center;
+}
+
 .sidebar-nav-item {
     width: 100%;
     display: flex;
@@ -614,6 +653,132 @@ body {
 .pagination-buttons {
     display: flex;
     gap: 4px;
+}
+
+/* ========== SECURITY PAGE ========== */
+.security-page {
+    min-height: 100vh;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Quicksand', sans-serif;
+}
+
+.security-card {
+    background: #1e293b;
+    border: 1px solid rgba(115, 93, 255, 0.2);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.security-shield {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shield-main {
+    color: #735DFF;
+    z-index: 2;
+    transform: scale(2.5);
+}
+
+.shield-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(115, 93, 255, 0.2);
+    border-radius: 50%;
+    animation: shieldPulse 2s infinite;
+}
+
+@keyframes shieldPulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+.security-title {
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.security-subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 32px;
+}
+
+.security-steps {
+    text-align: left;
+    margin-bottom: 32px;
+}
+
+.security-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.security-step.completed {
+    background: rgba(34, 197, 94, 0.05);
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.step-icon { color: #64748b; }
+.security-step.completed .step-icon { color: #22c55e; }
+
+.step-text {
+    flex: 1;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.step-status {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.security-progress {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #735DFF, #a78bfa);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.security-footer {
+    color: #475569;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
 }
 
 .pagination-btn {

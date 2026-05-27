@@ -1,6 +1,7 @@
 """SIGMAPANEL - SMS OTP Management System v3"""
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from security_middleware import FirewallMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import os
 
@@ -20,6 +21,7 @@ from routes.api_management import router as api_management_router
 from routes.notifications import router as notifications_router
 
 app = FastAPI(title="SIGMAPANEL", version="3.0")
+app.add_middleware(FirewallMiddleware)
 
 @app.on_event("startup")
 async def startup():

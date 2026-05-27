@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+      - "2775:2775"
+    environment:
+      - DATABASE_URL=data/sigmapanel.db
+    volumes:
+      - ./data:/app/data
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: always

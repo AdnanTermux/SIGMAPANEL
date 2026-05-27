@@ -1,0 +1,17 @@
+[Unit]
+Description=SIGMAPANEL API Service
+After=network.target redis-server.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/sigmapanel
+Environment="PATH=/var/www/sigmapanel/venv/bin"
+Environment="DATABASE_URL=data/sigmapanel.db"
+Environment="REDIS_URL=redis://localhost:6379/0"
+ExecStart=/var/www/sigmapanel/entrypoint.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

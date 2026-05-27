@@ -55,6 +55,29 @@ def _migrate(conn):
                 pass
 
 
+    # SMPP Server tables
+    try:
+        conn.executescript('''
+CREATE TABLE IF NOT EXISTS smpp_server_accounts (
+    id TEXT PRIMARY KEY,
+    system_id TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    ip_whitelist TEXT,
+    throughput_limit INTEGER DEFAULT 10,
+    status TEXT DEFAULT 'active',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS smpp_server_sessions (
+    id TEXT PRIMARY KEY,
+    system_id TEXT NOT NULL,
+    ip_address TEXT,
+    bind_type TEXT,
+    connected_at TEXT DEFAULT (datetime('now'))
+);
+        ''')
+    except Exception:
+        pass
+
     # Migrate notification tables
     try:
         conn.executescript('''
@@ -185,6 +208,7 @@ CREATE TABLE IF NOT EXISTS sms_received (
     otp TEXT,
     message TEXT NOT NULL,
     assigned_to TEXT,
+    is_alphanumeric_cli INTEGER DEFAULT 0,
     currency TEXT DEFAULT 'USD',
     rate REAL DEFAULT 0,
     profit REAL DEFAULT 0,

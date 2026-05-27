@@ -1,11 +1,12 @@
 """Users CRUD with strict role-based permissions"""
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 from typing import Optional
 import re
 from database import get_db
-from auth import verify_token, extract_token, hash_password, generate_id
+from auth import verify_token, extract_token, generate_id, hash_password
+from routes.deps import require_role
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -183,9 +184,8 @@ async def list_users(
 
 # ── Create ─────────────────────────────────────────────────────────────────────
 
-@router.post("")
-async def create_user(request: Request, body: UserCreate):
-    p = _require(request)
+@router.post("", dependencies=[Depends(require_role(['admin', 'manager']))])
+async def create_user(request: Request, body: UserCreate, p=Depends(require_role(['admin', 'manager']))):
 
     allowed = CAN_CREATE.get(p["role"], set())
     if body.role not in allowed:

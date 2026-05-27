@@ -62,8 +62,17 @@ def _process_single_sms(data: dict) -> dict:
     if not normalized_number:
         return {'success': False, 'error': 'Invalid or empty phone number'}
 
+    # Alphanumeric CLI Detection
+    sender = data.get('from', '')
+    is_alphanumeric_cli = False
+    if sender and not sender.replace('+', '').isdigit():
+        is_alphanumeric_cli = True
+        # Keep as is, bypass normalization
+    else:
+        sender = normalize_phone_number(sender) if sender else sender
+
     # Detect service, OTP, country
-    service = detect_service(data.get('from'), data.get('service'), data.get('message'))
+    service = detect_service(sender, data.get('service'), data.get('message'))
     otp = extract_otp(data.get('message', ''))
     country_info = detect_country(normalized_number)
     
@@ -96,9 +105,9 @@ def _process_single_sms(data: dict) -> dict:
         
         # Save SMS
         conn.execute(
-            """INSERT INTO sms_received (id, number, sender, recipient, service, country, range_name, otp, message, assigned_to, rate, profit, currency, received_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?)""",
-            (sms_id, normalized_number, data.get('from'), data.get('to'), service, country_code or country, range_name, otp, data['message'], assigned_to, rate, profit, now)
+            """INSERT INTO sms_received (id, number, sender, recipient, service, country, range_name, otp, message, assigned_to, is_alphanumeric_cli, rate, profit, currency, received_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?)""",
+            (sms_id, normalized_number, sender, data.get('to'), service, country_code or country, range_name, otp, data['message'], assigned_to, 1 if is_alphanumeric_cli else 0, rate, profit, now)
         )
         
         # Update number stats
@@ -120,9 +129,11 @@ def _process_single_sms(data: dict) -> dict:
                 (profit_id, num_id, sms_id, rate, profit)
             )
     
-    return {
+    res = {
         'success': True,
         'number': normalized_number,
+        'sender': sender,
+        'is_alphanumeric_cli': is_alphanumeric_cli,
         'service': service,
         'otp': otp,
         'country': country,
@@ -130,6 +141,11 @@ def _process_single_sms(data: dict) -> dict:
         'message': data['message'],
         'smsId': sms_id,
     }
+
+    from queue_manager import queue_manager
+    queue_manager.push("sms_queue", res)
+
+    return res
 
 def process_incoming_sms(payload) -> dict | list:
     """Process incoming SMS - auto-detects format"""
