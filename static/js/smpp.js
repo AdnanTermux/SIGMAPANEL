@@ -106,7 +106,30 @@ const smpp = {
     },
 
     showAddServerAccount() {
-        window.ui.showToast('Create Server Account modal coming soon', 'info');
+        const body = `
+            <div class="form-group"><label>System ID (Username)</label><input type="text" id="sa-sid" class="fly-input"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="sa-pwd" class="fly-input"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Throughput Limit (SMS/s)</label><input type="number" id="sa-thr" class="fly-input" value="10"></div>
+                <div class="form-group"><label>IP Whitelist (Optional)</label><input type="text" id="sa-ip" class="fly-input" placeholder="e.g. 1.2.3.4"></div>
+            </div>`;
+        const footer = `<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.smpp.saveAccount()">Create Account</button>`;
+        window.ui.showModal('New SMPP Server Account', body, footer);
+    },
+
+    async saveAccount() {
+        const payload = {
+            systemId: document.getElementById('sa-sid').value,
+            password: document.getElementById('sa-pwd').value,
+            throughputLimit: parseInt(document.getElementById('sa-thr').value),
+            ipWhitelist: document.getElementById('sa-ip').value || null
+        };
+        try {
+            await window.api.call('/api/providers/smpp-server/accounts', { method: 'POST', body: JSON.stringify(payload) });
+            window.ui.showToast('Account created', 'success');
+            window.ui.closeModal();
+            window.router.resolvePage(document.getElementById('page-content'));
+        } catch (err) { window.ui.showToast(err.message, 'error'); }
     }
 };
 

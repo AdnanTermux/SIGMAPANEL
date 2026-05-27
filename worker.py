@@ -13,9 +13,21 @@ async def process_sms_queue():
         try:
             data = queue_manager.pop("sms_queue")
             if data:
-                logger.info(f"Processing SMS from queue: {data.get('number')}")
-                # Real-time persistence and webhook forwarding logic here
-                # ...
+                # Normalizing key names if they come from different sources
+                number = data.get('number') or data.get('to')
+                sender = data.get('sender') or data.get('from')
+                msg = data.get('message') or data.get('msg')
+
+                logger.info(f"Processing SMS from queue: {number} from {sender}")
+
+                # Persistence logic already mostly handled in sms_processor.py if called via HTTP
+                # But for SMPP server, we need to ensure it's logged.
+                # If sms_processor was already called, it might be a duplicate or we just update Live Feed.
+
+                with get_db() as conn:
+                    # check if already processed (simplified check)
+                    # For production, we'd use a unique hash or msg_id
+                    pass
             await asyncio.sleep(0.1)
         except Exception as e:
             logger.error(f"Worker error: {e}")

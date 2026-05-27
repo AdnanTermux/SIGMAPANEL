@@ -210,6 +210,42 @@ const numbers = {
                 </table>
             </div>
         </div>`;
+    },
+
+    async renderUpload(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Upload & Import Numbers</div></div>
+            <div class="card-body" style="padding:20px">
+                <div class="form-group">
+                    <label>Paste Numbers (one per line)</label>
+                    <textarea class="fly-input" style="height:200px" placeholder="+1234567890\n+1987654321"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Country</label><input type="text" class="fly-input"></div>
+                    <div class="form-group"><label>Range Mapping</label><select class="fly-input"><option>Auto-detect</option></select></div>
+                </div>
+                <button class="fly-btn">Process Upload</button>
+            </div>
+        </div>`;
+    },
+
+    async renderBlacklist(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">App & Service Blacklist</div>
+                <button class="fly-btn fly-btn-sm">Add Rule</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>App Name</th><th>Pattern</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr><td>Telegram</td><td><code>telegram|tg</code></td><td><span class="badge badge-danger">BLOCKED</span></td><td><button class="action-btn">Edit</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
     }
 };
 

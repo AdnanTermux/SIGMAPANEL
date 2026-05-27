@@ -174,6 +174,8 @@ function init() {
     window.router.addRoute('sms-ranges', (c) => window.ranges.renderRanges(c));
     window.router.addRoute('search-access', (c) => window.searchAccess.render(c));
     window.router.addRoute('live-access', (c) => window.numbers.renderLiveAccess(c));
+    window.router.addRoute('upload-numbers', (c) => window.numbers.renderUpload(c));
+    window.router.addRoute('blacklist-management', (c) => window.numbers.renderBlacklist(c));
     window.router.addRoute('revoke-numbers', (c) => window.numbers.renderGlobalRevoke(c));
 
     // SMS routes

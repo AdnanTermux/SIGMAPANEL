@@ -135,7 +135,9 @@ async def login(request: Request, body: LoginRequest):
             user_dict = dict(user)
             del user_dict['password']
             
-            return JSONResponse(content={"token": token, "user": user_dict})
+            response = JSONResponse(content={"token": token, "user": user_dict})
+            # Set secure cookie if needed, but SPA uses Authorization header
+            return response
     
     except HTTPException:
         raise

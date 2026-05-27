@@ -20,7 +20,14 @@ const api = {
         }
         if (!res.ok) {
             let msg = 'Request failed';
-            try { const j = await res.json(); msg = j.error || j.detail || msg; } catch {}
+            try {
+                const j = await res.json();
+                if (Array.isArray(j.detail)) {
+                    msg = j.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(' | ');
+                } else {
+                    msg = j.error || j.detail || msg;
+                }
+            } catch {}
             throw new Error(msg);
         }
         return res.json();

@@ -22,6 +22,10 @@ const apiManagement = {
                         <input type="text" class="fly-input" value="YOUR_API_TOKEN" readonly>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Action</label>
+                    <button class="fly-btn fly-btn-secondary" onclick="window.apiManagement.regenToken()">Regenerate Token</button>
+                </div>
                 <button class="fly-btn" onclick="window.apiManagement.testRequest()" style="width:100%">Execute Live Request</button>
 
                 <div style="margin-top:24px">
@@ -40,6 +44,15 @@ const apiManagement = {
             const data = await window.api.call(`/api${ep}`);
             resEl.textContent = JSON.stringify(data, null, 2);
         } catch (e) { resEl.textContent = `Error: ${e.message}`; }
+    },
+
+    async regenToken() {
+        if (!confirm('This will invalidate your current token. Continue?')) return;
+        try {
+            const data = await window.api.call('/api/api-management/regenerate-token', { method: 'POST' });
+            window.ui.showToast('New token generated', 'success');
+            window.router.resolvePage(document.getElementById('page-content'));
+        } catch (err) { window.ui.showToast(err.message, 'error'); }
     }
 };
 

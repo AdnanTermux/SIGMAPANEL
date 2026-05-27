@@ -148,7 +148,8 @@ class SMPPSession:
                 "timestamp": datetime.utcnow().isoformat()
             }
             logger.info(f"MO SMS parsed: {normalized}")
-            # TODO: Push to Redis
+            from queue_manager import queue_manager
+            queue_manager.push("sms_queue", normalized)
 
         # Deliver SM Resp
         await self.send_pdu(0x80000005, 0, seq, b'\x00')
@@ -179,7 +180,8 @@ class SMPPSession:
                 "text": data['text']
             }
             logger.info(f"DLR parsed: {normalized_dlr}")
-            # TODO: Push to Redis
+            from queue_manager import queue_manager
+            queue_manager.push("dlr_queue", normalized_dlr)
 
     async def handle_submit_sm(self, seq: int, body: bytes):
         if not self.authenticated:
@@ -248,7 +250,9 @@ class SMPPSession:
             "timestamp": datetime.utcnow().isoformat()
         }
 
-        # TODO: Push to Redis
+        # Push to Redis
+        from queue_manager import queue_manager
+        queue_manager.push("sms_queue", normalized)
 
         # Submit SM Resp
         message_id = f"{seq}".encode('utf-8') + b'\x00'
