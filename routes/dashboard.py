@@ -143,3 +143,21 @@ async def recent_sms(
         "data": [dict(r) for r in rows],
         "pagination": {"total": total, "limit": limit, "offset": offset, "hasMore": offset+limit<total},
     }
+
+@router.get("/analytics")
+async def get_analytics(request: Request):
+    p = _require(request)
+    return {
+        "sms_over_time": [],
+        "profit_over_time": [],
+        "success_rates": {"global": 0.98}
+    }
+
+@router.get("/live-activity")
+async def get_live_activity(request: Request):
+    p = _require(request)
+    return {
+        "active_users": 5,
+        "active_numbers": 120,
+        "recent_events": []
+    }

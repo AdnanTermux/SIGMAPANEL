@@ -364,6 +364,16 @@ class DeductBody(BaseModel):
     amount: float
     reason: str = "Policy violation"
 
+@router.get("/activity-logs")
+async def get_activity_logs(request: Request):
+    _require_role(request, "admin", "manager")
+    return {"data": []}
+
+@router.get("/permissions")
+async def get_permissions(request: Request):
+    _require_role(request, "admin")
+    return {"roles": CAN_CREATE}
+
 @router.post("/{item_id}/deduct-balance")
 async def deduct_balance(request: Request, item_id: str, body: DeductBody):
     """Manager or admin can deduct user balance as violation penalty"""

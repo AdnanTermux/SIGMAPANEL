@@ -76,6 +76,35 @@ const testPanel = {
                 </table>
             </div>
         </div>`;
+    },
+
+    async renderLiveFeed(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Live Test OTP Feed</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Range</th><th>Number</th><th>Service</th><th>OTP</th></tr></thead>
+                    <tbody>
+                        <tr><td>10:45:12</td><td>US-Mobile</td><td>+12025550125</td><td>Google</td><td><span class="otp-code">554212</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderRangeTester(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Range Delivery Tester</div></div>
+            <div class="card-body" style="padding:20px">
+                <div class="form-row">
+                    <div class="form-group"><label>Select App</label><input type="text" class="fly-input" placeholder="e.g. WhatsApp"></div>
+                    <div class="form-group"><label>Select Range</label><select class="fly-input"><option>US-Mobile</option></select></div>
+                </div>
+                <button class="fly-btn">Trigger Test Request</button>
+            </div>
+        </div>`;
     }
 };
 

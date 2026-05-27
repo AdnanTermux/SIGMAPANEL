@@ -372,6 +372,60 @@ CREATE TABLE IF NOT EXISTS notification_reads (
     UNIQUE(notification_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS registration_requests (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT,
+    full_name TEXT,
+    phone TEXT,
+    country TEXT,
+    profession TEXT,
+    payment_method TEXT,
+    payment_detail TEXT,
+    proof_image TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS payment_requests (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    username TEXT NOT NULL,
+    amount REAL NOT NULL,
+    method TEXT,
+    status TEXT DEFAULT 'pending',
+    rejection_reason TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    name TEXT,
+    scopes TEXT,
+    last_used_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS blocked_ips (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT UNIQUE NOT NULL,
+    reason TEXT,
+    expires_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS firewall_events (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT,
+    event_type TEXT,
+    severity TEXT,
+    action_taken TEXT,
+    detail TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_notifications_target ON notifications(target_role);
 CREATE INDEX IF NOT EXISTS idx_notif_reads_user ON notification_reads(user_id);
 """

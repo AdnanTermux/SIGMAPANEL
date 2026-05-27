@@ -79,3 +79,13 @@ async def list_sms(
             "hasMore": offset + limit < total,
         },
     }
+
+@router.get("/delivery-logs")
+async def delivery_logs(request: Request):
+    _require(request)
+    return {"data": []}
+
+@router.get("/failed")
+async def failed_sms(request: Request):
+    _require(request)
+    return {"data": []}

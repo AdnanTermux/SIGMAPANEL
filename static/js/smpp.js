@@ -64,6 +64,39 @@ const smpp = {
         </div>`;
     },
 
+    async renderSessions(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Live SMPP Sessions</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>System ID</th><th>IP Address</th><th>Bind Type</th><th>Connected At</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">No active sessions at the moment</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderAccounts(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">SMPP Server Provider Accounts</div>
+                <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddServerAccount()">New Account</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>System ID</th><th>IP Whitelist</th><th>Throughput</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">No provider accounts configured</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
     reconnect(id) {
         window.ui.showToast('Reconnecting...', 'info');
     },

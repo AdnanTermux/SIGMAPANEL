@@ -96,6 +96,16 @@ async def update_provider(request: Request, pid: str, body: ProviderUpdate):
         row = conn.execute("SELECT * FROM providers WHERE id=?", (pid,)).fetchone()
     return {"data": dict(row)}
 
+@router.get("/logs")
+async def provider_logs(request: Request):
+    _admin(request)
+    return {"data": []}
+
+@router.get("/throughput")
+async def provider_throughput(request: Request):
+    _admin(request)
+    return {"data": {}}
+
 @router.delete("/{pid}")
 async def delete_provider(request: Request, pid: str):
     _admin(request)

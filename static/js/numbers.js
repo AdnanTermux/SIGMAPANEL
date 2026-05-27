@@ -194,6 +194,22 @@ const numbers = {
     async doGlobalRevoke(mode) {
         if (!confirm('CRITICAL ACTION: Are you absolutely sure? This will impact all customers.')) return;
         window.ui.showToast('Executing global revoke...', 'warning');
+    },
+
+    async renderLiveAccess(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Live Number Activity</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Number</th><th>Current Status</th><th>Last Event</th><th>Throughput</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>+12025550123</code></td><td><span class="badge badge-success">ACTIVE</span></td><td>Incoming SMS</td><td>0.5/s</td></tr>
+                        <tr><td><code>+447911123456</code></td><td><span class="badge badge-warning">IDLE</span></td><td>Keep-alive</td><td>0.0/s</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
     }
 };
 

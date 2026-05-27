@@ -21,14 +21,8 @@ const dashboard = {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" class="dashboard-charts">
                 <div class="card">
                     <div class="card-header"><div class="card-title">Weekly SMS Activity</div></div>
-                    <div class="chart-container" id="weekly-chart">
-                        ${stats.weekSmsByDay.map(d => `
-                            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
-                                <div style="font-size:11px;font-weight:600;color:#222F36;margin-bottom:4px">${d.count}</div>
-                                <div style="width:100%;max-width:40px;background:linear-gradient(to top,#735DFF,#a78bfa);border-radius:4px 4px 0 0;height:${Math.max((d.count / maxChart) * 100, 4)}%;transition:height 0.3s ease"></div>
-                                <div style="font-size:10px;color:#6B7280;margin-top:6px">${d.date.slice(5)}</div>
-                            </div>
-                        `).join('')}
+                    <div style="padding:16px; height:240px">
+                        <canvas id="weekly-sms-chart"></canvas>
                     </div>
                 </div>
                 <div class="card">
@@ -61,9 +55,37 @@ const dashboard = {
                     </table>
                 </div>
             </div>`;
+            this.renderChart(stats.weekSmsByDay);
         } catch (err) {
             container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
         }
+    },
+
+    renderChart(data) {
+        setTimeout(() => {
+            const ctx = document.getElementById('weekly-sms-chart')?.getContext('2d');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date.slice(5)),
+                    datasets: [{
+                        label: 'SMS Volume',
+                        data: data.map(d => d.count),
+                        borderColor: '#735DFF',
+                        backgroundColor: 'rgba(115, 93, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }, 100);
     }
 };
 

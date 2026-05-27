@@ -44,6 +44,40 @@ const security = {
         </div>`;
     },
 
+    async renderBlockedIPs(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">IP Blacklist Management</div></div>
+            <div class="filter-bar">
+                <input type="text" class="fly-input" placeholder="Enter IP address to block..." id="new-block-ip">
+                <button class="fly-btn" onclick="window.security.blockIP()">Block IP</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>IP Address</th><th>Reason</th><th>Blocked At</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>103.44.12.5</code></td><td>Rate limit abuse</td><td>2026-05-27</td><td><button class="action-btn">Unblock</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderThreatLogs(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Threat & Attack Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>IP</th><th>Type</th><th>Severity</th><th>Payload</th></tr></thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">No high-severity threats detected in the last 24h</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
     // Keep original functions
     renderVerification() {
         document.getElementById('app').innerHTML = `
