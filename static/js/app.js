@@ -109,6 +109,13 @@ const NAV_STRUCTURE = [
         ]
     },
     {
+        group: 'INTERCONNECTION',
+        roles: ['admin'],
+        items: [
+            { key: 'smpp-interconnect', label: 'SMPP Interconnect', icon: ICONS.transfer, roles: ['admin'] },
+        ]
+    },
+    {
         group: 'SETTINGS',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
@@ -172,6 +179,9 @@ function init() {
     // Requests routes
     window.router.addRoute('payment-requests', (c) => window.payments.renderRequests(c));
     window.router.addRoute('registration-requests', (c) => window.users.renderRegRequests(c));
+
+    // Interconnect routes
+    window.router.addRoute('smpp-interconnect', (c) => window.smppInterconnect.render(c));
 
     // Test Panel routes
     window.router.addRoute('test-numbers', (c) => window.testPanel.renderTestNumbers(c));

@@ -20,6 +20,7 @@ from routes.payments import router as payments_router
 from routes.numbers_ext import router as numbers_ext_router
 from routes.api_management import router as api_management_router
 from routes.notifications import router as notifications_router
+from routes.smpp_interconnect import router as smpp_interconnect_router
 
 app = FastAPI(title="SIGMAPANEL", version="3.0")
 app.add_middleware(FirewallMiddleware)
@@ -42,6 +43,7 @@ app.include_router(payments_router)
 app.include_router(numbers_ext_router)
 app.include_router(api_management_router)
 app.include_router(notifications_router)
+app.include_router(smpp_interconnect_router)
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

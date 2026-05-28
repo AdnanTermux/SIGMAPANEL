@@ -94,6 +94,44 @@ CREATE TABLE IF NOT EXISTS notification_reads (
     except Exception:
         pass
 
+    # Interconnection Migration
+    try:
+        conn.executescript('''
+CREATE TABLE IF NOT EXISTS smpp_remote_servers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER DEFAULT 2775,
+    system_id TEXT NOT NULL,
+    password TEXT NOT NULL,
+    bind_type TEXT DEFAULT 'transceiver',
+    src_ton INTEGER DEFAULT 1,
+    src_npi INTEGER DEFAULT 1,
+    dst_ton INTEGER DEFAULT 1,
+    dst_npi INTEGER DEFAULT 1,
+    enquire_link_interval INTEGER DEFAULT 30,
+    dlr_enabled INTEGER DEFAULT 1,
+    throughput_limit INTEGER DEFAULT 10,
+    allowed_ips TEXT,
+    priority INTEGER DEFAULT 1,
+    is_active INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'disconnected',
+    last_connected TEXT,
+    last_disconnected TEXT,
+    last_error TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL,
+    session_state TEXT,
+    connected_at TEXT,
+    FOREIGN KEY (server_id) REFERENCES smpp_remote_servers(id) ON DELETE CASCADE
+);
+        ''')
+    except Exception:
+        pass
+
     # Migrate ranges table
     try:
         range_cols = {r[1] for r in conn.execute("PRAGMA table_info(ranges)")}
@@ -428,4 +466,46 @@ CREATE TABLE IF NOT EXISTS firewall_events (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_target ON notifications(target_role);
 CREATE INDEX IF NOT EXISTS idx_notif_reads_user ON notification_reads(user_id);
+
+CREATE TABLE IF NOT EXISTS smpp_remote_servers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER DEFAULT 2775,
+    system_id TEXT NOT NULL,
+    password TEXT NOT NULL,
+    bind_type TEXT DEFAULT 'transceiver',
+    src_ton INTEGER DEFAULT 1,
+    src_npi INTEGER DEFAULT 1,
+    dst_ton INTEGER DEFAULT 1,
+    dst_npi INTEGER DEFAULT 1,
+    enquire_link_interval INTEGER DEFAULT 30,
+    dlr_enabled INTEGER DEFAULT 1,
+    throughput_limit INTEGER DEFAULT 10,
+    allowed_ips TEXT,
+    priority INTEGER DEFAULT 1,
+    is_active INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'disconnected',
+    last_connected TEXT,
+    last_disconnected TEXT,
+    last_error TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS smpp_connection_logs (
+    id TEXT PRIMARY KEY,
+    server_id TEXT,
+    server_name TEXT,
+    event_type TEXT,
+    detail TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL,
+    session_state TEXT,
+    connected_at TEXT,
+    FOREIGN KEY (server_id) REFERENCES smpp_remote_servers(id) ON DELETE CASCADE
+);
 """
