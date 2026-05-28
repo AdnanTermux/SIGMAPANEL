@@ -35,19 +35,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting SIGMAPANEL Backend...")
     init_db()
 
-    # Independent Worker Tasks (Background)
-    # Note: In production, worker.py should run as a separate process,
-    # but we can also spawn them as tasks for simpler standalone deployments.
-    from worker import process_sms_queue, process_dlr_queue
-    sms_task = asyncio.create_task(process_sms_queue())
-    dlr_task = asyncio.create_task(process_dlr_queue())
+    # Independent Worker Processes are handled by entrypoint.sh
+    # We only manage the API-related resources here.
 
     yield
 
     # Shutdown
     logger.info("Shutting down SIGMAPANEL Backend...")
-    sms_task.cancel()
-    dlr_task.cancel()
     await queue_manager.close()
 
 app = FastAPI(title="SIGMAPANEL", version="3.0", lifespan=lifespan)

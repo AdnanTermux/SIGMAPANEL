@@ -1,4 +1,5 @@
 """Extended numbers routes: bulk import, assign range, return numbers"""
+from routes.deps import get_current_user, require_role
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -14,11 +15,6 @@ def _auth(request: Request):
     token = extract_token(request.headers.get('Authorization'))
     return verify_token(token) if token else None
 
-def _admin(request: Request):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
-    if p['role'] != 'admin': raise HTTPException(403, "Admin access required")
-    return p
 
 class BulkImport(BaseModel):
     numbersText: str           # one number per line
@@ -49,9 +45,13 @@ class BulkAllocateRequest(BaseModel):
     rangeName: str
     quantity: int
 
+class BulkRevokeRequest(BaseModel):
+    scope: str # "global" | "user" | "range"
+    userId: Optional[str] = None
+    rangeName: Optional[str] = None
+
 @router.post("/bulk-import")
-async def bulk_import(request: Request, body: BulkImport):
-    _admin(request)
+async def bulk_import(request: Request, body: BulkImport, p=Depends(require_role(["admin", "manager"]))):
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
     success, skipped, errors = 0, 0, []
     added_numbers = []
@@ -85,8 +85,7 @@ async def bulk_import(request: Request, body: BulkImport):
     return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines), "added_numbers": added_numbers}
 
 @router.post("/assign-range")
-async def assign_range(request: Request, body: AssignRange):
-    _admin(request)
+async def assign_range(request: Request, body: AssignRange, p=Depends(require_role(["admin", "manager"]))):
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
         nums = conn.execute("SELECT id FROM numbers WHERE range_name=? AND (assigned_to IS NULL OR assigned_to='')",
@@ -99,8 +98,7 @@ async def assign_range(request: Request, body: AssignRange):
     return {"assigned": count, "to": body.username}
 
 @router.post("/return-numbers")
-async def return_numbers(request: Request, body: ReturnNumbers):
-    _admin(request)
+async def return_numbers(request: Request, body: ReturnNumbers, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if body.numberIds:
             q = ",".join("?" * len(body.numberIds))
@@ -121,8 +119,7 @@ async def return_numbers(request: Request, body: ReturnNumbers):
     return {"returned": count}
 
 @router.post("/bulk-allocate")
-async def bulk_allocate(request: Request, body: BulkAllocateRequest):
-    _admin(request)
+async def bulk_allocate(request: Request, body: BulkAllocateRequest, p=Depends(require_role(["admin", "manager"]))):
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
         user = conn.execute("SELECT username FROM users WHERE id=?", (body.userId,)).fetchone()
@@ -233,3 +230,66 @@ async def return_allocation(request: Request, aid: str):
         conn.execute("UPDATE allocations SET status='returned',returned_at=? WHERE id=?",
                      (datetime.utcnow().isoformat(), aid))
     return {"returned": len(nums) if alloc['number_ids'] else 0}
+
+@router.post("/bulk-revoke")
+async def bulk_revoke(request: Request, body: BulkRevokeRequest, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        count = 0
+        if body.scope == "global":
+            r = conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE assigned_to IS NOT NULL")
+            count = r.rowcount
+            conn.execute("UPDATE ranges SET allocated_numbers=0")
+        elif body.scope == "user" and body.userId:
+            user = conn.execute("SELECT username FROM users WHERE id=?", (body.userId,)).fetchone()
+            if not user: raise HTTPException(404, "User not found")
+            r = conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE assigned_to=?", (user['username'],))
+            count = r.rowcount
+            # Recalculate allocated numbers for all ranges (expensive but accurate)
+            conn.execute("""UPDATE ranges SET allocated_numbers = (
+                SELECT COUNT(*) FROM numbers WHERE range_name = ranges.name AND assigned_to IS NOT NULL AND assigned_to != ''
+            )""")
+        elif body.scope == "range" and body.rangeName:
+            r = conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE range_name=?", (body.rangeName,))
+            count = r.rowcount
+            conn.execute("UPDATE ranges SET allocated_numbers=0 WHERE name=?", (body.rangeName,))
+        else:
+            raise HTTPException(400, "Invalid scope or missing parameters")
+
+    return {"message": f"Successfully revoked {count} numbers", "revoked_count": count}
+
+@router.get("/blacklist")
+async def list_blacklist(request: Request, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM blacklisted_apps").fetchall()
+    return {"data": [dict(r) for r in rows]}
+
+@router.post("/blacklist")
+async def add_blacklist(request: Request, body: dict, p=Depends(require_role(["admin", "manager"]))):
+    app_name = body.get('app_name')
+    pattern = body.get('pattern')
+    if not app_name or not pattern: raise HTTPException(400, "Missing fields")
+    with get_db() as conn:
+        bid = generate_id()
+        conn.execute("INSERT INTO blacklisted_apps (id, app_name, pattern, created_by) VALUES (?, ?, ?, ?)",
+                     (bid, app_name, pattern, p['username']))
+    return {"message": "App blacklisted"}
+
+@router.delete("/blacklist/{bid}")
+async def delete_blacklist(request: Request, bid: str, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        conn.execute("DELETE FROM blacklisted_apps WHERE id=?", (bid,))
+    return {"message": "Rule deleted"}
+
+@router.post("/bulk-delete")
+async def bulk_delete(request: Request, scope: str, value: str, p=Depends(require_role(["admin"]))):
+    with get_db() as conn:
+        if scope == "range":
+            conn.execute("DELETE FROM numbers WHERE range_name=?", (value,))
+            conn.execute("UPDATE ranges SET total_numbers=0, allocated_numbers=0 WHERE name=?", (value,))
+        elif scope == "status":
+            conn.execute("DELETE FROM numbers WHERE status=?", (value,))
+            # Recalculate all totals
+            conn.execute("""UPDATE ranges SET total_numbers = (SELECT COUNT(*) FROM numbers WHERE range_id = ranges.id)""")
+        else:
+            raise HTTPException(400, "Invalid scope")
+    return {"message": "Bulk deletion completed"}

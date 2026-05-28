@@ -1,4 +1,6 @@
 from fastapi import Request, HTTPException
+from routes.deps import get_current_user, require_role
+from fastapi import Depends
 from auth import extract_token, verify_token
 from database import get_db
 

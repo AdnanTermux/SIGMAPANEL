@@ -6,16 +6,11 @@ from typing import Optional
 import re
 from database import get_db
 from auth import verify_token, extract_token, generate_id, hash_password
-from routes.deps import require_role
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 # ── Role hierarchy ─────────────────────────────────────────────────────────────
-# admin    : full control
-# manager  : create resellers, manage their numbers/balance, block/suspend, view all OTPs
-# reseller : create sub_resellers, assign numbers to sub_resellers
-# sub_reseller : client — own numbers and messages only
-
 CAN_CREATE = {
     "admin":    {"admin", "manager", "reseller", "sub_reseller"},
     "manager":  {"reseller", "sub_reseller"},
@@ -24,22 +19,6 @@ CAN_CREATE = {
 }
 
 CAN_MANAGE_USERS = {"admin", "manager", "reseller"}
-
-def _auth(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    return verify_token(tok) if tok else None
-
-def _require(request: Request):
-    p = _auth(request)
-    if not p:
-        raise HTTPException(401, "Authentication required")
-    return p
-
-def _require_role(request: Request, *roles):
-    p = _require(request)
-    if p["role"] not in roles:
-        raise HTTPException(403, f"Requires role: {', '.join(roles)}")
-    return p
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
@@ -123,24 +102,20 @@ async def list_users(
     role: str = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    p=Depends(get_current_user)
 ):
-    p = _require(request)
     if p["role"] not in CAN_MANAGE_USERS:
         raise HTTPException(403, "Not authorized to list users")
 
     offset = (page - 1) * limit
     conds, params = [], []
 
-    # Scope visibility
     if p["role"] == "manager":
-        # Manager sees their resellers and the sub-resellers of those resellers
         conds.append("(parent_id = ? OR parent_id IN (SELECT id FROM users WHERE parent_id = ?))")
-        params.extend([p["userId"], p["userId"]])
+        params.extend([p["id"], p["id"]])
     elif p["role"] == "reseller":
-        # Reseller sees only their sub-resellers
         conds.append("parent_id = ?")
-        params.append(p["userId"])
-    # admin sees all
+        params.append(p["id"])
 
     if search:
         conds.append("(username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone LIKE ?)")
@@ -185,9 +160,8 @@ async def list_users(
 
 # ── Create ─────────────────────────────────────────────────────────────────────
 
-@router.post("", dependencies=[Depends(require_role(['admin', 'manager']))])
+@router.post("")
 async def create_user(request: Request, body: UserCreate, p=Depends(require_role(['admin', 'manager']))):
-
     allowed = CAN_CREATE.get(p["role"], set())
     if body.role not in allowed:
         raise HTTPException(
@@ -203,7 +177,7 @@ async def create_user(request: Request, body: UserCreate, p=Depends(require_role
             raise HTTPException(409, "Email already in use")
 
         uid = generate_id()
-        parent = body.parentId or p["userId"]
+        parent = body.parentId or p["id"]
         conn.execute(
             """INSERT INTO users
                (id,username,email,password,role,status,full_name,phone,country,address,
@@ -224,29 +198,23 @@ async def create_user(request: Request, body: UserCreate, p=Depends(require_role
 # ── Update ─────────────────────────────────────────────────────────────────────
 
 @router.put("/{item_id}")
-async def update_user(request: Request, item_id: str, body: UserUpdate):
-    p = _require(request)
-
+async def update_user(request: Request, item_id: str, body: UserUpdate, p=Depends(get_current_user)):
     with get_db() as conn:
         target = conn.execute("SELECT * FROM users WHERE id=?", (item_id,)).fetchone()
         if not target:
             raise HTTPException(404, "User not found")
 
-        # Permission: can actor manage this target?
-        is_self = item_id == p["userId"]
+        is_self = item_id == p["id"]
         if not is_self:
             if p["role"] == "sub_reseller":
                 raise HTTPException(403, "Not authorized")
-            if p["role"] == "reseller" and target["parent_id"] != p["userId"]:
+            if p["role"] == "reseller" and target["parent_id"] != p["id"]:
                 raise HTTPException(403, "Not authorized to edit this user")
             if p["role"] == "manager":
-                # manager can edit resellers and their children
                 if target["role"] not in ("reseller", "sub_reseller"):
                     raise HTTPException(403, "Manager can only edit resellers and sub-resellers")
 
         updates = {}
-
-        # Profile fields (self or authorized manager/admin)
         for py_key, db_key in [
             ("email","email"), ("fullName","full_name"), ("phone","phone"),
             ("country","country"), ("address","address"), ("timezone","timezone"),
@@ -256,7 +224,6 @@ async def update_user(request: Request, item_id: str, body: UserUpdate):
             if v is not None:
                 updates[db_key] = v
 
-        # Admin/manager only fields
         if p["role"] in ("admin", "manager"):
             if body.balance is not None:       updates["balance"] = body.balance
             if body.creditLimit is not None:   updates["credit_limit"] = body.creditLimit
@@ -265,26 +232,22 @@ async def update_user(request: Request, item_id: str, body: UserUpdate):
             if body.apiQuota is not None:      updates["api_quota"] = body.apiQuota
             if body.parentId is not None:      updates["parent_id"] = body.parentId
 
-        # Role change — only admin
         if body.role is not None and body.role != target["role"]:
             if p["role"] != "admin":
                 raise HTTPException(403, "Only admin can change roles")
             updates["role"] = body.role
 
-        # Status change — admin or manager (not self)
         if body.status is not None and not is_self:
             if p["role"] in ("admin", "manager"):
                 updates["status"] = body.status
                 if body.violation_reason is not None:
                     updates["violation_reason"] = body.violation_reason
 
-        # Password
         if body.password:
             if len(body.password) < 6:
                 raise HTTPException(400, "Password must be at least 6 characters")
             updates["password"] = hash_password(body.password)
 
-        # Unlock
         if body.unlock:
             updates["failed_login_attempts"] = 0
             updates["locked_until"] = None
@@ -307,9 +270,8 @@ async def update_user(request: Request, item_id: str, body: UserUpdate):
 # ── Delete ─────────────────────────────────────────────────────────────────────
 
 @router.delete("/{item_id}")
-async def delete_user(request: Request, item_id: str):
-    p = _require_role(request, "admin", "manager")
-    if item_id == p["userId"]:
+async def delete_user(request: Request, item_id: str, p=Depends(require_role(["admin", "manager"]))):
+    if item_id == p["id"]:
         raise HTTPException(400, "Cannot delete your own account")
 
     with get_db() as conn:
@@ -319,7 +281,6 @@ async def delete_user(request: Request, item_id: str):
         if p["role"] == "manager" and target["role"] not in ("reseller", "sub_reseller"):
             raise HTTPException(403, "Manager can only delete resellers and sub-resellers")
 
-        # Unassign numbers belonging to this user
         conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE assigned_to=?",
                      (target["username"],))
         conn.execute("UPDATE users SET parent_id=? WHERE parent_id=?", (target["parent_id"], item_id))
@@ -335,8 +296,7 @@ class SuspendBody(BaseModel):
     reason: Optional[str] = "Policy violation"
 
 @router.post("/{item_id}/suspend")
-async def suspend_user(request: Request, item_id: str, body: SuspendBody):
-    p = _require_role(request, "admin", "manager")
+async def suspend_user(request: Request, item_id: str, body: SuspendBody, p=Depends(require_role(["admin", "manager"]))):
     from datetime import datetime, timedelta
     until = (datetime.utcnow() + timedelta(minutes=body.minutes)).isoformat()
     with get_db() as conn:
@@ -352,8 +312,7 @@ async def suspend_user(request: Request, item_id: str, body: SuspendBody):
     return {"message": f"User suspended until {until}"}
 
 @router.post("/{item_id}/unblock")
-async def unblock_user(request: Request, item_id: str):
-    p = _require_role(request, "admin", "manager")
+async def unblock_user(request: Request, item_id: str, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         conn.execute(
             "UPDATE users SET status='active',suspended_until=NULL,violation_reason=NULL,"
@@ -366,19 +325,49 @@ class DeductBody(BaseModel):
     reason: str = "Policy violation"
 
 @router.get("/activity-logs")
-async def get_activity_logs(request: Request):
-    _require_role(request, "admin", "manager")
+async def get_activity_logs(request: Request, p=Depends(require_role(["admin", "manager"]))):
     return {"data": []}
 
 @router.get("/permissions")
-async def get_permissions(request: Request):
-    _require_role(request, "admin")
+async def get_permissions(request: Request, p=Depends(require_role(["admin"]))):
     return {"roles": CAN_CREATE}
 
+@router.get("/registration-requests")
+async def list_reg_requests(request: Request, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM registration_requests WHERE status='pending' ORDER BY created_at DESC").fetchall()
+    return {"data": [dict(r) for r in rows]}
+
+@router.post("/registration-requests/{req_id}/approve")
+async def approve_reg_request(request: Request, req_id: str, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        req = conn.execute("SELECT * FROM registration_requests WHERE id=?", (req_id,)).fetchone()
+        if not req: raise HTTPException(404, "Request not found")
+
+        if conn.execute("SELECT id FROM users WHERE username=?", (req["username"],)).fetchone():
+             conn.execute("UPDATE registration_requests SET status='rejected' WHERE id=?", (req_id,))
+             raise HTTPException(400, "Username already exists. Request auto-rejected.")
+
+        uid = generate_id()
+        pw_hash = req["password"] or hash_password("Sigma123!")
+
+        conn.execute(
+            """INSERT INTO users (id, username, email, password, role, status, full_name, phone, country, parent_id)
+               VALUES (?, ?, ?, ?, 'sub_reseller', 'active', ?, ?, ?, ?)""",
+            (uid, req["username"], req["email"], pw_hash, req["full_name"], req["phone"], req["country"], p["id"])
+        )
+        conn.execute("UPDATE registration_requests SET status='approved' WHERE id=?", (req_id,))
+    return {"message": "User approved and created"}
+
+@router.post("/registration-requests/{req_id}/reject")
+async def reject_reg_request(request: Request, req_id: str, p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        conn.execute("UPDATE registration_requests SET status='rejected' WHERE id=?", (req_id,))
+    return {"message": "Request rejected"}
+
 @router.post("/{item_id}/deduct-balance")
-async def deduct_balance(request: Request, item_id: str, body: DeductBody):
+async def deduct_balance(request: Request, item_id: str, body: DeductBody, p=Depends(require_role(["admin", "manager"]))):
     """Manager or admin can deduct user balance as violation penalty"""
-    p = _require_role(request, "admin", "manager")
     if body.amount <= 0:
         raise HTTPException(400, "Amount must be positive")
     with get_db() as conn:
@@ -394,6 +383,6 @@ async def deduct_balance(request: Request, item_id: str, body: DeductBody):
         conn.execute(
             """INSERT INTO transactions (id,user_id,username,tx_type,amount,balance_before,balance_after,note,created_by)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            (tid, item_id, target["username"], "debit", -body.amount, before, after, body.reason, p["userId"])
+            (tid, item_id, target["username"], "debit", -body.amount, before, after, body.reason, p["id"])
         )
     return {"message": f"Deducted ${body.amount:.4f}", "new_balance": after}

@@ -1,19 +1,14 @@
 """Settings routes - webhook config, system IP/port, user preferences"""
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 import os, socket
 from database import get_db
 from auth import verify_token, extract_token, generate_id
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
-
-def _require(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    p = verify_token(tok) if tok else None
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
 
 class SettingCreate(BaseModel):
     key: str
@@ -30,7 +25,7 @@ async def list_settings(request: Request, key: str = Query(None)):
         pass
     else:
         # Require auth for everything else
-        p = _require(request)
+        get_current_user(request)
 
     conds, params = [], []
     # If authenticated and not admin, scope to self
@@ -51,9 +46,8 @@ async def list_settings(request: Request, key: str = Query(None)):
     return {"data": [dict(r) for r in rows]}
 
 @router.post("")
-async def upsert_setting(request: Request, body: SettingCreate):
-    p = _require(request)
-    uid = body.userId if p["role"] == "admin" else p["userId"]
+async def upsert_setting(request: Request, body: SettingCreate, p=Depends(get_current_user)):
+    uid = body.userId if p["role"] == "admin" else p["id"]
     with get_db() as conn:
         existing = conn.execute(
             "SELECT id FROM settings WHERE setting_key=? AND (user_id=? OR (user_id IS NULL AND ? IS NULL))",
@@ -70,9 +64,8 @@ async def upsert_setting(request: Request, body: SettingCreate):
     return {"data": dict(row)}
 
 @router.get("/webhook-info")
-async def webhook_info(request: Request):
+async def webhook_info(request: Request, p=Depends(get_current_user)):
     """Returns server IP, port and webhook URL — shown in settings page"""
-    _require(request)
     host = request.headers.get("host", "")
     # Detect public IP
     try:

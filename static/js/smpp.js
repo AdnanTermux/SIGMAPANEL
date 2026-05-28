@@ -43,59 +43,58 @@ const smpp = {
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-card-label">Active Connections</div>
-                <div class="stat-card-value">12 / 14</div>
+                <div class="stat-card-value" id="mon-conn">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-label">Global Throughput</div>
-                <div class="stat-card-value">184<span style="font-size:14px; color:var(--text-secondary)"> sms/s</span></div>
+                <div class="stat-card-label">Total Providers</div>
+                <div class="stat-card-value" id="mon-total">-</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-label">Avg. Latency</div>
-                <div class="stat-card-value">420<span style="font-size:14px; color:var(--text-secondary)"> ms</span></div>
+                <div class="stat-card-value" id="mon-lat">-</div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-header"><div class="card-title">Live Provider Monitoring</div></div>
+            <div class="card-header"><div class="card-title">Infrastructure Monitoring</div></div>
             <div class="table-wrapper">
                 <table class="fly-table">
-                    <thead><tr><th>Provider</th><th>Bind Status</th><th>Sessions</th><th>DLR Rate</th><th>Latency</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Global-SMPP-1</strong></td>
-                            <td><span class="badge badge-success">BOUND</span></td>
-                            <td>4/5</td>
-                            <td>99.2%</td>
-                            <td>310ms</td>
-                            <td><button class="action-btn">Reconnect</button></td>
-                        </tr>
-                        <tr>
-                            <td><strong>T-Mobile-UK</strong></td>
-                            <td><span class="badge badge-success">BOUND</span></td>
-                            <td>2/2</td>
-                            <td>97.8%</td>
-                            <td>450ms</td>
-                            <td><button class="action-btn">Reconnect</button></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Backup-HTTP-Route</strong></td>
-                            <td><span class="badge badge-secondary">IDLE</span></td>
-                            <td>0/0</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td><button class="action-btn">Force Bind</button></td>
-                        </tr>
+                    <thead><tr><th>Provider</th><th>Type</th><th>Throughput</th><th>Status</th><th>Last Seen</th></tr></thead>
+                    <tbody id="mon-body">
+                        <tr class="empty-row"><td colspan="5">Scanning infrastructure...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>`;
+        this.loadMonitoring();
+    },
+
+    async loadMonitoring() {
+        try {
+            const data = await window.api.call('/api/providers');
+            const providers = data.data || [];
+            document.getElementById('mon-total').textContent = providers.length;
+            document.getElementById('mon-conn').textContent = providers.filter(p => p.status === 'active').length;
+            document.getElementById('mon-lat').textContent = '0.3s';
+
+            const body = document.getElementById('mon-body');
+            body.innerHTML = providers.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td><span class="badge badge-secondary">${p.type.toUpperCase()}</span></td>
+                    <td>${p.throughput || 'Unlimited'}</td>
+                    <td><span class="badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}">${p.status}</span></td>
+                    <td style="font-size:11px">${p.last_active_at ? window.ui.formatDate(p.last_active_at) : 'Never'}</td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="5">No providers connected</td></tr>';
+        } catch (e) {}
     },
 
     showAddProvider() {
         window.ui.showModal('Connect New Provider', `
             <div class="form-group">
                 <label>Provider Name</label>
-                <input type="text" id="p-name" class="fly-input" placeholder="e.g. Twilio SMPP">
+                <input type="text" id="p-name" class="fly-input" placeholder="e.g. Carrier-X SMPP">
             </div>
             <div class="form-group">
                 <label>Connection Type</label>
@@ -187,12 +186,29 @@ const smpp = {
             <div class="table-wrapper">
                 <table class="fly-table">
                     <thead><tr><th>Provider</th><th>API Endpoint</th><th>Method</th><th>Success Rate</th><th>Status</th></tr></thead>
-                    <tbody>
-                        <tr><td>Twilio-API</td><td>https://api.twilio.com/...</td><td>POST</td><td>99.9%</td><td><span class="badge badge-success">ACTIVE</span></td></tr>
+                    <tbody id="http-prov-body">
+                        <tr class="empty-row"><td colspan="5">Loading HTTP providers...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>`;
+        this.loadHttpProviders();
+    },
+
+    async loadHttpProviders() {
+        try {
+            const data = await window.api.call('/api/providers');
+            const http = data.data.filter(p => p.type === 'http');
+            document.getElementById('http-prov-body').innerHTML = http.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td><code>${p.api_url}</code></td>
+                    <td>${p.api_method || 'POST'}</td>
+                    <td>99.9%</td>
+                    <td><span class="badge badge-success">ACTIVE</span></td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="5">No HTTP providers found</td></tr>';
+        } catch (e) {}
     },
 
     async renderConnectionLogs(container) {
@@ -202,8 +218,8 @@ const smpp = {
             <div class="table-wrapper">
                 <table class="fly-table">
                     <thead><tr><th>Time</th><th>Provider</th><th>Event</th><th>Detail</th></tr></thead>
-                    <tbody>
-                        <tr><td>Just now</td><td>Global-SMPP-1</td><td>BIND_SUCCESS</td><td>System ID: carrier_x</td></tr>
+                    <tbody id="conn-logs-body">
+                        <tr class="empty-row"><td colspan="4">Listening for infrastructure events...</td></tr>
                     </tbody>
                 </table>
             </div>

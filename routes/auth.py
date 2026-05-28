@@ -42,33 +42,37 @@ async def signup(request: Request, body: SignupRequest):
             if limit_setting:
                 limit = int(limit_setting['setting_value'])
                 today = datetime.utcnow().strftime('%Y-%m-%d')
-                count = conn.execute("SELECT COUNT(*) FROM users WHERE date(created_at) = ? AND status='pending_approval'", (today,)).fetchone()[0]
+                count = conn.execute("SELECT COUNT(*) FROM registration_requests WHERE date(created_at) = ?", (today,)).fetchone()[0]
                 if count >= limit:
                     raise HTTPException(status_code=429, detail="Daily registration limit reached. Please try again tomorrow.")
 
-            # Check if username exists
+            # Check if username exists in users or pending requests
             if conn.execute("SELECT id FROM users WHERE username = ?", (body.username.strip().lower(),)).fetchone():
                 raise HTTPException(status_code=400, detail="Username already exists")
+            if conn.execute("SELECT id FROM registration_requests WHERE username = ? AND status='pending'", (body.username.strip().lower(),)).fetchone():
+                raise HTTPException(status_code=400, detail="Registration request for this username is already pending")
 
             # Check if email exists
             if body.email and conn.execute("SELECT id FROM users WHERE email = ?", (body.email.strip().lower(),)).fetchone():
                 raise HTTPException(status_code=400, detail="Email already exists")
 
-            uid = generate_id()
-            pw_hash = hash_password(body.password)
+            rid = generate_id()
+            # We don't store password in registration_requests yet, usually it's better to store a hash if we do.
+            # But the table schema doesn't have password. We'll store it in a notes field or just wait for activation.
+            # Actually, let's just create the user in 'pending' status but in the users table for simplicity,
+            # OR update the registration_requests table.
+            # Re-reading prompt: "signup request submitted -> admin/manager approval -> account activation".
 
-            # Registration starts as 'pending_approval' for non-admins
-            status = 'pending_approval'
+            pay_detail = body.binanceUid or body.usdtAddress or "N/A"
 
             conn.execute(
-                """INSERT INTO users (id, username, email, password, role, status, full_name, phone, country, notes)
-                   VALUES (?, ?, ?, ?, 'sub_reseller', ?, ?, ?, ?, ?)""",
-                (uid, body.username.strip().lower(), body.email.strip().lower() if body.email else None,
-                 pw_hash, status, body.fullName, body.phone, body.country,
-                 f"Profession: {body.profession}, Payment: {body.paymentMethod}, BinanceUID: {body.binanceUid}, USDT: {body.usdtAddress}")
+                """INSERT INTO registration_requests (id, username, email, password, full_name, phone, country, profession, payment_method, payment_detail, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')""",
+                (rid, body.username.strip().lower(), body.email.strip().lower() if body.email else None,
+                 hash_password(body.password), body.fullName, body.phone, body.country, body.profession, body.paymentMethod, pay_detail)
             )
 
-            return {"message": "Registration successful. Please wait for administrator approval."}
+            return {"message": "Registration request submitted. Please wait for administrator approval."}
     except HTTPException:
         raise
     except Exception as e:
@@ -119,9 +123,13 @@ async def login(request: Request, body: LoginRequest):
                         detail=f"Account is locked. Try again in {remaining_min} minutes."
                     )
             
-            # Check blocked
+            # Check status
             if user['status'] == 'blocked':
                 raise HTTPException(status_code=403, detail="Account is blocked. Contact administrator.")
+            if user['status'] == 'pending_approval' or user['status'] == 'pending':
+                raise HTTPException(status_code=403, detail="Account is pending approval. Please wait.")
+            if user['status'] == 'suspended':
+                raise HTTPException(status_code=403, detail="Account is suspended.")
             
             # Verify password
             if not verify_password(body.password, user['password']):

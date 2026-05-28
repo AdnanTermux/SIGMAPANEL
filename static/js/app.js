@@ -43,6 +43,7 @@ const NAV_STRUCTURE = [
             { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'bulk-tools', label: 'Bulk Tools', icon: ICONS.settings, roles: ['admin', 'manager'] },
             { key: 'export-numbers', label: 'Export Numbers', icon: ICONS.transfer, roles: ['admin', 'manager'] },
             { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'blacklist-management', label: 'Blacklist Management', icon: ICONS.ban, roles: ['admin', 'manager'] },
@@ -141,6 +142,7 @@ function init() {
     window.router.addRoute('sms-ranges', (c) => window.ranges.renderRanges(c));
     window.router.addRoute('search-access', (c) => window.searchAccess.render(c));
     window.router.addRoute('live-access', (c) => window.numbers.renderLiveAccess(c));
+    window.router.addRoute('bulk-tools', (c) => window.numbers.renderBulkTools(c));
     window.router.addRoute('export-numbers', (c) => window.numbers.renderExport(c));
     window.router.addRoute('upload-numbers', (c) => window.numbers.renderUpload(c));
     window.router.addRoute('blacklist-management', (c) => window.numbers.renderBlacklist(c));
@@ -161,6 +163,18 @@ function init() {
         window.sms.stopLiveFeed();
         window.sms.renderAnalytics(c);
     });
+    window.router.addRoute('search-sms', (c) => {
+        window.sms.stopLiveFeed();
+        window.sms.renderSearchSms(c);
+    });
+    window.router.addRoute('delivery-logs', (c) => {
+        window.sms.stopLiveFeed();
+        window.sms.renderDeliveryLogs(c);
+    });
+    window.router.addRoute('failed-sms', (c) => {
+        window.sms.stopLiveFeed();
+        window.numbers.renderFailedSms(c);
+    });
 
     // Management routes
     window.router.addRoute('users', (c) => window.users.renderUsers(c));
@@ -179,6 +193,7 @@ function init() {
     // Requests routes
     window.router.addRoute('payment-requests', (c) => window.payments.renderRequests(c));
     window.router.addRoute('registration-requests', (c) => window.users.renderRegRequests(c));
+    window.router.addRoute('permissions', (c) => window.users.renderPermissions(c));
 
     // Interconnect routes
     window.router.addRoute('smpp-interconnect', (c) => window.smppInterconnect.render(c));
@@ -197,6 +212,9 @@ function init() {
     // Settings routes
     window.router.addRoute('general-settings', (c) => window.settings.renderGeneral(c));
     window.router.addRoute('security-settings', (c) => window.settings.renderSecurity(c));
+    window.router.addRoute('notifications-settings', (c) => window.settings.renderNotifications(c));
+    window.router.addRoute('documentation', (c) => window.settings.renderDocumentation(c));
+    window.router.addRoute('webhook-config', (c) => window.settings.renderWebhookConfig(c));
 
     // Fill other routes as placeholders
     [...NAV_STRUCTURE, ...TEST_NAV].forEach(group => {

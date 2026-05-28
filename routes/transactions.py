@@ -1,4 +1,6 @@
 """Transaction ledger, audit logs, pricing, support tickets, bulk number import"""
+from routes.deps import get_current_user, require_role
+from fastapi import Depends
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -14,15 +16,7 @@ def _auth(request: Request):
     token = extract_token(request.headers.get('Authorization'))
     return verify_token(token) if token else None
 
-def _require(request: Request):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
 
-def _admin(request: Request):
-    p = _require(request)
-    if p['role'] != 'admin': raise HTTPException(403, "Admin access required")
-    return p
 
 # ── Ledger ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +27,7 @@ async def get_ledger(
     tx_type: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
 ):
-    p = _require(request)
+    p = Depends(get_current_user)
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     conds, params = ["created_at >= ?"], [cutoff]
     if p['role'] != 'admin':
@@ -49,7 +43,7 @@ async def get_ledger(
 
 @router.get("/ledger/export")
 async def export_ledger(request: Request, days: int = Query(30, ge=1, le=365)):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM transactions WHERE created_at >= ? ORDER BY created_at DESC", (cutoff,)).fetchall()
@@ -71,7 +65,7 @@ class BalanceAdjust(BaseModel):
 
 @router.post("/balance-adjust")
 async def balance_adjust(request: Request, body: BalanceAdjust):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     with get_db() as conn:
         user = conn.execute("SELECT * FROM users WHERE id=?", (body.userId,)).fetchone()
         if not user: raise HTTPException(404, "User not found")
@@ -96,7 +90,7 @@ class BalanceTransfer(BaseModel):
 
 @router.post("/balance-transfer")
 async def balance_transfer(request: Request, body: BalanceTransfer):
-    p = _require(request)
+    p = Depends(get_current_user)
     if body.amount <= 0: raise HTTPException(400, "Amount must be positive")
     with get_db() as conn:
         src = conn.execute("SELECT * FROM users WHERE id=?", (body.fromUserId,)).fetchone()
@@ -124,7 +118,7 @@ async def balance_transfer(request: Request, body: BalanceTransfer):
 async def get_audit_logs(request: Request, days: int = Query(7, ge=1, le=90),
                           action: Optional[str] = Query(None), actor: Optional[str] = Query(None),
                           limit: int = Query(200, ge=1, le=500)):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     conds, params = ["created_at >= ?"], [cutoff]
     if action: conds.append("action LIKE ?"); params.append(f"%{action}%")
@@ -148,14 +142,14 @@ class PricingCreate(BaseModel):
 
 @router.get("/pricing")
 async def list_pricing(request: Request):
-    _require(request)
+    Depends(get_current_user)
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM pricing_rules ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/pricing")
 async def create_pricing(request: Request, body: PricingCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     with get_db() as conn:
         rid = generate_id()
         conn.execute("""INSERT INTO pricing_rules (id,name,scope,role,range_name,rate,profit_margin,created_by)
@@ -166,7 +160,7 @@ async def create_pricing(request: Request, body: PricingCreate):
 
 @router.put("/pricing/{rid}")
 async def update_pricing(request: Request, rid: str, body: PricingCreate):
-    _require(request)
+    Depends(get_current_user)
     with get_db() as conn:
         if not conn.execute("SELECT id FROM pricing_rules WHERE id=?", (rid,)).fetchone():
             raise HTTPException(404, "Not found")
@@ -177,7 +171,7 @@ async def update_pricing(request: Request, rid: str, body: PricingCreate):
 
 @router.delete("/pricing/{rid}")
 async def delete_pricing(request: Request, rid: str):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     with get_db() as conn:
         if not conn.execute("SELECT id FROM pricing_rules WHERE id=?", (rid,)).fetchone():
             raise HTTPException(404, "Not found")
@@ -198,7 +192,7 @@ class TicketUpdate(BaseModel):
 @router.get("/tickets")
 async def list_tickets(request: Request, status: Optional[str] = Query(None),
                         priority: Optional[str] = Query(None)):
-    p = _require(request)
+    p = Depends(get_current_user)
     conds, params = [], []
     if p['role'] != 'admin':
         conds.append("user_id = ?"); params.append(p['userId'])
@@ -211,7 +205,7 @@ async def list_tickets(request: Request, status: Optional[str] = Query(None),
 
 @router.post("/tickets")
 async def create_ticket(request: Request, body: TicketCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     with get_db() as conn:
         user = conn.execute("SELECT username FROM users WHERE id=?", (p['userId'],)).fetchone()
         tid = generate_id()
@@ -223,7 +217,7 @@ async def create_ticket(request: Request, body: TicketCreate):
 
 @router.put("/tickets/{tid}")
 async def update_ticket(request: Request, tid: str, body: TicketUpdate):
-    p = _require(request)
+    p = Depends(get_current_user)
     with get_db() as conn:
         t = conn.execute("SELECT * FROM support_tickets WHERE id=?", (tid,)).fetchone()
         if not t: raise HTTPException(404, "Ticket not found")
@@ -247,14 +241,14 @@ class BlacklistCreate(BaseModel):
 
 @router.get("/blacklist")
 async def list_blacklist(request: Request):
-    _require(request)
+    Depends(get_current_user)
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM blacklisted_apps ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/blacklist")
 async def add_blacklist(request: Request, body: BlacklistCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
     with get_db() as conn:
         if conn.execute("SELECT id FROM blacklisted_apps WHERE app_name=?", (body.appName,)).fetchone():
@@ -267,7 +261,7 @@ async def add_blacklist(request: Request, body: BlacklistCreate):
 
 @router.put("/blacklist/{bid}")
 async def update_blacklist(request: Request, bid: str, body: BlacklistCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
     with get_db() as conn:
         if not conn.execute("SELECT id FROM blacklisted_apps WHERE id=?", (bid,)).fetchone():
@@ -279,7 +273,7 @@ async def update_blacklist(request: Request, bid: str, body: BlacklistCreate):
 
 @router.patch("/blacklist/{bid}/toggle")
 async def toggle_blacklist(request: Request, bid: str):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
     with get_db() as conn:
         r = conn.execute("SELECT * FROM blacklisted_apps WHERE id=?", (bid,)).fetchone()
@@ -290,7 +284,7 @@ async def toggle_blacklist(request: Request, bid: str):
 
 @router.delete("/blacklist/{bid}")
 async def delete_blacklist(request: Request, bid: str):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
     with get_db() as conn:
         if not conn.execute("SELECT id FROM blacklisted_apps WHERE id=?", (bid,)).fetchone():

@@ -1,4 +1,5 @@
 """Provider management routes"""
+from routes.deps import get_current_user, require_role
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -12,11 +13,6 @@ def _auth(request: Request):
     token = extract_token(request.headers.get('Authorization'))
     return verify_token(token) if token else None
 
-def _admin(request: Request):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
-    if p['role'] != 'admin': raise HTTPException(403, "Admin access required")
-    return p
 
 class ProviderCreate(BaseModel):
     name: str
@@ -57,7 +53,7 @@ async def list_providers(request: Request):
 
 @router.post("")
 async def create_provider(request: Request, body: ProviderCreate):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     with get_db() as conn:
         if conn.execute("SELECT id FROM providers WHERE name=?", (body.name,)).fetchone():
             raise HTTPException(409, "Provider name already exists")
@@ -77,7 +73,7 @@ async def create_provider(request: Request, body: ProviderCreate):
 
 @router.put("/{pid}")
 async def update_provider(request: Request, pid: str, body: ProviderUpdate):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     with get_db() as conn:
         if not conn.execute("SELECT id FROM providers WHERE id=?", (pid,)).fetchone():
             raise HTTPException(404, "Provider not found")
@@ -98,17 +94,17 @@ async def update_provider(request: Request, pid: str, body: ProviderUpdate):
 
 @router.get("/logs")
 async def provider_logs(request: Request):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     return {"data": []}
 
 @router.get("/throughput")
 async def provider_throughput(request: Request):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     return {"data": {}}
 
 @router.delete("/{pid}")
 async def delete_provider(request: Request, pid: str):
-    _admin(request)
+    Depends(require_role(["admin", "manager"]))
     with get_db() as conn:
         r = conn.execute("SELECT * FROM providers WHERE id=?", (pid,)).fetchone()
         if not r: raise HTTPException(404, "Provider not found")

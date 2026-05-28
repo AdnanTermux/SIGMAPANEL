@@ -1,4 +1,6 @@
 """Ranges CRUD - Admin only can create/delete, all roles can view"""
+from routes.deps import get_current_user, require_role
+from fastapi import Depends
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -8,11 +10,6 @@ from auth import verify_token, extract_token, generate_id
 
 router = APIRouter(prefix="/api/ranges", tags=["ranges"])
 
-def _require(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    p = verify_token(tok) if tok else None
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
 
 class RangeCreate(BaseModel):
     name: str
@@ -60,7 +57,7 @@ async def list_ranges(
     search: str = Query(None),
     page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
 ):
-    p = _require(request)
+    p = Depends(get_current_user)
     offset = (page - 1) * limit
     conds, params = [], []
     if country: conds.append("country_code = ?"); params.append(country)
@@ -86,7 +83,7 @@ async def list_ranges(
 
 @router.post("")
 async def create_range(request: Request, body: RangeCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] != "admin":
         raise HTTPException(403, "Only Admin can create ranges")
     with get_db() as conn:
@@ -106,7 +103,7 @@ async def create_range(request: Request, body: RangeCreate):
 
 @router.get("/{item_id}")
 async def get_range(request: Request, item_id: str):
-    _require(request)
+    Depends(get_current_user)
     with get_db() as conn:
         row = conn.execute(
             """SELECT r.*,
@@ -121,7 +118,7 @@ async def get_range(request: Request, item_id: str):
 
 @router.put("/{item_id}")
 async def update_range(request: Request, item_id: str, body: RangeUpdate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] != "admin":
         raise HTTPException(403, "Only Admin can edit ranges")
     with get_db() as conn:
@@ -138,7 +135,7 @@ async def update_range(request: Request, item_id: str, body: RangeUpdate):
 
 @router.delete("/{item_id}")
 async def delete_range(request: Request, item_id: str):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] != "admin":
         raise HTTPException(403, "Only Admin can delete ranges")
     with get_db() as conn:

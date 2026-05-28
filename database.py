@@ -78,6 +78,14 @@ CREATE TABLE IF NOT EXISTS smpp_server_sessions (
     except Exception:
         pass
 
+    # Migrate registration_requests
+    try:
+        reg_cols = {r[1] for r in conn.execute("PRAGMA table_info(registration_requests)")}
+        if "password" not in reg_cols:
+            conn.execute("ALTER TABLE registration_requests ADD COLUMN password TEXT")
+    except Exception:
+        pass
+
     # Migrate notification tables
     try:
         conn.executescript('''
@@ -380,6 +388,15 @@ CREATE TABLE IF NOT EXISTS profit_log (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS settings (
+    id TEXT PRIMARY KEY,
+    setting_key TEXT NOT NULL,
+    setting_value TEXT NOT NULL,
+    user_id TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(setting_key, user_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_sms_received_number ON sms_received(number);
 CREATE INDEX IF NOT EXISTS idx_sms_received_received_at ON sms_received(received_at);
 CREATE INDEX IF NOT EXISTS idx_sms_received_assigned_to ON sms_received(assigned_to);
@@ -414,6 +431,7 @@ CREATE TABLE IF NOT EXISTS registration_requests (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT,
+    password TEXT,
     full_name TEXT,
     phone TEXT,
     country TEXT,

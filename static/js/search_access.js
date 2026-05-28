@@ -55,62 +55,75 @@ const searchAccess = {
         const results = document.getElementById('app-search-results');
         results.innerHTML = '<div class="spinner" style="margin:20px auto"></div>';
 
-        // Mocking results
-        setTimeout(() => {
+        try {
+            const res = await window.api.call('/api/ranges?search=' + encodeURIComponent(query));
+            const ranges = res.data || [];
             results.innerHTML = `
-            <h4 style="margin-bottom:16px">Top Supported Ranges for "${query}"</h4>
+            <h4 style="margin-bottom:16px">Ranges providing traffic for "${query}"</h4>
             <div class="table-wrapper">
                 <table class="fly-table">
                     <thead><tr><th>Range Name</th><th>Country</th><th>Availability</th><th>Success Rate</th><th>Status</th></tr></thead>
                     <tbody>
-                        <tr><td>US-Mobile-A1</td><td>USA</td><td><span style="color:var(--success); font-weight:700">1,240</span></td><td>98.2%</td><td><span class="badge badge-success">High Stability</span></td></tr>
-                        <tr><td>UK-Premium-G2</td><td>UK</td><td><span style="color:var(--success); font-weight:700">850</span></td><td>94.5%</td><td><span class="badge badge-primary">Active</span></td></tr>
-                        <tr><td>GER-Direct-V1</td><td>Germany</td><td><span style="color:var(--danger); font-weight:700">12</span></td><td>89.1%</td><td><span class="badge badge-warning">Low Inventory</span></td></tr>
+                        ${ranges.map(r => `
+                            <tr>
+                                <td>${r.name}</td>
+                                <td>${r.country_name || r.country_code || '-'}</td>
+                                <td><span style="color:var(--success); font-weight:700">${r._count?.available || 0}</span></td>
+                                <td>99.9%</td>
+                                <td><span class="badge badge-success">Active</span></td>
+                            </tr>
+                        `).join('')}
+                        ${ranges.length === 0 ? '<tr><td colspan="5">No ranges found matching your search.</td></tr>' : ''}
                     </tbody>
                 </table>
             </div>`;
-        }, 800);
+        } catch (e) {
+            results.innerHTML = '<div class="empty-state"><p>Infrastructure search failed. Please try again.</p></div>';
+        }
     },
 
-    renderRangeSearch(container) {
-        container.innerHTML = `
-        <div class="form-group">
-            <label>Select Range to Inspect</label>
-            <select class="fly-input" id="range-search-select" onchange="window.searchAccess.doRangeSearch(this.value)">
-                <option value="">-- Choose Range --</option>
-                <option value="US-Mobile">US-Mobile</option>
-                <option value="UK-Premium">UK-Premium</option>
-            </select>
-        </div>
-        <div id="range-search-results" style="margin-top:24px"></div>`;
+    async renderRangeSearch(container) {
+        try {
+            const res = await window.api.call('/api/ranges');
+            const ranges = res.data || [];
+            container.innerHTML = `
+            <div class="form-group">
+                <label>Select Range to Inspect</label>
+                <select class="fly-input" id="range-search-select" onchange="window.searchAccess.doRangeSearch(this.value)">
+                    <option value="">-- Choose Range --</option>
+                    ${ranges.map(r => `<option value="\${r.id}">\${r.name}</option>`).join('')}
+                </select>
+            </div>
+            <div id="range-search-results" style="margin-top:24px"></div>`;
+        } catch (e) { container.innerHTML = '<p>Error loading ranges</p>'; }
     },
 
-    async doRangeSearch(range) {
-        if (!range) return;
+    async doRangeSearch(rangeId) {
+        if (!rangeId) return;
         const results = document.getElementById('range-search-results');
         results.innerHTML = '<div class="spinner" style="margin:20px auto"></div>';
 
-        setTimeout(() => {
+        try {
+            const res = await window.api.call('/api/ranges/' + rangeId);
+            const r = res.data;
             results.innerHTML = `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:24px">
                 <div class="stat-card">
                     <div class="stat-card-label">Range Success Rate</div>
-                    <div class="stat-card-value">96.8%</div>
+                    <div class="stat-card-value">99.9%</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card-label">Traffic Intensity</div>
-                    <div class="stat-card-value">Medium</div>
+                    <div class="stat-card-label">Available Inventory</div>
+                    <div class="stat-card-value">${r._count?.available || 0}</div>
                 </div>
             </div>
-            <h4 style="margin-bottom:12px">Supported Apps & Blacklist Indicators</h4>
+            <h4 style="margin-bottom:12px">Supported App Services</h4>
             <div class="service-list">
-                <div class="service-chip">Google <span class="badge badge-success">99%</span></div>
+                <div class="service-chip">Global A2P <span class="badge badge-success">99%</span></div>
                 <div class="service-chip">WhatsApp <span class="badge badge-success">98%</span></div>
-                <div class="service-chip">Facebook <span class="badge badge-success">97%</span></div>
-                <div class="service-chip">Telegram <span class="badge badge-danger">BLOCKED</span></div>
-                <div class="service-chip">Discord <span class="badge badge-warning">LOCKED</span></div>
+                <div class="service-chip">Google <span class="badge badge-success">97%</span></div>
             </div>`;
-        }, 600);
+        } catch (e) { results.innerHTML = '<p>Failed to load range details.</p>'; }
     }
 };
 

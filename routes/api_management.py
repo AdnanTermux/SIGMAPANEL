@@ -3,25 +3,14 @@ from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from database import get_db
 from auth import verify_token, extract_token
+from routes.deps import get_current_user, require_role
+from fastapi import Depends
 import secrets
 
 router = APIRouter(prefix="/api/api-management", tags=["api-management"])
 
-def _require(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    p = verify_token(tok) if tok else None
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
-
-def _admin(request: Request):
-    p = _require(request)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin/Manager only")
-    return p
-
 @router.get("/my-token")
-async def get_my_token(request: Request):
-    p = _require(request)
+async def get_my_token(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
         user = conn.execute("SELECT api_token FROM users WHERE id=?", (p["userId"],)).fetchone()
         if not user: raise HTTPException(404, "User not found")
@@ -32,30 +21,26 @@ async def get_my_token(request: Request):
     return {"token": token, "api_base": "/api/webhook/sms"}
 
 @router.post("/regenerate-token")
-async def regenerate_token(request: Request):
-    p = _require(request)
+async def regenerate_token(request: Request, p=Depends(get_current_user)):
     new_token = "sig_" + secrets.token_urlsafe(32)
     with get_db() as conn:
         conn.execute("UPDATE users SET api_token=? WHERE id=?", (new_token, p["userId"]))
     return {"token": new_token, "message": "Token regenerated"}
 
 @router.get("/admin/tokens")
-async def list_all_tokens(request: Request):
-    p = _admin(request)
+async def list_all_tokens(request: Request, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         rows = conn.execute("SELECT u.id, u.username, u.role, u.status, u.api_token, u.balance, u.last_login, u.created_at FROM users u ORDER BY u.created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/admin/revoke-token/{user_id}")
-async def revoke_token(request: Request, user_id: str):
-    p = _admin(request)
+async def revoke_token(request: Request, user_id: str, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         conn.execute("UPDATE users SET api_token=NULL WHERE id=?", (user_id,))
     return {"message": "Token revoked"}
 
 @router.post("/admin/regenerate-token/{user_id}")
-async def admin_regenerate(request: Request, user_id: str):
-    p = _admin(request)
+async def admin_regenerate(request: Request, user_id: str, p=Depends(require_role(['admin', 'manager']))):
     new_token = "sig_" + secrets.token_urlsafe(32)
     with get_db() as conn:
         conn.execute("UPDATE users SET api_token=? WHERE id=?", (new_token, user_id))
@@ -75,8 +60,7 @@ async def api_docs(request: Request):
     }
 
 @router.get("/live-otp")
-async def live_otp(request: Request, limit: int = Query(50, ge=1, le=200)):
-    p = _require(request)
+async def live_otp(request: Request, limit: int = Query(50, ge=1, le=200), p=Depends(get_current_user)):
     with get_db() as conn:
         if p["role"] in ("admin", "manager"):
             rows = conn.execute("SELECT s.number, s.sender, s.service, s.otp, s.message, s.received_at FROM sms_received s WHERE s.otp IS NOT NULL AND s.otp != '' ORDER BY s.received_at DESC LIMIT ?", (limit,)).fetchall()

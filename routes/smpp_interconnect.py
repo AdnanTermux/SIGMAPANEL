@@ -1,4 +1,5 @@
 """SMPP Interconnection Routes - Manage remote server connections"""
+from routes.deps import get_current_user, require_role
 from fastapi import APIRouter, Request, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, List
@@ -8,12 +9,6 @@ from datetime import datetime
 
 router = APIRouter(prefix="/api/smpp-interconnect", tags=["smpp-interconnect"])
 
-def _admin(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    p = verify_token(tok) if tok else None
-    if not p or p["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
-    return p
 
 class RemoteServerCreate(BaseModel):
     name: str
@@ -35,14 +30,14 @@ class RemoteServerCreate(BaseModel):
 
 @router.get("/servers")
 async def list_servers(request: Request):
-    _admin(request)
+    Depends(require_role(["admin"]))
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM smpp_remote_servers ORDER BY priority DESC, created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/servers")
 async def add_server(request: Request, body: RemoteServerCreate):
-    _admin(request)
+    Depends(require_role(["admin"]))
     sid = generate_id()
     with get_db() as conn:
         conn.execute("""
@@ -61,14 +56,14 @@ async def add_server(request: Request, body: RemoteServerCreate):
 
 @router.delete("/servers/{sid}")
 async def delete_server(request: Request, sid: str):
-    _admin(request)
+    Depends(require_role(["admin"]))
     with get_db() as conn:
         conn.execute("DELETE FROM smpp_remote_servers WHERE id=?", (sid,))
     return {"message": "Server configuration deleted"}
 
 @router.post("/servers/{sid}/toggle")
 async def toggle_server(request: Request, sid: str):
-    _admin(request)
+    Depends(require_role(["admin"]))
     with get_db() as conn:
         r = conn.execute("SELECT is_active FROM smpp_remote_servers WHERE id=?", (sid,)).fetchone()
         if not r: raise HTTPException(404, "Server not found")
@@ -78,7 +73,7 @@ async def toggle_server(request: Request, sid: str):
 
 @router.post("/test-connection")
 async def test_connection(request: Request, body: RemoteServerCreate):
-    _admin(request)
+    Depends(require_role(["admin"]))
     import asyncio
     try:
         # One-off connection test
@@ -92,7 +87,7 @@ async def test_connection(request: Request, body: RemoteServerCreate):
 
 @router.get("/logs")
 async def list_logs(request: Request, limit: int = 50):
-    _admin(request)
+    Depends(require_role(["admin"]))
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM smpp_connection_logs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
     return {"data": [dict(r) for r in rows]}

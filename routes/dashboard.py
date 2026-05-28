@@ -3,18 +3,13 @@ from fastapi import APIRouter, Request, HTTPException, Query
 from database import get_db
 from auth import verify_token, extract_token
 from datetime import datetime, timedelta
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-def _require(request: Request):
-    tok = extract_token(request.headers.get("Authorization"))
-    p = verify_token(tok) if tok else None
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
-
 @router.get("/stats")
 async def get_stats(request: Request):
-    p = _require(request)
+    p = get_current_user(request)
     now = datetime.utcnow()
     day_start   = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     week_start  = (now - timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0).isoformat()
@@ -119,7 +114,7 @@ async def recent_sms(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    p = _require(request)
+    p = get_current_user(request)
     role, username, user_id = p["role"], p["username"], p["userId"]
 
     with get_db() as conn:
@@ -146,7 +141,7 @@ async def recent_sms(
 
 @router.get("/analytics")
 async def get_analytics(request: Request):
-    p = _require(request)
+    p = get_current_user(request)
     return {
         "sms_over_time": [],
         "profit_over_time": [],
@@ -155,7 +150,7 @@ async def get_analytics(request: Request):
 
 @router.get("/live-activity")
 async def get_live_activity(request: Request):
-    p = _require(request)
+    p = get_current_user(request)
     return {
         "active_users": 5,
         "active_numbers": 120,

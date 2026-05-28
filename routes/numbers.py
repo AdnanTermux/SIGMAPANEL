@@ -1,4 +1,6 @@
 """Numbers routes - role-based: admin/manager full control, reseller assigns to users, user read-only"""
+from routes.deps import get_current_user, require_role
+from fastapi import Depends
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -14,10 +16,6 @@ def _auth(req: Request):
     tok = extract_token(req.headers.get("Authorization"))
     return verify_token(tok) if tok else None
 
-def _require(req: Request):
-    p = _auth(req)
-    if not p: raise HTTPException(401, "Authentication required")
-    return p
 
 class NumberCreate(BaseModel):
     number: str
@@ -73,7 +71,7 @@ async def list_numbers(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=500),
 ):
-    p = _require(request)
+    p = Depends(get_current_user)
     offset = (page - 1) * limit
     conds, params = [], []
 
@@ -126,7 +124,7 @@ async def list_numbers(
 
 @router.post("")
 async def create_number(request: Request, body: NumberCreate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager"):
         raise HTTPException(403, "Admin or Manager required to add numbers")
     with get_db() as conn:
@@ -151,7 +149,7 @@ async def create_number(request: Request, body: NumberCreate):
 
 @router.post("/bulk-import")
 async def bulk_import(request: Request, body: BulkImport):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager"):
         raise HTTPException(403, "Admin or Manager required")
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
@@ -188,7 +186,7 @@ async def bulk_import(request: Request, body: BulkImport):
 @router.post("/assign")
 async def assign_numbers(request: Request, body: AssignBody):
     """Admin/Manager assign numbers; Reseller assigns to their own users"""
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager", "reseller"):
         raise HTTPException(403, "Not authorized to assign numbers")
     now = datetime.utcnow().isoformat()
@@ -212,7 +210,7 @@ async def assign_numbers(request: Request, body: AssignBody):
 
 @router.post("/return")
 async def return_numbers(request: Request, body: ReturnBody):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager"):
         raise HTTPException(403, "Admin or Manager required")
     with get_db() as conn:
@@ -247,7 +245,7 @@ async def return_numbers(request: Request, body: ReturnBody):
 
 @router.put("/{item_id}")
 async def update_number(request: Request, item_id: str, body: NumberUpdate):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager"):
         raise HTTPException(403, "Admin or Manager required")
     with get_db() as conn:
@@ -270,7 +268,7 @@ async def update_number(request: Request, item_id: str, body: NumberUpdate):
 
 @router.delete("/{item_id}")
 async def delete_number(request: Request, item_id: str):
-    p = _require(request)
+    p = Depends(get_current_user)
     if p["role"] not in ("admin", "manager"):
         raise HTTPException(403, "Admin or Manager required")
     with get_db() as conn:
