@@ -124,11 +124,59 @@ const auth = {
 
         document.getElementById('go-to-signup').addEventListener('click', (e) => {
             e.preventDefault();
-            this.renderSignup();
+            this.renderSignup().catch(err => {
+                console.error('Signup render failed:', err);
+                window.ui.showToast('Failed to load signup page', 'error');
+            });
         });
     },
 
-    renderSignup() {
+    async renderSignup() {
+        // Fetch signup settings
+        let settings = { enabled: 'true', whatsapp: '+923000767749', teams: 'adnanman2026@outlook.com', telegram: '@sigmapanel' };
+        try {
+            const res = await window.api.call('/api/settings?key=signup_enabled');
+            if (res.data && res.data.length) settings.enabled = res.data[0].setting_value;
+
+            const contactRes = await window.api.call('/api/settings');
+            contactRes.data.forEach(s => {
+                if (s.setting_key === 'contact_whatsapp') settings.whatsapp = s.setting_value;
+                if (s.setting_key === 'contact_teams') settings.teams = s.setting_value;
+                if (s.setting_key === 'contact_telegram') settings.telegram = s.setting_value;
+            });
+        } catch (e) {}
+
+        if (settings.enabled === 'false') {
+            document.getElementById('app').innerHTML = `
+            <div class="auth-page">
+                <div class="auth-card" style="max-width:450px; flex-direction:column">
+                    <div style="padding:40px; text-align:center">
+                        <div style="font-size:48px; color:var(--danger); margin-bottom:16px">${ICONS.ban}</div>
+                        <h1 style="font-size:22px; font-weight:700; margin-bottom:8px">Registration Closed</h1>
+                        <p style="color:var(--text-secondary); margin-bottom:32px; line-height:1.5">Public signup is currently restricted. Please reach out to our team for manual onboarding.</p>
+
+                        <div style="display:grid; gap:12px; text-align:left">
+                            <div style="background:var(--bg-page); padding:12px 16px; border-radius:8px; border:1px solid var(--border)">
+                                <div style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:4px">WhatsApp</div>
+                                <div style="font-family:monospace; font-weight:600">${settings.whatsapp}</div>
+                            </div>
+                            <div style="background:var(--bg-page); padding:12px 16px; border-radius:8px; border:1px solid var(--border)">
+                                <div style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:4px">Microsoft Teams</div>
+                                <div style="font-family:monospace; font-weight:600">${settings.teams}</div>
+                            </div>
+                            <div style="background:var(--bg-page); padding:12px 16px; border-radius:8px; border:1px solid var(--border)">
+                                <div style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:4px">Telegram</div>
+                                <div style="font-family:monospace; font-weight:600">${settings.telegram}</div>
+                            </div>
+                        </div>
+
+                        <button class="fly-btn" style="margin-top:32px; width:100%" onclick="window.auth.renderLogin()">Return to Sign In</button>
+                    </div>
+                </div>
+            </div>`;
+            return;
+        }
+
         document.getElementById('app').innerHTML = `
         <div class="auth-page">
             <div class="auth-card" style="max-width:600px">

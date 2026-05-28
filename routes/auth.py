@@ -32,6 +32,20 @@ LOCKOUT_MINUTES = 15
 async def signup(request: Request, body: SignupRequest):
     try:
         with get_db() as conn:
+            # Check signup status
+            reg_status = conn.execute("SELECT setting_value FROM settings WHERE setting_key='signup_enabled' AND user_id IS NULL").fetchone()
+            if reg_status and reg_status['setting_value'] == 'false':
+                raise HTTPException(status_code=403, detail="Public registration is currently disabled.")
+
+            # Check daily limit
+            limit_setting = conn.execute("SELECT setting_value FROM settings WHERE setting_key='signup_daily_limit' AND user_id IS NULL").fetchone()
+            if limit_setting:
+                limit = int(limit_setting['setting_value'])
+                today = datetime.utcnow().strftime('%Y-%m-%d')
+                count = conn.execute("SELECT COUNT(*) FROM users WHERE date(created_at) = ? AND status='pending_approval'", (today,)).fetchone()[0]
+                if count >= limit:
+                    raise HTTPException(status_code=429, detail="Daily registration limit reached. Please try again tomorrow.")
+
             # Check if username exists
             if conn.execute("SELECT id FROM users WHERE username = ?", (body.username.strip().lower(),)).fetchone():
                 raise HTTPException(status_code=400, detail="Username already exists")

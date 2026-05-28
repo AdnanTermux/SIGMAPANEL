@@ -6,7 +6,7 @@ const ROLE_LABELS = {
     admin: 'Admin',
     manager: 'Manager',
     reseller: 'Reseller',
-    sub_reseller: 'Sub Reseller',
+    sub_reseller: 'Client',
     test_user: 'Test Account'
 };
 
@@ -38,8 +38,8 @@ const NAV_STRUCTURE = [
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'dashboard', label: 'Overview', icon: ICONS.dashboard, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'analytics', label: 'Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'live-activity', label: 'Live Activity', icon: ICONS.eye, roles: ['admin', 'manager'] },
+            { key: 'analytics', label: 'Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-activity', label: 'Live Activity', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller'] },
             { key: 'notifications', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
         ]
     },
@@ -50,9 +50,9 @@ const NAV_STRUCTURE = [
             { key: 'my-numbers', label: 'My Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'self-allocation', label: 'Self Allocation', icon: ICONS.layers, roles: ['reseller', 'sub_reseller'] },
             { key: 'bulk-allocation', label: 'Bulk Allocation', icon: ICONS.plus, roles: ['admin', 'manager'] },
-            { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'export-numbers', label: 'Export Numbers', icon: ICONS.transfer, roles: ['admin', 'manager'] },
             { key: 'blacklist-management', label: 'Blacklist Management', icon: ICONS.ban, roles: ['admin', 'manager'] },
@@ -64,11 +64,11 @@ const NAV_STRUCTURE = [
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'sms-reports', label: 'SMS Reports', icon: ICONS.report, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'sms-analytics', label: 'SMS Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'search-sms', label: 'Search SMS', icon: ICONS.search, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'sms-reports', label: 'SMS Reports', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'sms-analytics', label: 'SMS Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'search-sms', label: 'Search SMS', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'delivery-logs', label: 'Delivery Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
             { key: 'failed-sms', label: 'Failed SMS', icon: ICONS.x, roles: ['admin', 'manager'] },
         ]
@@ -102,7 +102,7 @@ const NAV_STRUCTURE = [
             { key: 'users', label: 'Users', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
             { key: 'managers', label: 'Managers', icon: ICONS.users, roles: ['admin'] },
             { key: 'resellers', label: 'Resellers', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'sub-resellers', label: 'Sub Resellers', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'sub-resellers', label: 'Clients', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
             { key: 'permissions', label: 'Roles & Permissions', icon: ICONS.key, roles: ['admin'] },
             { key: 'account-balances', label: 'Account Balances', icon: ICONS.wallet, roles: ['admin', 'manager', 'reseller'] },
             { key: 'audit-logs', label: 'Audit Logs', icon: ICONS.shield, roles: ['admin'] },
@@ -162,6 +162,7 @@ const NAV_STRUCTURE = [
 ];
 
 function init() {
+  try {
     window.router.addRoute('dashboard', (c) => window.dashboard.render(c));
 
     // Numbers routes
@@ -239,17 +240,27 @@ function init() {
         });
     });
 
-    window.router.init();
-
     if (window.auth.isLoggedIn()) {
         renderDashboardShell();
     } else {
         // Show verification screen before login
         window.security.renderVerification();
     }
+
+    window.router.init();
+  } catch (err) {
+    console.error('SIGMAPANEL initialization failed:', err);
+    document.getElementById('app').innerHTML = `
+      <div style="padding:20px; text-align:center; color:#ef4444">
+        <h3>Critical Initialization Error</h3>
+        <p>${err.message}</p>
+        <button onclick="location.reload()" class="fly-btn" style="margin-top:10px">Reload Panel</button>
+      </div>`;
+  }
 }
 
 function renderDashboardShell() {
+  try {
     const user = window.auth.getUser();
     if (!user) {
         window.auth.renderLogin();
@@ -398,8 +409,12 @@ function renderDashboardShell() {
     const currentNav = user.role === 'test_user' ? TEST_NAV : NAV_STRUCTURE;
     const currentItem = currentNav.flatMap(g => g.items).find(i => i.key === window.router.currentPage);
     if (currentItem) {
-        document.getElementById('page-title').textContent = currentItem.label;
+        const titleEl = document.getElementById('page-title');
+        if (titleEl) titleEl.textContent = currentItem.label;
     }
+  } catch (err) {
+    console.error('Dashboard shell rendering failed:', err);
+  }
 }
 
 window.renderDashboardShell = renderDashboardShell;
