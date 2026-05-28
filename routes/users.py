@@ -13,14 +13,14 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 # ── Role hierarchy ─────────────────────────────────────────────────────────────
 # admin    : full control
 # manager  : create resellers, manage their numbers/balance, block/suspend, view all OTPs
-# reseller : create end_users, assign numbers to users
-# end_user : read-only — own numbers and messages only
+# reseller : create sub_resellers, assign numbers to sub_resellers
+# sub_reseller : client — own numbers and messages only
 
 CAN_CREATE = {
-    "admin":    {"admin", "manager", "reseller", "end_user"},
-    "manager":  {"reseller"},
-    "reseller": {"end_user"},
-    "end_user": set(),
+    "admin":    {"admin", "manager", "reseller", "sub_reseller"},
+    "manager":  {"reseller", "sub_reseller"},
+    "reseller": {"sub_reseller"},
+    "sub_reseller": set(),
 }
 
 CAN_MANAGE_USERS = {"admin", "manager", "reseller"}
@@ -47,7 +47,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: Optional[str] = None
-    role: Optional[str] = "end_user"
+    role: Optional[str] = "sub_reseller"
     fullName: Optional[str] = None
     phone: Optional[str] = None
     country: Optional[str] = None
@@ -134,7 +134,7 @@ async def list_users(
     # Scope visibility
     if p["role"] == "manager":
         # Manager sees all resellers and their children
-        conds.append("(parent_id = ? OR role = 'reseller' OR role = 'sub_reseller' OR role = 'user')")
+        conds.append("(parent_id = ? OR role = 'reseller' OR role = 'sub_reseller')")
         params.append(p["userId"])
     elif p["role"] == "reseller":
         conds.append("parent_id = ?")
@@ -234,14 +234,14 @@ async def update_user(request: Request, item_id: str, body: UserUpdate):
         # Permission: can actor manage this target?
         is_self = item_id == p["userId"]
         if not is_self:
-            if p["role"] == "end_user":
+            if p["role"] == "sub_reseller":
                 raise HTTPException(403, "Not authorized")
             if p["role"] == "reseller" and target["parent_id"] != p["userId"]:
                 raise HTTPException(403, "Not authorized to edit this user")
             if p["role"] == "manager":
                 # manager can edit resellers and their children
-                if target["role"] not in ("reseller", "end_user"):
-                    raise HTTPException(403, "Manager can only edit resellers and end-users")
+                if target["role"] not in ("reseller", "sub_reseller"):
+                    raise HTTPException(403, "Manager can only edit resellers and sub-resellers")
 
         updates = {}
 
@@ -315,8 +315,8 @@ async def delete_user(request: Request, item_id: str):
         target = conn.execute("SELECT * FROM users WHERE id=?", (item_id,)).fetchone()
         if not target:
             raise HTTPException(404, "User not found")
-        if p["role"] == "manager" and target["role"] not in ("reseller", "end_user"):
-            raise HTTPException(403, "Manager can only delete resellers and end-users")
+        if p["role"] == "manager" and target["role"] not in ("reseller", "sub_reseller"):
+            raise HTTPException(403, "Manager can only delete resellers and sub-resellers")
 
         # Unassign numbers belonging to this user
         conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE assigned_to=?",
@@ -342,7 +342,7 @@ async def suspend_user(request: Request, item_id: str, body: SuspendBody):
         target = conn.execute("SELECT * FROM users WHERE id=?", (item_id,)).fetchone()
         if not target:
             raise HTTPException(404, "User not found")
-        if p["role"] == "manager" and target["role"] not in ("reseller", "end_user"):
+        if p["role"] == "manager" and target["role"] not in ("reseller", "sub_reseller"):
             raise HTTPException(403, "Not authorized")
         conn.execute(
             "UPDATE users SET status='suspended',suspended_until=?,violation_reason=? WHERE id=?",
@@ -384,7 +384,7 @@ async def deduct_balance(request: Request, item_id: str, body: DeductBody):
         target = conn.execute("SELECT * FROM users WHERE id=?", (item_id,)).fetchone()
         if not target:
             raise HTTPException(404, "User not found")
-        if p["role"] == "manager" and target["role"] not in ("reseller", "end_user"):
+        if p["role"] == "manager" and target["role"] not in ("reseller", "sub_reseller"):
             raise HTTPException(403, "Not authorized")
         before = float(target["balance"] or 0)
         after = max(0, before - body.amount)

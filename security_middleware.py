@@ -20,21 +20,24 @@ class FirewallMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host
 
-        # 1. IP Blacklist Check
-        if self.redis and self.redis.sismember("blacklisted_ips", client_ip):
-            return JSONResponse(status_code=403, content={"detail": "IP Access Denied - Security Restriction"})
+        try:
+            # 1. IP Blacklist Check
+            if self.redis and self.redis.sismember("blacklisted_ips", client_ip):
+                return JSONResponse(status_code=403, content={"detail": "IP Access Denied - Security Restriction"})
 
-        # 2. Rate Limiting (General)
-        if self.redis:
-            key = f"rate_limit:{client_ip}"
-            current = self.redis.get(key)
-            if current and int(current) > 100: # 100 req / minute
-                return JSONResponse(status_code=429, content={"detail": "Too many requests. Calm down."})
+            # 2. Rate Limiting (General)
+            if self.redis:
+                key = f"rate_limit:{client_ip}"
+                current = self.redis.get(key)
+                if current and int(current) > 100: # 100 req / minute
+                    return JSONResponse(status_code=429, content={"detail": "Too many requests. Calm down."})
 
-            pipe = self.redis.pipeline()
-            pipe.incr(key)
-            pipe.expire(key, 60)
-            pipe.execute()
+                pipe = self.redis.pipeline()
+                pipe.incr(key)
+                pipe.expire(key, 60)
+                pipe.execute()
+        except Exception as e:
+            logger.error(f"Firewall error: {e}")
 
         # 3. Security Headers
         response = await call_next(request)

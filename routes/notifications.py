@@ -36,7 +36,7 @@ async def list_notifications(request: Request, unread_only: bool = Query(False))
             rows = conn.execute(
                 """SELECT * FROM notifications
                    WHERE (created_by_role IN ('admin','manager') AND (target_role IS NULL OR target_role='reseller'))
-                      OR (created_by=? AND target_role IN ('sub_reseller','end_user'))
+                      OR (created_by=? AND target_role IN ('sub_reseller'))
                    ORDER BY created_at DESC LIMIT 200""",
                 (uid,)
             ).fetchall()
@@ -45,7 +45,7 @@ async def list_notifications(request: Request, unread_only: bool = Query(False))
             parent_id = me["parent_id"] if me else ""
             rows = conn.execute(
                 """SELECT * FROM notifications
-                   WHERE created_by=? AND target_role IN ('sub_reseller','end_user')
+                   WHERE created_by=? AND target_role IN ('sub_reseller')
                    ORDER BY created_at DESC LIMIT 200""",
                 (parent_id or "",)
             ).fetchall()
@@ -66,7 +66,7 @@ async def create_notification(request: Request, body: NotifCreate):
     role = p["role"]
     if role == "admin":       target = body.targetRole or "reseller"
     elif role == "manager":   target = "reseller"
-    elif role == "reseller":  target = body.targetRole if body.targetRole in ("sub_reseller","end_user") else "sub_reseller"
+    elif role == "reseller":  target = body.targetRole if body.targetRole in ("sub_reseller") else "sub_reseller"
     else: raise HTTPException(403, "Not authorized to send notifications")
     with get_db() as conn:
         nid = generate_id()
