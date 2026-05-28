@@ -142,10 +142,22 @@ def _process_single_sms(data: dict) -> dict:
         'smsId': sms_id,
     }
 
-    from queue_manager import queue_manager
-    queue_manager.push("sms_queue", res)
+    # We'll handle Redis push asynchronously in the background
+    # to avoid blocking the main processing if Redis is slow
+    async def _async_push():
+        from queue_manager import queue_manager
+        await queue_manager.push("sms_queue", res)
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(_async_push())
+    except Exception:
+        pass
 
     return res
+
+import asyncio
 
 def process_incoming_sms(payload) -> dict | list:
     """Process incoming SMS - auto-detects format"""

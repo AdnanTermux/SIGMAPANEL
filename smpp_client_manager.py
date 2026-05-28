@@ -119,7 +119,7 @@ class RemoteSMPPSession:
                     # Logic for parsing DLR/MO would go here, similar to smpp_server.py
                     logger.info(f"Received DELIVER_SM from {self.config['name']}")
                     from queue_manager import queue_manager
-                    queue_manager.push("sms_queue", {
+                    await queue_manager.push("sms_queue", {
                         "type": "mo_sms",
                         "remote_server": self.config['name'],
                         "timestamp": datetime.utcnow().isoformat()

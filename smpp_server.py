@@ -141,7 +141,7 @@ class SMPPSession:
 
             # Routing/Processing logic
             from queue_manager import queue_manager
-            queue_manager.push("sms_queue", {
+            await queue_manager.push("sms_queue", {
                 "type": "sms_submit",
                 "from": src_addr,
                 "to": dst_addr,
@@ -199,7 +199,7 @@ class SMPPSession:
                 logger.info(f"SMPP SRV DLR: {dlr_text}")
                 # ID:123 SUB:001 DLVRD:001 STAT:DELIVRD ERR:000
                 from queue_manager import queue_manager
-                queue_manager.push("dlr_queue", {
+                await queue_manager.push("dlr_queue", {
                     "type": "dlr",
                     "raw": dlr_text,
                     "system_id": self.system_id,
@@ -214,7 +214,7 @@ class SMPPSession:
 
                 logger.info(f"SMPP SRV MO_SMS: {src_addr} -> {dst_addr}")
                 from queue_manager import queue_manager
-                queue_manager.push("sms_queue", {
+                await queue_manager.push("sms_queue", {
                     "type": "mo_sms",
                     "from": src_addr,
                     "to": dst_addr,

@@ -9,8 +9,15 @@ const api = {
     async call(endpoint, options = {}) {
         const token = this.getToken();
         const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers };
-        const res = await fetch(endpoint, { ...options, headers });
-        if (res.status === 401) {
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), options.timeout || 15000);
+
+        try {
+            const res = await fetch(endpoint, { ...options, headers, signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             if (!location.pathname.includes('/login')) {
@@ -18,19 +25,24 @@ const api = {
             }
             throw new Error('Unauthorized');
         }
-        if (!res.ok) {
-            let msg = 'Request failed';
-            try {
-                const j = await res.json();
-                if (Array.isArray(j.detail)) {
-                    msg = j.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(' | ');
-                } else {
-                    msg = j.error || j.detail || msg;
-                }
-            } catch {}
-            throw new Error(msg);
+            if (!res.ok) {
+                let msg = 'Request failed';
+                try {
+                    const j = await res.json();
+                    if (Array.isArray(j.detail)) {
+                        msg = j.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(' | ');
+                    } else {
+                        msg = j.error || j.detail || msg;
+                    }
+                } catch {}
+                throw new Error(msg);
+            }
+            return res.json();
+        } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') throw new Error('Request timed out. Please check your connection.');
+            throw err;
         }
-        return res.json();
     }
 };
 

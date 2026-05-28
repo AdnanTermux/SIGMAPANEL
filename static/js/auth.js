@@ -135,16 +135,18 @@ const auth = {
         // Fetch signup settings
         let settings = { enabled: 'true', whatsapp: '+923000767749', teams: 'adnanman2026@outlook.com', telegram: '@sigmapanel' };
         try {
-            const res = await window.api.call('/api/settings?key=signup_enabled');
+            const res = await window.api.call('/api/settings?key=signup_enabled', { timeout: 5000 });
             if (res.data && res.data.length) settings.enabled = res.data[0].setting_value;
 
-            const contactRes = await window.api.call('/api/settings');
+            const contactRes = await window.api.call('/api/settings', { timeout: 5000 });
             contactRes.data.forEach(s => {
                 if (s.setting_key === 'contact_whatsapp') settings.whatsapp = s.setting_value;
                 if (s.setting_key === 'contact_teams') settings.teams = s.setting_value;
                 if (s.setting_key === 'contact_telegram') settings.telegram = s.setting_value;
             });
-        } catch (e) {}
+        } catch (e) {
+            console.warn('Could not fetch settings for signup, using defaults', e);
+        }
 
         if (settings.enabled === 'false') {
             document.getElementById('app').innerHTML = `

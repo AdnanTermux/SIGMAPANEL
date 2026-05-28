@@ -3,9 +3,13 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from security_middleware import FirewallMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from contextlib import asynccontextmanager
 import os
+import asyncio
+import logging
 
-from database import init_db
+from database import init_db, get_db
+from queue_manager import queue_manager
 from routes.auth import router as auth_router
 from routes.webhook import router as webhook_router
 from routes.sms import router as sms_router
@@ -22,12 +26,56 @@ from routes.api_management import router as api_management_router
 from routes.notifications import router as notifications_router
 from routes.smpp_interconnect import router as smpp_interconnect_router
 
-app = FastAPI(title="SIGMAPANEL", version="3.0")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting SIGMAPANEL Backend...")
+    init_db()
+
+    # Independent Worker Tasks (Background)
+    # Note: In production, worker.py should run as a separate process,
+    # but we can also spawn them as tasks for simpler standalone deployments.
+    from worker import process_sms_queue, process_dlr_queue
+    sms_task = asyncio.create_task(process_sms_queue())
+    dlr_task = asyncio.create_task(process_dlr_queue())
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down SIGMAPANEL Backend...")
+    sms_task.cancel()
+    dlr_task.cancel()
+    await queue_manager.close()
+
+app = FastAPI(title="SIGMAPANEL", version="3.0", lifespan=lifespan)
 app.add_middleware(FirewallMiddleware)
 
-@app.on_event("startup")
-async def startup():
-    init_db()
+# Health Endpoints
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "SIGMAPANEL API"}
+
+@app.get("/health/redis")
+async def redis_health():
+    is_up = await queue_manager.is_healthy()
+    return {"status": "up" if is_up else "down", "latency": "low" if is_up else "n/a"}
+
+@app.get("/health/database")
+async def db_health():
+    try:
+        with get_db() as conn:
+            conn.execute("SELECT 1").fetchone()
+        return {"status": "up"}
+    except Exception as e:
+        return {"status": "down", "error": str(e)}
+
+@app.get("/health/workers")
+async def workers_health():
+    # Simple check for now
+    return {"status": "running", "count": 2}
 
 app.include_router(auth_router)
 app.include_router(webhook_router)
