@@ -19,7 +19,7 @@ const ROLE_COLORS = {
 
 const TEST_NAV = [
     {
-        group: 'SMS TEST MODULE',
+        group: 'SMS Module',
         roles: ['test_user'],
         items: [
             { key: 'test-numbers', label: 'SMS Test Numbers', icon: ICONS.phone, roles: ['test_user'] },
@@ -34,16 +34,6 @@ const TEST_NAV = [
 
 const NAV_STRUCTURE = [
     {
-        group: 'DASHBOARD',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
-        items: [
-            { key: 'dashboard', label: 'Overview', icon: ICONS.dashboard, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'analytics', label: 'Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'live-activity', label: 'Live Activity', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'notifications', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-        ]
-    },
-    {
         group: 'NUMBERS',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
@@ -53,10 +43,9 @@ const NAV_STRUCTURE = [
             { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'export-numbers', label: 'Export Numbers', icon: ICONS.transfer, roles: ['admin', 'manager'] },
+            { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'blacklist-management', label: 'Blacklist Management', icon: ICONS.ban, roles: ['admin', 'manager'] },
-            { key: 'revoke-numbers', label: 'Revoke Numbers', icon: ICONS.trash, roles: ['admin', 'manager'] },
         ]
     },
     {
@@ -66,7 +55,6 @@ const NAV_STRUCTURE = [
             { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'sms-reports', label: 'SMS Reports', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'sms-analytics', label: 'SMS Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'search-sms', label: 'Search SMS', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'delivery-logs', label: 'Delivery Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
@@ -102,11 +90,11 @@ const NAV_STRUCTURE = [
             { key: 'users', label: 'Users', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
             { key: 'managers', label: 'Managers', icon: ICONS.users, roles: ['admin'] },
             { key: 'resellers', label: 'Resellers', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'sub-resellers', label: 'Clients', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'permissions', label: 'Roles & Permissions', icon: ICONS.key, roles: ['admin'] },
+            { key: 'sub-resellers', label: 'Sub Resellers', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
             { key: 'account-balances', label: 'Account Balances', icon: ICONS.wallet, roles: ['admin', 'manager', 'reseller'] },
             { key: 'audit-logs', label: 'Audit Logs', icon: ICONS.shield, roles: ['admin'] },
             { key: 'activity-logs', label: 'Activity Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
+            { key: 'permissions', label: 'Permissions', icon: ICONS.key, roles: ['admin'] },
         ]
     },
     {
@@ -118,33 +106,6 @@ const NAV_STRUCTURE = [
             { key: 'documentation', label: 'Documentation', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-test', label: 'Live Test', icon: ICONS.send, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'webhook-config', label: 'Webhook Config', icon: ICONS.settings, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-        ]
-    },
-    {
-        group: 'SECURITY',
-        roles: ['admin'],
-        items: [
-            { key: 'security', label: 'Security Center', icon: ICONS.shield, roles: ['admin'] },
-            { key: 'blocked-ips', label: 'Blocked IPs', icon: ICONS.ban, roles: ['admin'] },
-            { key: 'threat-logs', label: 'Threat Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'suspicious-sessions', label: 'Suspicious Sessions', icon: ICONS.users, roles: ['admin'] },
-            { key: 'firewall-events', label: 'Firewall Events', icon: ICONS.shield, roles: ['admin'] },
-            { key: 'bot-detection', label: 'Bot Detection', icon: ICONS.search, roles: ['admin'] },
-            { key: 'rate-limit-violations', label: 'Rate Limit Violations', icon: ICONS.x, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'SMPP SERVER',
-        roles: ['admin'],
-        items: [
-            { key: 'smpp-server-providers', label: 'Connected Providers', icon: ICONS.server, roles: ['admin'] },
-            { key: 'smpp-server-sessions', label: 'Active Sessions', icon: ICONS.users, roles: ['admin'] },
-            { key: 'smpp-server-accounts', label: 'Provider Accounts', icon: ICONS.key, roles: ['admin'] },
-            { key: 'smpp-server-throughput', label: 'Throughput Monitoring', icon: ICONS.chart, roles: ['admin'] },
-            { key: 'smpp-server-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'smpp-server-failed', label: 'Failed Packets', icon: ICONS.x, roles: ['admin'] },
-            { key: 'smpp-server-dlr', label: 'DLR Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'smpp-server-queue', label: 'Queue Monitoring', icon: ICONS.layers, roles: ['admin'] },
         ]
     },
     {
@@ -163,19 +124,19 @@ const NAV_STRUCTURE = [
 
 function init() {
   try {
+    // Add routes
     window.router.addRoute('dashboard', (c) => window.dashboard.render(c));
 
     // Numbers routes
     window.router.addRoute('my-numbers', (c) => window.numbers.renderMyNumbers(c));
     window.router.addRoute('self-allocation', (c) => window.numbers.renderSelfAllocation(c));
     window.router.addRoute('bulk-allocation', (c) => window.numbers.renderBulkAllocation(c));
-    window.router.addRoute('export-numbers', (c) => window.numbers.renderGlobalRevoke(c)); // Mapping to management tool
     window.router.addRoute('sms-ranges', (c) => window.ranges.renderRanges(c));
     window.router.addRoute('search-access', (c) => window.searchAccess.render(c));
     window.router.addRoute('live-access', (c) => window.numbers.renderLiveAccess(c));
+    window.router.addRoute('export-numbers', (c) => window.numbers.renderExport(c));
     window.router.addRoute('upload-numbers', (c) => window.numbers.renderUpload(c));
     window.router.addRoute('blacklist-management', (c) => window.numbers.renderBlacklist(c));
-    window.router.addRoute('revoke-numbers', (c) => window.numbers.renderGlobalRevoke(c));
 
     // SMS routes
     window.router.addRoute('my-sms', (c) => {
@@ -189,9 +150,9 @@ function init() {
     window.router.addRoute('live-otp-feed', (c) => {
         window.sms.renderLiveOtpFeed(c);
     });
-    window.router.addRoute('sms-reports', (c) => {
+    window.router.addRoute('sms-analytics', (c) => {
         window.sms.stopLiveFeed();
-        window.sms.renderReports(c);
+        window.sms.renderAnalytics(c);
     });
 
     // Management routes
@@ -203,9 +164,10 @@ function init() {
 
     // Provider routes
     window.router.addRoute('smpp-providers', (c) => window.smpp.renderProviders(c));
-    window.router.addRoute('smpp-server-sessions', (c) => window.smpp.renderSessions(c));
-    window.router.addRoute('smpp-server-accounts', (c) => window.smpp.renderAccounts(c));
+    window.router.addRoute('http-providers', (c) => window.smpp.renderHttpProviders(c));
     window.router.addRoute('provider-status', (c) => window.smpp.renderStatus(c));
+    window.router.addRoute('connection-logs', (c) => window.smpp.renderConnectionLogs(c));
+    window.router.addRoute('failover-management', (c) => window.smpp.renderFailover(c));
 
     // Requests routes
     window.router.addRoute('payment-requests', (c) => window.payments.renderRequests(c));
@@ -216,18 +178,15 @@ function init() {
     window.router.addRoute('test-reports', (c) => window.testPanel.renderTestReports(c));
     window.router.addRoute('test-live-feed', (c) => window.testPanel.renderLiveFeed(c));
     window.router.addRoute('test-range-tester', (c) => window.testPanel.renderRangeTester(c));
-
-    // Security Center
-    window.router.addRoute('security', (c) => window.security.renderDashboard(c));
-    window.router.addRoute('blocked-ips', (c) => window.security.renderBlockedIPs(c));
-    window.router.addRoute('threat-logs', (c) => window.security.renderThreatLogs(c));
+    window.router.addRoute('test-traffic-stats', (c) => window.testPanel.renderTrafficStats(c));
+    window.router.addRoute('test-provider-monitor', (c) => window.testPanel.renderProviderMonitor(c));
 
     // API routes
     window.router.addRoute('api-playground', (c) => window.apiManagement.renderPlayground(c));
 
     // Settings routes
     window.router.addRoute('general-settings', (c) => window.settings.renderGeneral(c));
-    window.router.addRoute('notifications-settings', (c) => window.settings.renderNotifications(c));
+    window.router.addRoute('security-settings', (c) => window.settings.renderSecurity(c));
 
     // Fill other routes as placeholders
     [...NAV_STRUCTURE, ...TEST_NAV].forEach(group => {
@@ -241,13 +200,10 @@ function init() {
     });
 
     if (window.auth.isLoggedIn()) {
-        renderDashboardShell();
+        window.router.init();
     } else {
-        // Show verification screen before login
         window.security.renderVerification();
     }
-
-    window.router.init();
   } catch (err) {
     console.error('SIGMAPANEL initialization failed:', err);
     document.getElementById('app').innerHTML = `
@@ -267,21 +223,16 @@ function renderDashboardShell() {
         return;
     }
 
-    // Only render the shell if it doesn't exist
     if (!document.querySelector('.dashboard-layout')) {
         const role = user.role || 'sub_reseller';
-
-        // Persistent sidebar state
         const collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups') || '{}');
+        const navToUse = role === 'test_user' ? TEST_NAV : NAV_STRUCTURE;
 
-    const navToUse = role === 'test_user' ? TEST_NAV : NAV_STRUCTURE;
-
-    const sidebarNav = navToUse
+        const sidebarNav = navToUse
             .filter(group => !group.roles || group.roles.includes(role))
             .map(group => {
                 const items = group.items.filter(item => !item.roles || item.roles.includes(role));
                 if (items.length === 0) return '';
-
                 const isCollapsed = collapsedGroups[group.group];
                 const groupIcon = isCollapsed ? ICONS.plus : ICONS.chevronDown;
 
@@ -308,7 +259,7 @@ function renderDashboardShell() {
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
                     <div class="sidebar-logo-icon">${ICONS.send}</div>
-                    <div><h1>SIGMAPANEL</h1><p>SMS Panel</p></div>
+                    <div><h1>SIGMAPANEL</h1><p>Telecom Infrastructure</p></div>
                 </div>
                 <nav class="sidebar-nav">${sidebarNav}</nav>
                 <div class="sidebar-user">
@@ -316,7 +267,7 @@ function renderDashboardShell() {
                         <div class="sidebar-user-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
                         <div>
                             <div class="sidebar-user-name">${user.fullName || user.username || 'User'}</div>
-                            <div class="sidebar-user-role">${user.role || 'sub_reseller'}</div>
+                            <div class="sidebar-user-role">${ROLE_LABELS[user.role] || user.role}</div>
                         </div>
                     </div>
                     <button class="sidebar-logout" id="logout-btn">${ICONS.logout} Logout</button>
@@ -326,15 +277,12 @@ function renderDashboardShell() {
                 <header class="top-bar">
                     <h2 class="top-bar-title" id="page-title">Dashboard</h2>
                     <div class="top-bar-actions">
-                        <button id="notif-btn" style="position:relative;padding:8px;border-radius:8px;border:none;background:none;cursor:pointer;color:#6B7280">
-                            ${ICONS.bell}
-                            <span id="notif-badge" style="display:none;position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 3px;background:#ef4444;color:white;font-size:9px;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center">0</span>
-                        </button>
+                        <button id="notif-btn" style="position:relative;padding:8px;background:none;border:none;cursor:pointer;color:#6B7280">${ICONS.bell}</button>
                         <div class="top-bar-user">
                             <div class="top-bar-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
                             <div class="top-bar-user-name">
-                                <div style="font-size:12px;font-weight:600;color:#222F36">${user.fullName || user.username || 'User'}</div>
-                                <div class="top-bar-user-role" style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em">${user.role || 'sub_reseller'}</div>
+                                <div style="font-size:12px;font-weight:600">${user.username}</div>
+                                <div style="font-size:10px;color:#6B7280;text-transform:uppercase">${user.role}</div>
                             </div>
                         </div>
                     </div>
@@ -342,46 +290,34 @@ function renderDashboardShell() {
                 <main class="page-content" id="page-content"></main>
             </div>
         </div>
-        <div class="toast-container" id="toast-container"></div>`;
+        <div id="toast-container"></div>`;
 
-        // Attach Global Listeners
+        // Listeners
         document.addEventListener('click', (e) => {
             const navBtn = e.target.closest('.sidebar-nav-item');
             if (navBtn) {
                 window.router.navigateTo(navBtn.dataset.page);
                 return;
             }
-
             const groupHeader = e.target.closest('.sidebar-group-header');
             if (groupHeader) {
                 const group = groupHeader.parentElement;
                 const groupName = group.dataset.group;
                 group.classList.toggle('collapsed');
                 const isCollapsed = group.classList.contains('collapsed');
-
                 const state = JSON.parse(localStorage.getItem('collapsedGroups') || '{}');
                 state[groupName] = isCollapsed;
                 localStorage.setItem('collapsedGroups', JSON.stringify(state));
-
                 groupHeader.querySelector('.group-toggle').innerHTML = isCollapsed ? ICONS.plus : ICONS.chevronDown;
                 return;
             }
-
-            const logoutBtn = e.target.closest('#logout-btn');
-            if (logoutBtn) {
-                window.auth.logout();
-                return;
-            }
-
-            const mobileMenuBtn = e.target.closest('#mobile-menu-btn');
-            if (mobileMenuBtn) {
+            if (e.target.closest('#logout-btn')) { window.auth.logout(); return; }
+            if (e.target.closest('#mobile-menu-btn')) {
                 document.getElementById('sidebar').classList.toggle('open');
                 document.getElementById('sidebar-overlay').classList.toggle('open');
                 return;
             }
-
-            const overlay = e.target.closest('#sidebar-overlay');
-            if (overlay) {
+            if (e.target.closest('#sidebar-overlay')) {
                 document.getElementById('sidebar').classList.remove('open');
                 document.getElementById('sidebar-overlay').classList.remove('open');
                 return;
@@ -389,29 +325,25 @@ function renderDashboardShell() {
         });
     }
 
-    // Update active state in sidebar
     document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.page === window.router.currentPage);
     });
 
-    // Inactivity logout (30 mins)
-    if (this._inactivityTimer) clearTimeout(this._inactivityTimer);
-    this._inactivityTimer = setTimeout(() => {
-        window.ui.showToast('Session expired due to inactivity', 'info');
-        window.auth.logout();
+    if (window._inactivityTimer) clearTimeout(window._inactivityTimer);
+    window._inactivityTimer = setTimeout(() => {
+        if (window.auth.isLoggedIn()) {
+            window.ui.showToast('Session expired', 'info');
+            window.auth.logout();
+        }
     }, 30 * 60 * 1000);
 
-    // Resolve current page
     const content = document.getElementById('page-content');
     window.router.resolvePage(content);
 
-    // Update title
     const currentNav = user.role === 'test_user' ? TEST_NAV : NAV_STRUCTURE;
     const currentItem = currentNav.flatMap(g => g.items).find(i => i.key === window.router.currentPage);
-    if (currentItem) {
-        const titleEl = document.getElementById('page-title');
-        if (titleEl) titleEl.textContent = currentItem.label;
-    }
+    if (currentItem) document.getElementById('page-title').textContent = currentItem.label;
+
   } catch (err) {
     console.error('Dashboard shell rendering failed:', err);
   }

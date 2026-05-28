@@ -1,110 +1,116 @@
 const searchAccess = {
     async render(container) {
         container.innerHTML = `
-        <div class="card" style="margin-bottom:20px">
-            <div class="card-header"><div class="card-title">Search Access & Availability</div></div>
-            <div style="padding:20px">
-                <div style="display:flex; gap:10px; margin-bottom:20px">
-                    <button class="fly-btn" id="btn-search-app" onclick="window.searchAccess.setMode('app')">Search by Service/App</button>
-                    <button class="fly-btn secondary" id="btn-search-range" onclick="window.searchAccess.setMode('range')">Search by Range</button>
-                </div>
-
-                <div id="search-interface-container">
-                    <!-- Dynamic search interface -->
+        <div class="card">
+            <div class="card-header"><div class="card-title">Search Infrastructure Access</div></div>
+            <div style="padding:20px; border-bottom:1px solid var(--border)">
+                <div class="search-modes" style="display:flex; gap:12px">
+                    <button class="fly-btn" id="mode-app-btn" onclick="window.searchAccess.setMode('app')">Search by App/Service</button>
+                    <button class="fly-btn fly-btn-secondary" id="mode-range-btn" onclick="window.searchAccess.setMode('range')">Search by Range</button>
                 </div>
             </div>
-        </div>
-        <div id="search-results-container"></div>`;
 
+            <div id="search-content" style="padding:24px">
+                <!-- Dynamic content -->
+            </div>
+        </div>`;
         this.setMode('app');
     },
 
     setMode(mode) {
-        const container = document.getElementById('search-interface-container');
-        if (!container) return;
-
-        const btnApp = document.getElementById('btn-search-app');
-        const btnRange = document.getElementById('btn-search-range');
+        const appBtn = document.getElementById('mode-app-btn');
+        const rangeBtn = document.getElementById('mode-range-btn');
+        const content = document.getElementById('search-content');
+        if (!content) return;
 
         if (mode === 'app') {
-            btnApp.classList.remove('secondary');
-            btnRange.classList.add('secondary');
-            container.innerHTML = `
-                <div class="form-group">
-                    <label>Enter Service Name (e.g. WhatsApp, TikTok)</label>
-                    <div style="display:flex; gap:10px">
-                        <input type="text" id="app-search-query" class="fly-input" placeholder="Search app...">
-                        <button class="fly-btn" onclick="window.searchAccess.doAppSearch()">Search</button>
-                    </div>
-                </div>`;
+            appBtn.className = 'fly-btn';
+            rangeBtn.className = 'fly-btn fly-btn-secondary';
+            this.renderAppSearch(content);
         } else {
-            btnApp.classList.add('secondary');
-            btnRange.classList.remove('secondary');
-            container.innerHTML = `
-                <div class="form-group">
-                    <label>Select Range</label>
-                    <div style="display:flex; gap:10px">
-                        <select id="range-search-select" class="fly-input">
-                            <option value="">Loading ranges...</option>
-                        </select>
-                        <button class="fly-btn" onclick="window.searchAccess.doRangeSearch()">Check Access</button>
-                    </div>
-                </div>`;
-            this.loadRanges();
+            appBtn.className = 'fly-btn fly-btn-secondary';
+            rangeBtn.className = 'fly-btn';
+            this.renderRangeSearch(content);
         }
     },
 
-    async loadRanges() {
-        const select = document.getElementById('range-search-select');
-        try {
-            const data = await window.api.call('/api/ranges');
-            select.innerHTML = (data.data || []).map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-        } catch (e) { select.innerHTML = '<option>Error loading</option>'; }
+    renderAppSearch(container) {
+        container.innerHTML = `
+        <div class="form-group">
+            <label>Search for Application or Service</label>
+            <input type="text" class="search-input" id="app-search-input" placeholder="e.g. Google, WhatsApp, Telegram..." style="width:100%">
+        </div>
+        <div id="app-search-results" style="margin-top:24px">
+            <div class="empty-state">
+                <p>Enter an application name to find supported ranges and success rates.</p>
+            </div>
+        </div>`;
+
+        const input = document.getElementById('app-search-input');
+        input.addEventListener('input', window.ui.debounce(() => this.doAppSearch(input.value), 500));
     },
 
-    async doAppSearch() {
-        const q = document.getElementById('app-search-query').value;
-        const results = document.getElementById('search-results-container');
-        results.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    async doAppSearch(query) {
+        if (!query) return;
+        const results = document.getElementById('app-search-results');
+        results.innerHTML = '<div class="spinner" style="margin:20px auto"></div>';
 
-        // Mocking behavior for demonstration
+        // Mocking results
         setTimeout(() => {
             results.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Top Ranges for "${q}"</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Range</th><th>Success Rate</th><th>Availability</th><th>Action</th></tr></thead>
-                        <tbody>
-                            <tr>
-                                <td>US-Mobile-01</td>
-                                <td><span class="badge badge-success">98%</span></td>
-                                <td>High</td>
-                                <td><button class="fly-btn fly-btn-sm" onclick="window.router.navigateTo('self-allocation')">Allocate</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <h4 style="margin-bottom:16px">Top Supported Ranges for "${query}"</h4>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Range Name</th><th>Country</th><th>Availability</th><th>Success Rate</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td>US-Mobile-A1</td><td>USA</td><td><span style="color:var(--success); font-weight:700">1,240</span></td><td>98.2%</td><td><span class="badge badge-success">High Stability</span></td></tr>
+                        <tr><td>UK-Premium-G2</td><td>UK</td><td><span style="color:var(--success); font-weight:700">850</span></td><td>94.5%</td><td><span class="badge badge-primary">Active</span></td></tr>
+                        <tr><td>GER-Direct-V1</td><td>Germany</td><td><span style="color:var(--danger); font-weight:700">12</span></td><td>89.1%</td><td><span class="badge badge-warning">Low Inventory</span></td></tr>
+                    </tbody>
+                </table>
             </div>`;
         }, 800);
     },
 
-    async doRangeSearch() {
-        const rid = document.getElementById('range-search-select').value;
-        // Mock range details
-        const results = document.getElementById('search-results-container');
-        results.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">Supported Apps for selected Range</div></div>
-            <div class="card-body" style="padding:20px">
-                <div class="service-list">
-                    <span class="service-chip">WhatsApp <span class="service-chip-count">✓</span></span>
-                    <span class="service-chip">Google <span class="service-chip-count">✓</span></span>
-                    <span class="service-chip">Telegram <span class="service-chip-count">✓</span></span>
-                    <span class="service-chip" style="opacity:0.5">TikTok <span class="service-chip-count" style="color:var(--danger)">X</span></span>
+    renderRangeSearch(container) {
+        container.innerHTML = `
+        <div class="form-group">
+            <label>Select Range to Inspect</label>
+            <select class="fly-input" id="range-search-select" onchange="window.searchAccess.doRangeSearch(this.value)">
+                <option value="">-- Choose Range --</option>
+                <option value="US-Mobile">US-Mobile</option>
+                <option value="UK-Premium">UK-Premium</option>
+            </select>
+        </div>
+        <div id="range-search-results" style="margin-top:24px"></div>`;
+    },
+
+    async doRangeSearch(range) {
+        if (!range) return;
+        const results = document.getElementById('range-search-results');
+        results.innerHTML = '<div class="spinner" style="margin:20px auto"></div>';
+
+        setTimeout(() => {
+            results.innerHTML = `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:24px">
+                <div class="stat-card">
+                    <div class="stat-card-label">Range Success Rate</div>
+                    <div class="stat-card-value">96.8%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Traffic Intensity</div>
+                    <div class="stat-card-value">Medium</div>
                 </div>
             </div>
-        </div>`;
+            <h4 style="margin-bottom:12px">Supported Apps & Blacklist Indicators</h4>
+            <div class="service-list">
+                <div class="service-chip">Google <span class="badge badge-success">99%</span></div>
+                <div class="service-chip">WhatsApp <span class="badge badge-success">98%</span></div>
+                <div class="service-chip">Facebook <span class="badge badge-success">97%</span></div>
+                <div class="service-chip">Telegram <span class="badge badge-danger">BLOCKED</span></div>
+                <div class="service-chip">Discord <span class="badge badge-warning">LOCKED</span></div>
+            </div>`;
+        }, 600);
     }
 };
 

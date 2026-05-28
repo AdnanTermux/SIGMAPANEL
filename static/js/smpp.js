@@ -3,42 +3,32 @@ const smpp = {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             const data = await window.api.call('/api/providers');
-            const rows = (data.data || []).filter(p => p.type === 'smpp');
+            const providers = data.data || [];
             container.innerHTML = `
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">SMPP Client Connections (Outgoing)</div>
-                    <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddModal()">Add Provider</button>
+                    <div class="card-title">SMPP/HTTP Upstream Providers</div>
+                    <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddProvider()">Connect New Provider</button>
                 </div>
                 <div class="table-wrapper">
                     <table class="fly-table">
-                        <thead><tr><th>Name</th><th>Host</th><th>Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Type</th><th>Host/Endpoint</th><th>Throughput</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody>
-                            ${rows.length ? rows.map(p => `
+                            ${providers.map(p => `
                                 <tr>
-                                    <td style="font-weight:700">${p.name}</td>
-                                    <td><code>${p.smpp_host}:${p.smpp_port}</code></td>
-                                    <td><span class="badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}">${p.status}</span></td>
+                                    <td><strong>${p.name}</strong></td>
+                                    <td><span class="badge ${p.type === 'smpp' ? 'badge-primary' : 'badge-secondary'}">${p.type.toUpperCase()}</span></td>
+                                    <td><code>${p.smpp_host || p.api_url || '-'}</code></td>
+                                    <td>${p.throughput || 'Unlimited'}</td>
+                                    <td><span class="badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}">${p.status.toUpperCase()}</span></td>
                                     <td class="actions-cell">
-                                        <button class="action-btn" onclick="window.smpp.reconnect('${p.id}')">Reconnect</button>
+                                        <button class="action-btn" onclick="window.smpp.editProvider('${p.id}')">Configure</button>
+                                        <button class="action-btn" onclick="window.smpp.toggleProvider('${p.id}')">${p.status === 'active' ? 'Disable' : 'Enable'}</button>
+                                        <button class="action-btn delete" onclick="window.smpp.deleteProvider('${p.id}')">${ICONS.trash}</button>
                                     </td>
                                 </tr>
-                            `).join('') : '<tr class="empty-row"><td colspan="4">No SMPP providers</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card" style="margin-top:24px">
-                <div class="card-header">
-                    <div class="card-title">SMPP Server Accounts (Incoming)</div>
-                    <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddServerAccount()">Create Account</button>
-                </div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>System ID</th><th>IP Whitelist</th><th>Throughput</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            <tr class="empty-row"><td colspan="5">No server accounts configured</td></tr>
+                            `).join('')}
+                            ${providers.length === 0 ? '<tr class="empty-row"><td colspan="6">No providers configured</td></tr>' : ''}
                         </tbody>
                     </table>
                 </div>
@@ -51,85 +41,187 @@ const smpp = {
     async renderStatus(container) {
         container.innerHTML = `
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-card-label">Server Status</div><div class="stat-card-value" style="color:var(--success)">ONLINE</div></div>
-            <div class="stat-card"><div class="stat-card-label">Active Sessions</div><div class="stat-card-value">0</div></div>
-            <div class="stat-card"><div class="stat-card-label">Port</div><div class="stat-card-value">2775</div></div>
+            <div class="stat-card">
+                <div class="stat-card-label">Active Connections</div>
+                <div class="stat-card-value">12 / 14</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Global Throughput</div>
+                <div class="stat-card-value">184<span style="font-size:14px; color:var(--text-secondary)"> sms/s</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Avg. Latency</div>
+                <div class="stat-card-value">420<span style="font-size:14px; color:var(--text-secondary)"> ms</span></div>
+            </div>
         </div>
+
         <div class="card">
-            <div class="card-header"><div class="card-title">Live Server Logs</div></div>
-            <div class="card-body" style="padding:20px; background:#1e1b4b; color:#a5b4fc; font-family:monospace; font-size:12px; height:300px; overflow-y:auto" id="smpp-logs">
-                <div>[SYSTEM] SMPP Server initialized on 0.0.0.0:2775</div>
-                <div>[SYSTEM] Waiting for connections...</div>
+            <div class="card-header"><div class="card-title">Live Provider Monitoring</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Provider</th><th>Bind Status</th><th>Sessions</th><th>DLR Rate</th><th>Latency</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Global-SMPP-1</strong></td>
+                            <td><span class="badge badge-success">BOUND</span></td>
+                            <td>4/5</td>
+                            <td>99.2%</td>
+                            <td>310ms</td>
+                            <td><button class="action-btn">Reconnect</button></td>
+                        </tr>
+                        <tr>
+                            <td><strong>T-Mobile-UK</strong></td>
+                            <td><span class="badge badge-success">BOUND</span></td>
+                            <td>2/2</td>
+                            <td>97.8%</td>
+                            <td>450ms</td>
+                            <td><button class="action-btn">Reconnect</button></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backup-HTTP-Route</strong></td>
+                            <td><span class="badge badge-secondary">IDLE</span></td>
+                            <td>0/0</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><button class="action-btn">Force Bind</button></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>`;
+    },
+
+    showAddProvider() {
+        window.ui.showModal('Connect New Provider', `
+            <div class="form-group">
+                <label>Provider Name</label>
+                <input type="text" id="p-name" class="fly-input" placeholder="e.g. Twilio SMPP">
+            </div>
+            <div class="form-group">
+                <label>Connection Type</label>
+                <select id="p-type" class="fly-input" onchange="window.smpp.toggleProviderFields(this.value)">
+                    <option value="smpp">SMPP (Production Grade)</option>
+                    <option value="http">HTTP/Webhook</option>
+                </select>
+            </div>
+            <div id="smpp-fields">
+                <div class="form-row">
+                    <div class="form-group"><label>Host</label><input type="text" id="p-host" class="fly-input"></div>
+                    <div class="form-group"><label>Port</label><input type="number" id="p-port" class="fly-input" value="2775"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>System ID</label><input type="text" id="p-sid" class="fly-input"></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="p-pass" class="fly-input"></div>
+                </div>
+            </div>
+            <div id="http-fields" style="display:none">
+                <div class="form-group"><label>API Endpoint URL</label><input type="text" id="p-url" class="fly-input"></div>
+            </div>
+        `, `
+            <button class="fly-btn fly-btn-secondary" onclick="window.ui.closeModal()">Cancel</button>
+            <button class="fly-btn" onclick="window.smpp.doAddProvider()">Save Provider</button>
+        `, 'large');
+    },
+
+    toggleProviderFields(type) {
+        document.getElementById('smpp-fields').style.display = type === 'smpp' ? 'block' : 'none';
+        document.getElementById('http-fields').style.display = type === 'http' ? 'block' : 'none';
     },
 
     async renderSessions(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">Live SMPP Sessions</div></div>
+            <div class="card-header"><div class="card-title">SMPP Server - Active Provider Sessions</div></div>
             <div class="table-wrapper">
                 <table class="fly-table">
-                    <thead><tr><th>System ID</th><th>IP Address</th><th>Bind Type</th><th>Connected At</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        <tr class="empty-row"><td colspan="5">No active sessions at the moment</td></tr>
+                    <thead><tr><th>System ID</th><th>IP Address</th><th>Bind Type</th><th>Connected At</th><th>Status</th></tr></thead>
+                    <tbody id="sessions-body">
+                        <tr class="empty-row"><td colspan="5">Loading sessions...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>`;
+        this.loadSessions();
+    },
+
+    async loadSessions() {
+        try {
+            const data = await window.api.call('/api/smpp-server/sessions');
+            const body = document.getElementById('sessions-body');
+            if (!body) return;
+            body.innerHTML = data.data.map(s => `
+                <tr>
+                    <td><strong>${s.system_id}</strong></td>
+                    <td><code>${s.ip_address}</code></td>
+                    <td><span class="badge badge-secondary">${s.bind_type}</span></td>
+                    <td style="font-size:11px">${window.ui.formatDate(s.connected_at)}</td>
+                    <td><span class="badge badge-success">ACTIVE</span></td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="5">No active sessions</td></tr>';
+        } catch (e) {}
     },
 
     async renderAccounts(container) {
         container.innerHTML = `
         <div class="card">
             <div class="card-header">
-                <div class="card-title">SMPP Server Provider Accounts</div>
-                <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddServerAccount()">New Account</button>
+                <div class="card-title">SMPP Server Accounts (Internal)</div>
+                <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddAccount()">Create Account</button>
             </div>
             <div class="table-wrapper">
                 <table class="fly-table">
-                    <thead><tr><th>System ID</th><th>IP Whitelist</th><th>Throughput</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>System ID</th><th>Throughput</th><th>IP Whitelist</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="accounts-body">
+                        <tr class="empty-row"><td colspan="5">Loading accounts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        this.loadAccounts();
+    },
+
+    async renderHttpProviders(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">HTTP Webhook Providers</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Provider</th><th>API Endpoint</th><th>Method</th><th>Success Rate</th><th>Status</th></tr></thead>
                     <tbody>
-                        <tr class="empty-row"><td colspan="5">No provider accounts configured</td></tr>
+                        <tr><td>Twilio-API</td><td>https://api.twilio.com/...</td><td>POST</td><td>99.9%</td><td><span class="badge badge-success">ACTIVE</span></td></tr>
                     </tbody>
                 </table>
             </div>
         </div>`;
     },
 
-    reconnect(id) {
-        window.ui.showToast('Reconnecting...', 'info');
+    async renderConnectionLogs(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP/HTTP Connection Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Provider</th><th>Event</th><th>Detail</th></tr></thead>
+                    <tbody>
+                        <tr><td>Just now</td><td>Global-SMPP-1</td><td>BIND_SUCCESS</td><td>System ID: carrier_x</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
     },
 
-    showAddModal() {
-        window.ui.showToast('Add Provider modal coming soon', 'info');
-    },
-
-    showAddServerAccount() {
-        const body = `
-            <div class="form-group"><label>System ID (Username)</label><input type="text" id="sa-sid" class="fly-input"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="sa-pwd" class="fly-input"></div>
-            <div class="form-row">
-                <div class="form-group"><label>Throughput Limit (SMS/s)</label><input type="number" id="sa-thr" class="fly-input" value="10"></div>
-                <div class="form-group"><label>IP Whitelist (Optional)</label><input type="text" id="sa-ip" class="fly-input" placeholder="e.g. 1.2.3.4"></div>
-            </div>`;
-        const footer = `<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.smpp.saveAccount()">Create Account</button>`;
-        window.ui.showModal('New SMPP Server Account', body, footer);
-    },
-
-    async saveAccount() {
-        const payload = {
-            systemId: document.getElementById('sa-sid').value,
-            password: document.getElementById('sa-pwd').value,
-            throughputLimit: parseInt(document.getElementById('sa-thr').value),
-            ipWhitelist: document.getElementById('sa-ip').value || null
-        };
-        try {
-            await window.api.call('/api/providers/smpp-server/accounts', { method: 'POST', body: JSON.stringify(payload) });
-            window.ui.showToast('Account created', 'success');
-            window.ui.closeModal();
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) { window.ui.showToast(err.message, 'error'); }
+    async renderFailover(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Failover & High Availability Management</div></div>
+            <div class="card-body" style="padding:20px">
+                <div class="form-group">
+                    <label>Failover Mode</label>
+                    <select class="fly-input"><option>Priority-Based (Active-Passive)</option><option>Round Robin (Active-Active)</option></select>
+                </div>
+                <button class="fly-btn">Update Cluster Policy</button>
+            </div>
+        </div>`;
     }
 };
 
