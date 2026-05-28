@@ -7,7 +7,6 @@ const ROLE_LABELS = {
     manager: 'Manager',
     reseller: 'Reseller',
     sub_reseller: 'Sub Reseller',
-    user: 'User',
     test_user: 'Test Account'
 };
 
@@ -15,8 +14,7 @@ const ROLE_COLORS = {
     admin: 'badge-danger',
     manager: 'badge-warning',
     reseller: 'badge-primary',
-    sub_reseller: 'badge-secondary',
-    user: 'badge-secondary'
+    sub_reseller: 'badge-secondary'
 };
 
 const TEST_NAV = [
@@ -37,19 +35,19 @@ const TEST_NAV = [
 const NAV_STRUCTURE = [
     {
         group: 'DASHBOARD',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'dashboard', label: 'Overview', icon: ICONS.dashboard, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'dashboard', label: 'Overview', icon: ICONS.dashboard, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'analytics', label: 'Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller'] },
             { key: 'live-activity', label: 'Live Activity', icon: ICONS.eye, roles: ['admin', 'manager'] },
-            { key: 'notifications', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'notifications', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
         ]
     },
     {
         group: 'NUMBERS',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'my-numbers', label: 'My Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'my-numbers', label: 'My Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'self-allocation', label: 'Self Allocation', icon: ICONS.layers, roles: ['reseller', 'sub_reseller'] },
             { key: 'bulk-allocation', label: 'Bulk Allocation', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller'] },
@@ -63,9 +61,9 @@ const NAV_STRUCTURE = [
     },
     {
         group: 'SMS',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller'] },
             { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller'] },
             { key: 'sms-reports', label: 'SMS Reports', icon: ICONS.report, roles: ['admin', 'manager', 'reseller'] },
@@ -113,13 +111,13 @@ const NAV_STRUCTURE = [
     },
     {
         group: 'API',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'api-playground', label: 'API Playground', icon: ICONS.api, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
-            { key: 'api-tokens', label: 'API Tokens', icon: ICONS.key, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
-            { key: 'documentation', label: 'Documentation', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
-            { key: 'live-test', label: 'Live Test', icon: ICONS.send, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
-            { key: 'webhook-config', label: 'Webhook Config', icon: ICONS.settings, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'api-playground', label: 'API Playground', icon: ICONS.api, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'api-tokens', label: 'API Tokens', icon: ICONS.key, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'documentation', label: 'Documentation', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-test', label: 'Live Test', icon: ICONS.send, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'webhook-config', label: 'Webhook Config', icon: ICONS.settings, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
         ]
     },
     {
@@ -151,11 +149,11 @@ const NAV_STRUCTURE = [
     },
     {
         group: 'SETTINGS',
-        roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'general-settings', label: 'General Settings', icon: ICONS.settings, roles: ['admin', 'manager'] },
-            { key: 'security-settings', label: 'Security', icon: ICONS.shield, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
-            { key: 'notifications-settings', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller', 'user'] },
+            { key: 'security-settings', label: 'Security', icon: ICONS.shield, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'notifications-settings', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'smpp-settings', label: 'SMPP Settings', icon: ICONS.server, roles: ['admin'] },
             { key: 'queue-settings', label: 'Queue Settings', icon: ICONS.layers, roles: ['admin'] },
             { key: 'backup-restore', label: 'Backup & Restore', icon: ICONS.shield, roles: ['admin'] },
@@ -260,7 +258,7 @@ function renderDashboardShell() {
 
     // Only render the shell if it doesn't exist
     if (!document.querySelector('.dashboard-layout')) {
-        const role = user.role || 'user';
+        const role = user.role || 'sub_reseller';
 
         // Persistent sidebar state
         const collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups') || '{}');
@@ -307,7 +305,7 @@ function renderDashboardShell() {
                         <div class="sidebar-user-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
                         <div>
                             <div class="sidebar-user-name">${user.fullName || user.username || 'User'}</div>
-                            <div class="sidebar-user-role">${user.role || 'user'}</div>
+                            <div class="sidebar-user-role">${user.role || 'sub_reseller'}</div>
                         </div>
                     </div>
                     <button class="sidebar-logout" id="logout-btn">${ICONS.logout} Logout</button>
@@ -325,7 +323,7 @@ function renderDashboardShell() {
                             <div class="top-bar-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
                             <div class="top-bar-user-name">
                                 <div style="font-size:12px;font-weight:600;color:#222F36">${user.fullName || user.username || 'User'}</div>
-                                <div class="top-bar-user-role" style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em">${user.role || 'user'}</div>
+                                <div class="top-bar-user-role" style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em">${user.role || 'sub_reseller'}</div>
                             </div>
                         </div>
                     </div>

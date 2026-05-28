@@ -79,8 +79,8 @@ async def list_numbers(
 
     role = p["role"]
 
-    if role == "end_user":
-        # Users only see their own numbers
+    if role == "sub_reseller":
+        # Sub-resellers only see their own numbers
         conds.append("n.assigned_to = ?")
         params.append(p["username"])
     elif role == "reseller":

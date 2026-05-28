@@ -48,7 +48,7 @@ async def signup(request: Request, body: SignupRequest):
 
             conn.execute(
                 """INSERT INTO users (id, username, email, password, role, status, full_name, phone, country, notes)
-                   VALUES (?, ?, ?, ?, 'user', ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, 'sub_reseller', ?, ?, ?, ?, ?)""",
                 (uid, body.username.strip().lower(), body.email.strip().lower() if body.email else None,
                  pw_hash, status, body.fullName, body.phone, body.country,
                  f"Profession: {body.profession}, Payment: {body.paymentMethod}, BinanceUID: {body.binanceUid}, USDT: {body.usdtAddress}")

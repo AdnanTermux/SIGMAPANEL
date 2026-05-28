@@ -83,7 +83,6 @@ const users = {
                 <div class="form-group"><label>Email</label><input type="email" id="u-email" class="fly-input"></div>
                 <div class="form-group"><label>Role</label>
                     <select id="u-role" class="fly-input">
-                        <option value="user">User</option>
                         <option value="sub_reseller">Sub Reseller</option>
                         <option value="reseller">Reseller</option>
                         <option value="manager">Manager</option>

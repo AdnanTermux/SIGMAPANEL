@@ -1,87 +1,116 @@
-# 📡 SIGMAPANEL v3 — Telecom Infrastructure Panel
+# 🚀 SIGMAPANEL v3 — Enterprise Telecom SMS Infrastructure
 
-**Enterprise-grade SMS OTP Management System with Real-time SMPP Server & HTTP Gateways.**
-
-SIGMAPANEL is a high-performance, secure, and scalable telecom platform built with **FastAPI**, **Redis**, and a modular **Vanilla JS SPA** frontend. It provides a complete suite of tools for managing SMS traffic, provider interconnections, and reseller hierarchies.
+SIGMAPANEL is a production-grade, high-performance telecom SMS gateway and management dashboard. Built with a modular **FastAPI** backend and a responsive **Vanilla JS SPA** frontend, it supports multiple **SMPP** and **HTTP** providers, real-time OTP processing, and a strict hierarchical reseller system.
 
 ---
 
-## ✨ Core Features
+## 🏛 Hierarchical Architecture
 
-### 🏢 Enterprise Infrastructure
-- **Real-time SMPP Server:** Support for incoming `BIND`, `SUBMIT_SM`, and `DELIVER_SM` PDUs on port `2775`.
-- **Regex-based DLR Parsing:** High-accuracy delivery receipt extraction from vendor streams.
-- **Asynchronous Queuing:** Redis-backed architecture for non-blocking SMS processing and persistence.
-- **Service Name Masking:** Built-in support for Alphanumeric CLI (Service Brand IDs) with automatic normalization bypass.
-
-### 🛡️ Hardened Security
-- **Telecom-style Verification:** Pre-login browser integrity check and anti-bot validation screen.
-- **Advanced Firewall:** Redis-backed rate limiting, IP blacklisting, and adaptive threat monitoring.
-- **Role-Based Access Control (RBAC):** Strict data isolation for `admin`, `manager`, `reseller`, and `user` roles.
-- **Session Protection:** 30-minute inactivity auto-logout and JWT-based authentication.
-
-### 📊 Professional Management
-- **Hierarchical User System:** Manage resellers, sub-resellers, and end-users with balance adjustments and audit logs.
-- **Comprehensive Reporting:** Live OTP feeds, profit analytics (Chart.js), and detailed delivery logs.
-- **Bulk Tools:** Bulk number allocation, global range revoke, and emergency purge utilities.
-- **API Playground:** Interactive request tester and dynamic documentation for developers.
+The system is designed for massive scale with a clear chain of command:
+1.  **Admin:** Full system control, infrastructure management, and global audit logs.
+2.  **Manager:** Manage resellers, adjust balances, monitor traffic, and approve requests.
+3.  **Reseller:** Create client accounts (Sub Resellers), manage their own inventory and payouts.
+4.  **Sub Reseller (Client):** High-level client access. Manage numbers, view OTPs, and use the API.
 
 ---
 
-## 🚀 Quick Start
+## ✨ Key Features
 
-### 🐳 Docker Deployment (Recommended)
+-   **📡 Multi-Protocol support:** Connect to providers via SMPP or HTTP. Includes a built-in **SMPP Server** (Port 2775).
+-   **🛡️ Security First:** Cloudflare-style browser integrity checks, rate-limiting, IP blacklisting, and JWT-based authentication.
+-   **⚡ Real-time Processing:** Redis-backed queues handle high-throughput SMS and DLR updates.
+-   **📊 Professional Analytics:** Detailed traffic stats, profit monitoring, and live OTP feeds with WebSocket updates.
+-   **🛠️ Modular Frontend:** Refactored for stability and performance. No infinite loading screens.
+-   **🐳 Containerized:** Ready for deployment with Docker and Docker Compose.
+
+---
+
+## 🛠 File Structure & Modules
+
+```text
+SIGMAPANEL/
+├── main.py                # FastAPI entry point & Middleware config
+├── smpp_server.py         # Production-grade SMPP Server (asyncio)
+├── worker.py              # Background worker for SMS/Queue processing
+├── database.py            # SQLite schema & migration logic
+├── queue_manager.py       # Redis connection pooling & queuing
+├── security_middleware.py # WAF, Rate-limiting, & Firewall logic
+├── routes/                # Backend API Endpoints (modular)
+│   ├── auth.py            # Authentication & RBAC
+│   ├── numbers.py         # Number allocation & Inventory
+│   ├── sms.py             # SMS logs & Profit logic
+│   └── users.py           # User hierarchy & Balance management
+└── static/                # Frontend Assets
+    ├── css/style.css      # Modern Indigo/Slate enterprise theme
+    └── js/                # Modular SPA Frontend
+        ├── app.js         # Navigation & Shell initialization
+        ├── router.js      # Custom SPA Router
+        └── modules/       # Feature-specific logic (sms, numbers, etc.)
+```
+
+---
+
+## 🚀 Deployment Guide
+
+### 1. VPS / Dedicated Server (Ubuntu/Debian)
+
+**Prerequisites:** Docker, Docker Compose, Nginx.
+
 ```bash
 # Clone the repository
 git clone https://github.com/AdnanTermux/SIGMAPANEL.git
 cd SIGMAPANEL
 
-# Start the complete stack
-docker compose up -d --build
-```
-Access the panel at `http://localhost:8000`.
+# Build and start services
+docker-compose up -d --build
 
-### 🛠️ Manual Installation
-1. **Dependencies:** `pip install -r requirements.txt`
-2. **Database:** The system auto-seeds an admin account (`admin/admin123`) on first run.
-3. **Environment:**
-   - `DATABASE_URL`: Path to SQLite DB (default: `data/sigmapanel.db`)
-   - `REDIS_URL`: Redis connection string (default: `redis://localhost:6379/0`)
-4. **Run:** `./entrypoint.sh`
-
----
-
-## 📁 System Architecture
-
-```text
-SIGMAPANEL/
-├── routes/              # FastAPI API endpoints (modular)
-├── static/              # Frontend SPA
-│   ├── js/              # Modular JavaScript components
-│   └── css/             # Modern telecom dashboard styling
-├── main.py              # Application entry point
-├── smpp_server.py       # Async SMPP server listener
-├── worker.py            # Background queue processor
-├── queue_manager.py     # Redis queue interaction
-├── security_middleware.py # WAF and rate-limiting logic
-└── entrypoint.sh        # Process management script
+# The panel will be available at http://your-ip:8000
 ```
 
----
+**Nginx Configuration:**
+Use the provided `nginx_hardened.conf` for production SSL and reverse proxy settings.
 
-## 📞 API & Integration
+### 2. Railway / Cloud Platforms
 
-### Webhook Endpoint
-`POST /api/webhook/sms`
-- **Supported Formats:** JSON, Form-data, URL-encoded.
-- **Auth:** Bearer Token (Generated in API Management).
-
-### SMPP Server
-- **Host:** `your-ip`
-- **Port:** `2775`
-- **Auth:** System ID & Password (Managed in SMPP Server Accounts).
+1.  Connect your GitHub repository.
+2.  Add a **Redis** service.
+3.  Set Environment Variables:
+    -   `DATABASE_URL`: `/data/sigmapanel.db`
+    -   `REDIS_URL`: `redis://your-redis-url`
+4.  Deploy. Railway will automatically detect the `Dockerfile`.
 
 ---
 
-## 📜 License
-Proprietary and confidential. © 2026 SIGMAPANEL Infrastructure.
+## 🔌 Connection Specifications
+
+### SMPP Server (Built-in)
+-   **Host:** `your-vps-ip`
+-   **Port:** `2775`
+-   **Supported Bind:** `bind_transceiver`, `bind_receiver`, `bind_transmitter`
+-   **DLR Format:** `id:(.*?) sub:.*? dlvrd:(.*?) stat:(.*?) err:(.*?)`
+
+### HTTP Webhook (Incoming)
+-   **Endpoint:** `/api/webhook/receive`
+-   **Method:** `POST / GET`
+-   **Parameters:** `to`, `from`, `msg`, `secret_token`
+
+---
+
+## 🧪 Demo Access
+Use the restricted test panel for demonstration:
+-   **URL:** `/login`
+-   **Username:** `test123`
+-   **Password:** `test123`
+
+---
+
+## 📈 Development
+To run in development mode locally:
+```bash
+pip install -r requirements.txt
+python main.py &
+python worker.py &
+python smpp_server.py
+```
+
+Developed with ❤️ for Professional Telecom Infrastructures.
