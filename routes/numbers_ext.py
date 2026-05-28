@@ -41,8 +41,13 @@ class ReturnNumbers(BaseModel):
 class AllocateNumbers(BaseModel):
     rangeName: str
     quantity: int
-    duration: str             # weekly | monthly | yearly | custom
+    duration: str = "monthly"    # weekly | monthly | yearly | custom
     customDays: Optional[int] = None
+
+class BulkAllocateRequest(BaseModel):
+    userId: str
+    rangeName: str
+    quantity: int
 
 @router.post("/bulk-import")
 async def bulk_import(request: Request, body: BulkImport):
@@ -114,6 +119,31 @@ async def return_numbers(request: Request, body: ReturnNumbers):
         else:
             raise HTTPException(400, "Specify username, rangeName, or numberIds")
     return {"returned": count}
+
+@router.post("/bulk-allocate")
+async def bulk_allocate(request: Request, body: BulkAllocateRequest):
+    _admin(request)
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        user = conn.execute("SELECT username FROM users WHERE id=?", (body.userId,)).fetchone()
+        if not user: raise HTTPException(404, "User not found")
+        username = user['username']
+
+        available = conn.execute("""SELECT id, number FROM numbers
+                                   WHERE range_name=? AND (assigned_to IS NULL OR assigned_to='')
+                                   LIMIT ?""", (body.rangeName, body.quantity)).fetchall()
+
+        if len(available) < body.quantity:
+            raise HTTPException(400, f"Only {len(available)} numbers available")
+
+        for n in available:
+            conn.execute("UPDATE numbers SET assigned_to=?, assigned_at=? WHERE id=?",
+                         (username, now, n['id']))
+
+        conn.execute("UPDATE ranges SET allocated_numbers = allocated_numbers + ? WHERE name=?",
+                     (len(available), body.rangeName))
+
+    return {"message": f"Successfully allocated {len(available)} numbers to {username}"}
 
 @router.post("/allocate")
 async def allocate_numbers(request: Request, body: AllocateNumbers):

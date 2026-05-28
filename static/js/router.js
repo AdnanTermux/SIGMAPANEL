@@ -12,19 +12,24 @@ const router = {
 
     handleRoute() {
         const path = window.location.pathname.replace(/^\//, '') || 'dashboard';
+        // Only navigate if we are already logged in or going to a public route
+        // For this SPA, most routes require login except maybe login/signup if they were separate paths
+        // But here we handle everything via renderDashboardShell
         this.navigateTo(path, false);
     },
 
     navigateTo(page, pushState = true) {
         this.currentPage = page;
         if (pushState) {
-            window.history.pushState({}, '', `/${page}`);
+            const url = page === 'dashboard' ? '/' : `/${page}`;
+            window.history.pushState({}, '', url);
         }
 
         if (typeof window.renderDashboardShell === 'function') {
             window.renderDashboardShell();
         } else {
-            console.error('renderDashboardShell not found');
+            // If shell isn't ready, we might be in the middle of initialization
+            console.warn('renderDashboardShell not yet available');
         }
     },
 

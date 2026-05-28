@@ -133,10 +133,11 @@ async def list_users(
 
     # Scope visibility
     if p["role"] == "manager":
-        # Manager sees all resellers and their children
-        conds.append("(parent_id = ? OR role = 'reseller' OR role = 'sub_reseller')")
-        params.append(p["userId"])
+        # Manager sees their resellers and the sub-resellers of those resellers
+        conds.append("(parent_id = ? OR parent_id IN (SELECT id FROM users WHERE parent_id = ?))")
+        params.extend([p["userId"], p["userId"]])
     elif p["role"] == "reseller":
+        # Reseller sees only their sub-resellers
         conds.append("parent_id = ?")
         params.append(p["userId"])
     # admin sees all

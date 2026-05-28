@@ -16,6 +16,7 @@ from routes.dashboard import router as dashboard_router
 from routes.settings import router as settings_router
 from routes.providers import router as providers_router
 from routes.transactions import router as transactions_router
+from routes.payments import router as payments_router
 from routes.numbers_ext import router as numbers_ext_router
 from routes.api_management import router as api_management_router
 from routes.notifications import router as notifications_router
@@ -37,6 +38,7 @@ app.include_router(dashboard_router)
 app.include_router(settings_router)
 app.include_router(providers_router)
 app.include_router(transactions_router)
+app.include_router(payments_router)
 app.include_router(numbers_ext_router)
 app.include_router(api_management_router)
 app.include_router(notifications_router)
