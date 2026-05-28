@@ -43,7 +43,11 @@ const apiManagement = {
         try {
             const data = await window.api.call(`/api${ep}`);
             resEl.textContent = JSON.stringify(data, null, 2);
-        } catch (e) { resEl.textContent = `Error: ${e.message}`; }
+            window.ui.showToast('Request successful', 'success');
+        } catch (e) {
+            resEl.textContent = `Error: ${e.message}`;
+            window.ui.showToast('Request failed', 'error');
+        }
     },
 
     async regenToken() {

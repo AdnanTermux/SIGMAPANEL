@@ -259,13 +259,17 @@ class SMPPSession:
         await self.send_pdu(0x80000004, 0, seq, message_id)
 
     async def send_pdu(self, command_id: int, status: int, seq: int, body: bytes):
-        length = 16 + len(body)
-        header = length.to_bytes(4, 'big') + \
-                 command_id.to_bytes(4, 'big') + \
-                 status.to_bytes(4, 'big') + \
-                 seq.to_bytes(4, 'big')
-        self.writer.write(header + body)
-        await self.writer.drain()
+        try:
+            length = 16 + len(body)
+            header = length.to_bytes(4, 'big') + \
+                     command_id.to_bytes(4, 'big') + \
+                     status.to_bytes(4, 'big') + \
+                     seq.to_bytes(4, 'big')
+            self.writer.write(header + body)
+            await self.writer.drain()
+        except Exception as e:
+            logger.error(f"Error sending PDU: {e}")
+            self.writer.close()
 
 class SMPPServer:
     def __init__(self, host='0.0.0.0', port=2775):
