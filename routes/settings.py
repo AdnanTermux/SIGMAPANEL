@@ -22,10 +22,27 @@ class SettingCreate(BaseModel):
 
 @router.get("")
 async def list_settings(request: Request, key: str = Query(None)):
-    p = _require(request)
+    # Public settings allowed without auth for login/signup pages
+    PUBLIC_KEYS = {'signup_enabled', 'contact_whatsapp', 'contact_teams', 'contact_telegram'}
+
+    if key in PUBLIC_KEYS:
+        # Allow access to specific public keys
+        pass
+    else:
+        # Require auth for everything else
+        p = _require(request)
+
     conds, params = [], []
-    if p["role"] != "admin":
-        conds.append("(user_id IS NULL OR user_id = ?)"); params.append(p["userId"])
+    # If authenticated and not admin, scope to self
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        tok = extract_token(auth_header)
+        p = verify_token(tok) if tok else None
+        if p and p["role"] != "admin":
+            conds.append("(user_id IS NULL OR user_id = ?)"); params.append(p["userId"])
+    else:
+        # Non-authenticated only sees global settings
+        conds.append("user_id IS NULL")
     if key:
         conds.append("setting_key = ?"); params.append(key)
     where = " AND ".join(conds) if conds else "1=1"

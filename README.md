@@ -1,116 +1,184 @@
-# 🚀 SIGMAPANEL v3 — Enterprise Telecom SMS Infrastructure
+# 🚀 SIGMAPANEL v3 — Professional Telecom & SMS Infrastructure
 
-SIGMAPANEL is a production-grade, high-performance telecom SMS gateway and management dashboard. Built with a modular **FastAPI** backend and a responsive **Vanilla JS SPA** frontend, it supports multiple **SMPP** and **HTTP** providers, real-time OTP processing, and a strict hierarchical reseller system.
-
----
-
-## 🏛 Hierarchical Architecture
-
-The system is designed for massive scale with a clear chain of command:
-1.  **Admin:** Full system control, infrastructure management, and global audit logs.
-2.  **Manager:** Manage resellers, adjust balances, monitor traffic, and approve requests.
-3.  **Reseller:** Create client accounts (Sub Resellers), manage their own inventory and payouts.
-4.  **Sub Reseller (Client):** High-level client access. Manage numbers, view OTPs, and use the API.
+SIGMAPANEL is an enterprise-grade, high-performance telecom SMS gateway and management dashboard. It transforms complex telecom protocols into a streamlined, modular SaaS experience. Built with a **FastAPI** asynchronous backend and a **Vanilla JS Single Page Application (SPA)** frontend.
 
 ---
 
-## ✨ Key Features
+## 🏛 Hierarchical Architecture & Role System
 
--   **📡 Multi-Protocol support:** Connect to providers via SMPP or HTTP. Includes a built-in **SMPP Server** (Port 2775).
--   **🛡️ Security First:** Cloudflare-style browser integrity checks, rate-limiting, IP blacklisting, and JWT-based authentication.
--   **⚡ Real-time Processing:** Redis-backed queues handle high-throughput SMS and DLR updates.
--   **📊 Professional Analytics:** Detailed traffic stats, profit monitoring, and live OTP feeds with WebSocket updates.
--   **🛠️ Modular Frontend:** Refactored for stability and performance. No infinite loading screens.
--   **🐳 Containerized:** Ready for deployment with Docker and Docker Compose.
+SIGMAPANEL uses a strict hierarchical model for data isolation and resource management:
 
----
+```mermaid
+graph TD
+    A[Admin] --> B[Manager]
+    B --> C[Reseller]
+    C --> D[Client / Sub-Reseller]
 
-## 🛠 File Structure & Modules
-
-```text
-SIGMAPANEL/
-├── main.py                # FastAPI entry point & Middleware config
-├── smpp_server.py         # Production-grade SMPP Server (asyncio)
-├── worker.py              # Background worker for SMS/Queue processing
-├── database.py            # SQLite schema & migration logic
-├── queue_manager.py       # Redis connection pooling & queuing
-├── security_middleware.py # WAF, Rate-limiting, & Firewall logic
-├── routes/                # Backend API Endpoints (modular)
-│   ├── auth.py            # Authentication & RBAC
-│   ├── numbers.py         # Number allocation & Inventory
-│   ├── sms.py             # SMS logs & Profit logic
-│   └── users.py           # User hierarchy & Balance management
-└── static/                # Frontend Assets
-    ├── css/style.css      # Modern Indigo/Slate enterprise theme
-    └── js/                # Modular SPA Frontend
-        ├── app.js         # Navigation & Shell initialization
-        ├── router.js      # Custom SPA Router
-        └── modules/       # Feature-specific logic (sms, numbers, etc.)
+    style A fill:#ef4444,color:#fff
+    style B fill:#f59e0b,color:#fff
+    style C fill:#6366f1,color:#fff
+    style D fill:#10b981,color:#fff
 ```
+
+| Role | Responsibilities |
+| :--- | :--- |
+| **Admin** | Full system control, provider management, global security settings, and audit logs. |
+| **Manager** | Oversees resellers, approves registration/payout requests, and monitors traffic. |
+| **Reseller** | Manages their own inventory of numbers and creates **Client** (Sub-Reseller) accounts. |
+| **Client** | The end-user level. Accesses assigned numbers, views OTPs, and integrates via API. |
+
+---
+
+## ⚡ System Flows
+
+### 1. Authentication & Security
+Every request is protected by JWT and a specialized WAF middleware.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as WAF Middleware
+    participant S as Security Module
+    participant A as Auth API
+    participant D as Database
+
+    U->>W: Access Dashboard
+    W->>S: Integrity Check (Browser/IP)
+    S-->>U: Show Protection Screen
+    Note over S: 5s Simulation
+    S-->>U: Redirect to Login
+    U->>A: POST /api/auth/login (Credentials + Captcha)
+    A->>D: Verify Hash & Status
+    D-->>A: User Record
+    A-->>U: JWT Token + Profile
+    U->>W: Authenticated Request
+    W->>U: Dashboard Content
+```
+
+### 2. SMS Processing (SMPP/HTTP)
+High-throughput processing via Redis-backed asynchronous queues.
+
+```mermaid
+graph TD
+    P1[SMPP Provider] -- PDU --> S[SIGMAPANEL Gateway]
+    P2[HTTP Provider] -- Webhook --> S
+    S -- push --> Q[(Redis Queue)]
+    W[Background Worker] -- pop --> Q
+    W -- parse --> O[OTP Extractor]
+    W -- lookup --> DB[(SQLite DB)]
+    W -- broadcast --> WS[Websocket Feed]
+    DB -- persist --> L[Logs & Profit]
+    WS -- real-time --> C[Client Dashboard]
+```
+
+---
+
+## 📂 Detailed File Structure
+
+### 🌍 Root Directory
+- `main.py`: **Application Kernel.** Initializes FastAPI, mounts static files, configures middleware, and aggregates all modular routes.
+- `smpp_server.py`: **SMPP Gateway.** A full-featured asynchronous SMPP server listening on port 2775. Handles `BIND_TRANSCEIVER`, `SUBMIT_SM`, and `DELIVER_SM` for external provider interconnections.
+- `worker.py`: **Task Consumer.** A dedicated process that listens to the Redis queue, performs number matching, extracts OTPs, and calculates profit margins.
+- `database.py`: **Persistence Layer.** Manages SQLite WAL-mode connections, table definitions, and automatic schema migrations.
+- `queue_manager.py`: **Messaging Broker.** Implements Redis connection pooling and reliable queuing logic for cross-process communication.
+- `security_middleware.py`: **Web Application Firewall (WAF).** Intercepts every HTTP request for IP blacklisting, rate-limiting, CSP injection, and browser integrity validation.
+- `otp_extractor.py`: **NLP Engine.** Uses optimized regular expressions to identify and extract verification codes from global SMS formats.
+- `phone_utils.py`: **Telecom Utilities.** Handles international number normalization (E.164) and prefix-based routing logic.
+- `sms_processor.py`: **Business Logic.** The core engine that matches incoming messages to specific user allocations and applies pricing rules.
+- `country_detector.py`: **Geographic Engine.** Provides offline mapping of phone prefixes to ISO-3166 country codes and names.
+- `service_detector.py`: **Brand Identifier.** Maps sender IDs and message patterns to known services like WhatsApp, Google, Binance, etc.
+- `auth.py`: **Security Core.** Implements bcrypt password hashing and JWT-like token generation/verification.
+- `Dockerfile` & `docker-compose.yml`: **Orchestration.** Production-ready containerization for the entire stack (App, Worker, SMPP, Redis).
+- `entrypoint.sh`: **Process Manager.** Unified startup script that launches the API, Worker, and SMPP server simultaneously within Docker.
+- `nginx_hardened.conf`: **Reverse Proxy.** A secure Nginx configuration with optimized SSL/TLS and buffer settings.
+- `requirements.txt`: **Dependencies.** Lists all Python libraries needed (FastAPI, Redis, Bcrypt, etc.).
+- `sigmapanel.service`: **Systemd Config.** Template for running SIGMAPANEL as a background service on Linux VPS.
+
+### 📍 Modular API Routes (`/routes`)
+- `auth.py`: Handles JWT auth, signups (with toggle/limits), and "Me" profile lookups.
+- `users.py`: Hierarchical management (Admin > Manager > Reseller > Client).
+- `numbers.py` & `numbers_ext.py`: Inventory tracking, bulk allocation, and global number revocation tools.
+- `sms.py`: SMS logs, profit/loss metrics, and real-time delivery reporting.
+- `ranges.py`: Management of number ranges, inventory counts, and pricing rule engines.
+- `providers.py`: Configuration of external SMPP/HTTP SMS providers.
+- `transactions.py`: Financial ledger for balance adjustments and payment request tracking.
+- `notifications.py`: Role-based system alerts, broadcasts, and news.
+- `settings.py`: Global system configuration (Signup status, contact details, webhook specs).
+- `webhook.py`: High-performance endpoint for receiving incoming SMS via HTTP from 3rd party vendors.
+- `dashboard.py`: Statistics aggregator for the overview charts and summaries.
+
+### 🎨 Frontend Assets (`/static`)
+- `index.html`: **SPA Shell.** The single entry point for the frontend; loads CSS and JS modules.
+- `css/style.css`: **The Big Theme.** A custom, highly-responsive Indigo/Slate enterprise design.
+- `js/app.js`: **Kernel.** Handles navigation, role-based sidebar generation, and app-wide initialization.
+- `js/router.js`: **SPA Router.** Manages browser history and dynamic content resolution without page reloads.
+- `js/api.js`: **API Client.** Centralized fetch wrapper with automatic token management and error handling.
+- `js/ui.js`: **Component Library.** Reusable UI elements, icons (SVG), and toast notifications.
+- `js/security.js`: **Defense UI.** Renders the browser integrity check and the security dashboard.
+- `js/dashboard.js`: **Analytics Page.** Implements Chart.js visualizations for traffic and profit.
+- `js/sms.js`: **SMS Module.** Filtering, searching, and live OTP feed implementation.
+- `js/numbers.js`: **Inventory Module.** Tables for number management, bulk tools, and exports.
+- `js/users.js`: **Management Module.** User creation forms and hierarchy visualization.
+- `js/ranges.js`: **Carrier Module.** Range pricing and inventory control.
+- `js/payments.js`: **Finance Module.** Payout and registration request queues.
+- `js/smpp.js`: **Gateway Module.** Real-time monitoring of SMPP Server sessions and accounts.
+- `js/settings.js`: **Preference Module.** Platform configuration and signup controls.
+- `js/test_panel.js`: **Demo Module.** Specialized tools for the `test123` account.
 
 ---
 
 ## 🚀 Deployment Guide
 
-### 1. VPS / Dedicated Server (Ubuntu/Debian)
+### 1. VPS / Dedicated (Ubuntu 22.04+)
+Recommended for production due to port 2775 (SMPP) requirements.
 
-**Prerequisites:** Docker, Docker Compose, Nginx.
-
+**Automated Setup (Docker):**
 ```bash
-# Clone the repository
 git clone https://github.com/AdnanTermux/SIGMAPANEL.git
 cd SIGMAPANEL
-
-# Build and start services
 docker-compose up -d --build
-
-# The panel will be available at http://your-ip:8000
 ```
 
-**Nginx Configuration:**
-Use the provided `nginx_hardened.conf` for production SSL and reverse proxy settings.
+**Manual Setup:**
+1. Install Python 3.12+, Redis, and Nginx.
+2. `pip install -r requirements.txt`
+3. Use the provided `sigmapanel.service` for systemd management.
+4. Configure `nginx_hardened.conf` for reverse proxy and SSL.
 
-### 2. Railway / Cloud Platforms
-
-1.  Connect your GitHub repository.
-2.  Add a **Redis** service.
-3.  Set Environment Variables:
+### 2. Cloud Platforms (Railway / Render)
+1. Link your repository to the platform.
+2. Add a **Redis** instance.
+3. Define Env Vars:
     -   `DATABASE_URL`: `/data/sigmapanel.db`
     -   `REDIS_URL`: `redis://your-redis-url`
-4.  Deploy. Railway will automatically detect the `Dockerfile`.
+4. Deploy. The platform will use the `Dockerfile` automatically.
 
 ---
 
 ## 🔌 Connection Specifications
 
-### SMPP Server (Built-in)
--   **Host:** `your-vps-ip`
+### 📡 Built-in SMPP Server
 -   **Port:** `2775`
+-   **System ID:** Your Account Username
+-   **Password:** Your Account Password
 -   **Supported Bind:** `bind_transceiver`, `bind_receiver`, `bind_transmitter`
 -   **DLR Format:** `id:(.*?) sub:.*? dlvrd:(.*?) stat:(.*?) err:(.*?)`
 
-### HTTP Webhook (Incoming)
--   **Endpoint:** `/api/webhook/receive`
--   **Method:** `POST / GET`
--   **Parameters:** `to`, `from`, `msg`, `secret_token`
+### 🔗 HTTP Incoming Webhook
+-   **Endpoint:** `https://your-domain.com/api/webhook/receive`
+-   **Params (GET/POST):**
+    -   `to`: Recipient Number
+    -   `from`: Sender ID
+    -   `msg`: Message Content
+    -   `secret_token`: Your API Token (Security Tab)
 
 ---
 
-## 🧪 Demo Access
-Use the restricted test panel for demonstration:
--   **URL:** `/login`
+## 🧪 Demo Account
+Explore the restricted test panel without registration:
 -   **Username:** `test123`
 -   **Password:** `test123`
 
 ---
 
-## 📈 Development
-To run in development mode locally:
-```bash
-pip install -r requirements.txt
-python main.py &
-python worker.py &
-python smpp_server.py
-```
-
-Developed with ❤️ for Professional Telecom Infrastructures.
+Developed with ❤️ for the Global Telecom Community.
