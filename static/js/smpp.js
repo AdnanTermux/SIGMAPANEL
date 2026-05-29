@@ -115,6 +115,17 @@ const smpp = {
             </div>
             <div id="http-fields" style="display:none">
                 <div class="form-group"><label>API Endpoint URL</label><input type="text" id="p-url" class="fly-input"></div>
+                <div style="background:var(--bg-page); padding:16px; border-radius:8px; margin-top:16px">
+                    <h5 style="margin-bottom:12px">HTTP Bind Details (Field Mapping)</h5>
+                    <div class="form-row">
+                        <div class="form-group"><label>Number/Destination Field</label><input type="text" id="p-field-to" class="fly-input" value="to"></div>
+                        <div class="form-group"><label>CLI/From Field</label><input type="text" id="p-field-from" class="fly-input" value="from"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Message Field</label><input type="text" id="p-field-msg" class="fly-input" value="msg"></div>
+                        <div class="form-group"><label>Unique ID Field</label><input type="text" id="p-field-uuid" class="fly-input" value="uuid"></div>
+                    </div>
+                </div>
             </div>
         `, `
             <button class="fly-btn fly-btn-secondary" onclick="window.ui.closeModal()">Cancel</button>
@@ -125,6 +136,34 @@ const smpp = {
     toggleProviderFields(type) {
         document.getElementById('smpp-fields').style.display = type === 'smpp' ? 'block' : 'none';
         document.getElementById('http-fields').style.display = type === 'http' ? 'block' : 'none';
+    },
+
+    async doAddProvider() {
+        const type = document.getElementById('p-type').value;
+        const payload = {
+            name: document.getElementById('p-name').value,
+            type: type,
+            status: 'active',
+            apiUrl: document.getElementById('p-url')?.value,
+            fieldTo: document.getElementById('p-field-to')?.value,
+            fieldFrom: document.getElementById('p-field-from')?.value,
+            fieldMsg: document.getElementById('p-field-msg')?.value,
+            fieldUuid: document.getElementById('p-field-uuid')?.value,
+            smppHost: document.getElementById('p-host')?.value,
+            smppPort: parseInt(document.getElementById('p-port')?.value || 2775),
+            smppSystemId: document.getElementById('p-sid')?.value,
+            smppPassword: document.getElementById('p-pass')?.value
+        };
+
+        try {
+            await window.api.call('/api/providers', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            window.ui.showToast('Provider added successfully', 'success');
+            window.ui.closeModal();
+            window.router.resolvePage(document.getElementById('page-content'));
+        } catch (err) { window.ui.showToast(err.message, 'error'); }
     },
 
     async renderSessions(container) {

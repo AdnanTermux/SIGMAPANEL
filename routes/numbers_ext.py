@@ -1,6 +1,6 @@
 """Extended numbers routes: bulk import, assign range, return numbers"""
+from fastapi import APIRouter, Request, HTTPException, Depends
 from routes.deps import get_current_user, require_role
-from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -10,11 +10,6 @@ from datetime import datetime
 import re
 
 router = APIRouter(prefix="/api/numbers-ext", tags=["numbers-ext"])
-
-def _auth(request: Request):
-    token = extract_token(request.headers.get('Authorization'))
-    return verify_token(token) if token else None
-
 
 class BulkImport(BaseModel):
     numbersText: str           # one number per line
@@ -55,7 +50,6 @@ async def bulk_import(request: Request, body: BulkImport, p=Depends(require_role
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
     success, skipped, errors = 0, 0, []
     added_numbers = []
-    now = datetime.utcnow().isoformat()
     with get_db() as conn:
         range_prefix = None
         if body.rangeId:
@@ -143,9 +137,7 @@ async def bulk_allocate(request: Request, body: BulkAllocateRequest, p=Depends(r
     return {"message": f"Successfully allocated {len(available)} numbers to {username}"}
 
 @router.post("/allocate")
-async def allocate_numbers(request: Request, body: AllocateNumbers):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
+async def allocate_numbers(request: Request, body: AllocateNumbers, p=Depends(get_current_user)):
     from datetime import timedelta
     now = datetime.utcnow()
     expires_map = {"weekly": 7, "monthly": 30, "yearly": 365}
@@ -169,12 +161,10 @@ async def allocate_numbers(request: Request, body: AllocateNumbers):
                 raise HTTPException(400, "Self-allocation limit reached for this range. Contact support for additional numbers.")
             raise HTTPException(400, f"Only {remaining} allocation slots available. Contact support for more.")
 
-        # Validate available numbers against range prefix
         range_prefix = rng['number_prefix']
         available_rows = conn.execute("""SELECT id,number FROM numbers WHERE range_name=? AND status='active'
                                     AND (assigned_to IS NULL OR assigned_to='')""",
                                   (body.rangeName,)).fetchall()
-        # Filter by prefix if set
         if range_prefix:
             available = [r for r in available_rows if r['number'].startswith(range_prefix)]
         else:
@@ -196,30 +186,26 @@ async def allocate_numbers(request: Request, body: AllocateNumbers):
         alloc_id = generate_id()
         conn.execute("""INSERT INTO allocations (id,user_id,username,range_name,range_id,quantity,duration,expires_at,status,number_ids)
                         VALUES (?,?,?,?,?,?,?,?,'active',?)""",
-                     (alloc_id, p['userId'], p['username'], body.rangeName, rng['id'],
+                     (alloc_id, p['id'], p['username'], body.rangeName, rng['id'],
                       body.quantity, body.duration, expires_at, ",".join(numbers_allocated)))
 
     return {"allocated": body.quantity, "expires_at": expires_at, "allocation_id": alloc_id}
 
 @router.get("/allocations")
-async def list_allocations(request: Request, status: Optional[str] = None):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
+async def list_allocations(request: Request, status: Optional[str] = None, p=Depends(get_current_user)):
     with get_db() as conn:
-        conds = [] if p['role'] == 'admin' else [f"user_id='{p['userId']}'"]
+        conds = [] if p['role'] == 'admin' else [f"user_id='{p['id']}'"]
         if status: conds.append(f"status='{status}'")
         where = " AND ".join(conds) if conds else "1=1"
         rows = conn.execute(f"SELECT * FROM allocations WHERE {where} ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/allocations/{aid}/return")
-async def return_allocation(request: Request, aid: str):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
+async def return_allocation(request: Request, aid: str, p=Depends(get_current_user)):
     with get_db() as conn:
         alloc = conn.execute("SELECT * FROM allocations WHERE id=?", (aid,)).fetchone()
         if not alloc: raise HTTPException(404, "Allocation not found")
-        if p['role'] != 'admin' and alloc['user_id'] != p['userId']:
+        if p['role'] != 'admin' and alloc['user_id'] != p['id']:
             raise HTTPException(403, "Not authorized")
         if alloc['number_ids']:
             nums = [n for n in alloc['number_ids'].split(",") if n]
@@ -244,7 +230,6 @@ async def bulk_revoke(request: Request, body: BulkRevokeRequest, p=Depends(requi
             if not user: raise HTTPException(404, "User not found")
             r = conn.execute("UPDATE numbers SET assigned_to=NULL, assigned_at=NULL WHERE assigned_to=?", (user['username'],))
             count = r.rowcount
-            # Recalculate allocated numbers for all ranges (expensive but accurate)
             conn.execute("""UPDATE ranges SET allocated_numbers = (
                 SELECT COUNT(*) FROM numbers WHERE range_name = ranges.name AND assigned_to IS NOT NULL AND assigned_to != ''
             )""")
@@ -288,7 +273,6 @@ async def bulk_delete(request: Request, scope: str, value: str, p=Depends(requir
             conn.execute("UPDATE ranges SET total_numbers=0, allocated_numbers=0 WHERE name=?", (value,))
         elif scope == "status":
             conn.execute("DELETE FROM numbers WHERE status=?", (value,))
-            # Recalculate all totals
             conn.execute("""UPDATE ranges SET total_numbers = (SELECT COUNT(*) FROM numbers WHERE range_id = ranges.id)""")
         else:
             raise HTTPException(400, "Invalid scope")

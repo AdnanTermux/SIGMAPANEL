@@ -206,11 +206,35 @@ const settings = {
     async renderWebhookConfig(container) {
         container.innerHTML = `
         <div class="card">
+            <div class="card-header"><div class="card-title">Incoming Webhook Infrastructure</div></div>
+            <div class="card-body" style="padding:24px">
+                <p style="margin-bottom:16px">Use this URL to receive SMS via HTTP from any provider. Our system auto-detects formats from Twilio, Nexmo, and standard REVE SMS payloads.</p>
+                <div class="form-group">
+                    <label>Your Personal Webhook URL</label>
+                    <div style="display:flex; gap:8px">
+                        <input type="text" class="fly-input" readonly value="${window.location.origin}/api/webhook/receive" id="webhook-url">
+                        <button class="fly-btn secondary" onclick="window.ui.copyToClipboard(document.getElementById('webhook-url').value)">Copy</button>
+                    </div>
+                </div>
+                <div style="background:var(--bg-page); padding:16px; border-radius:8px; margin-top:20px">
+                    <h5 style="margin-bottom:8px">Standard Payload Support</h5>
+                    <p style="font-size:12px; color:var(--text-secondary)">We support any HTTP GET/POST with these customizable fields:</p>
+                    <ul style="font-size:12px; margin-top:8px; line-height:1.6">
+                        <li><code>to</code>: Destination virtual number</li>
+                        <li><code>from</code>: Sender ID / CLI</li>
+                        <li><code>msg</code>: SMS Content</li>
+                        <li><code>uuid</code>: Unique ID for DLR tracking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:24px">
             <div class="card-header"><div class="card-title">Outgoing Webhook Configuration</div></div>
             <div class="card-body" style="padding:24px">
                 <p style="color:var(--text-secondary); margin-bottom:20px">Configure your system to receive real-time POST requests whenever a new SMS arrives for your numbers.</p>
                 <div class="form-group">
-                    <label>Webhook URL</label>
+                    <label>Your Callback URL</label>
                     <input type="url" class="fly-input" placeholder="https://your-domain.com/callback">
                 </div>
                 <div class="form-group">

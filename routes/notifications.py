@@ -1,7 +1,6 @@
 """Notifications - hierarchical visibility by role"""
 from routes.deps import get_current_user, require_role
-from fastapi import Depends
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import Depends, APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -10,7 +9,6 @@ from auth import verify_token, extract_token, generate_id
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
-
 class NotifCreate(BaseModel):
     title: str
     message: str
@@ -18,10 +16,9 @@ class NotifCreate(BaseModel):
     targetRole: Optional[str] = None
 
 @router.get("")
-async def list_notifications(request: Request, unread_only: bool = Query(False)):
-    p = Depends(get_current_user)
+async def list_notifications(request: Request, unread_only: bool = Query(False), p=Depends(get_current_user)):
     role = p["role"]
-    uid  = p["userId"]
+    uid  = p["id"]
     with get_db() as conn:
         if role in ("admin", "manager"):
             rows = conn.execute(
@@ -58,8 +55,7 @@ async def list_notifications(request: Request, unread_only: bool = Query(False))
     return {"data": data, "unread_count": sum(1 for d in data if not d["is_read"])}
 
 @router.post("")
-async def create_notification(request: Request, body: NotifCreate):
-    p = Depends(get_current_user)
+async def create_notification(request: Request, body: NotifCreate, p=Depends(get_current_user)):
     role = p["role"]
     if role == "admin":       target = body.targetRole or "reseller"
     elif role == "manager":   target = "reseller"
@@ -69,36 +65,33 @@ async def create_notification(request: Request, body: NotifCreate):
         nid = generate_id()
         conn.execute(
             "INSERT INTO notifications (id,title,message,type,target_role,created_by,created_by_role) VALUES (?,?,?,?,?,?,?)",
-            (nid, body.title, body.message, body.type, target, p["userId"], role)
+            (nid, body.title, body.message, body.type, target, p["id"], role)
         )
         row = conn.execute("SELECT * FROM notifications WHERE id=?", (nid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.post("/{nid}/read")
-async def mark_read(request: Request, nid: str):
-    p = Depends(get_current_user)
+async def mark_read(request: Request, nid: str, p=Depends(get_current_user)):
     with get_db() as conn:
         try:
             conn.execute("INSERT INTO notification_reads (id,notification_id,user_id) VALUES (?,?,?)",
-                         (generate_id(), nid, p["userId"]))
+                         (generate_id(), nid, p["id"]))
         except Exception: pass
     return {"message": "Marked as read"}
 
 @router.post("/mark-all-read")
-async def mark_all_read(request: Request):
-    p = Depends(get_current_user)
+async def mark_all_read(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
         notifs = conn.execute("SELECT id FROM notifications").fetchall()
         for n in notifs:
             try:
                 conn.execute("INSERT INTO notification_reads (id,notification_id,user_id) VALUES (?,?,?)",
-                             (generate_id(), n["id"], p["userId"]))
+                             (generate_id(), n["id"], p["id"]))
             except Exception: pass
     return {"message": "All marked as read"}
 
 @router.delete("/{nid}")
-async def delete_notification(request: Request, nid: str):
-    p = Depends(get_current_user)
+async def delete_notification(request: Request, nid: str, p=Depends(get_current_user)):
     if p["role"] not in ("admin","manager","reseller"): raise HTTPException(403, "Not authorized")
     with get_db() as conn:
         conn.execute("DELETE FROM notification_reads WHERE notification_id=?", (nid,))

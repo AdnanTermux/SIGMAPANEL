@@ -3,7 +3,7 @@ import logging
 import struct
 from datetime import datetime
 from typing import Dict, Optional, List
-from database import get_db
+from database import get_db, init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("smpp_client")
@@ -168,5 +168,6 @@ class SMPPClientManager:
             await session.listen()
 
 if __name__ == "__main__":
+    init_db() # Ensure tables exist
     manager = SMPPClientManager()
     asyncio.run(manager.run())

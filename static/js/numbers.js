@@ -284,8 +284,12 @@ const numbers = {
                 <div class="card-header"><div class="card-title">Bulk Import Infrastructure Resources</div></div>
                 <div class="card-body" style="padding:24px">
                     <div class="form-group">
-                        <label>Numbers (List per line)</label>
-                        <textarea id="up-numbers" class="fly-input" style="height:200px" placeholder="+12025550123\n+12025550124"></textarea>
+                        <label>Numbers (List per line or upload file)</label>
+                        <textarea id="up-numbers" class="fly-input" style="height:150px" placeholder="+12025550123\n+12025550124"></textarea>
+                        <div style="margin-top:8px">
+                            <input type="file" id="up-file" accept=".txt,.csv" style="display:none" onchange="window.numbers.handleFileUpload(this)">
+                            <button class="fly-btn fly-btn-sm secondary" onclick="document.getElementById('up-file').click()">Choose .TXT or .CSV File</button>
+                        </div>
                         <small style="color:var(--text-secondary)">Normalization: Automatic (+ prefix, remove spaces)</small>
                     </div>
                     <div class="form-row">
@@ -316,6 +320,17 @@ const numbers = {
                 </div>
             </div>`;
         } catch (e) { container.innerHTML = `<p>Error: ${e.message}</p>`; }
+    },
+
+    handleFileUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('up-numbers').value = e.target.result;
+            window.ui.showToast(`Loaded ${file.name}`, 'info');
+        };
+        reader.readAsText(file);
     },
 
     async doUpload() {

@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from queue_manager import queue_manager
-from database import get_db
+from database import get_db, init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("worker")
@@ -73,6 +73,7 @@ async def process_dlr_queue():
 
 async def main():
     logger.info("Standalone Workers starting...")
+    init_db() # Ensure tables exist
     try:
         await asyncio.gather(
             process_sms_queue(),

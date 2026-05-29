@@ -1,7 +1,6 @@
 """Transaction ledger, audit logs, pricing, support tickets, bulk number import"""
 from routes.deps import get_current_user, require_role
-from fastapi import Depends
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import Depends, APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -12,12 +11,6 @@ import csv, io
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
-def _auth(request: Request):
-    token = extract_token(request.headers.get('Authorization'))
-    return verify_token(token) if token else None
-
-
-
 # ── Ledger ────────────────────────────────────────────────────────────────────
 
 @router.get("/ledger")
@@ -26,12 +19,12 @@ async def get_ledger(
     days: int = Query(30, ge=1, le=365),
     tx_type: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
+    p=Depends(get_current_user)
 ):
-    p = Depends(get_current_user)
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     conds, params = ["created_at >= ?"], [cutoff]
     if p['role'] != 'admin':
-        conds.append("user_id = ?"); params.append(p['userId'])
+        conds.append("user_id = ?"); params.append(p['id'])
     if tx_type:
         conds.append("tx_type = ?"); params.append(tx_type)
     where = " AND ".join(conds)
@@ -42,8 +35,7 @@ async def get_ledger(
     return {"data": [dict(r) for r in rows], "total": total}
 
 @router.get("/ledger/export")
-async def export_ledger(request: Request, days: int = Query(30, ge=1, le=365)):
-    Depends(require_role(["admin", "manager"]))
+async def export_ledger(request: Request, days: int = Query(30, ge=1, le=365), p=Depends(require_role(["admin", "manager"]))):
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM transactions WHERE created_at >= ? ORDER BY created_at DESC", (cutoff,)).fetchall()
@@ -64,8 +56,7 @@ class BalanceAdjust(BaseModel):
     note: Optional[str] = "Manual adjustment"
 
 @router.post("/balance-adjust")
-async def balance_adjust(request: Request, body: BalanceAdjust):
-    Depends(require_role(["admin", "manager"]))
+async def balance_adjust(request: Request, body: BalanceAdjust, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         user = conn.execute("SELECT * FROM users WHERE id=?", (body.userId,)).fetchone()
         if not user: raise HTTPException(404, "User not found")
@@ -89,14 +80,13 @@ class BalanceTransfer(BaseModel):
     note: Optional[str] = ""
 
 @router.post("/balance-transfer")
-async def balance_transfer(request: Request, body: BalanceTransfer):
-    p = Depends(get_current_user)
+async def balance_transfer(request: Request, body: BalanceTransfer, p=Depends(get_current_user)):
     if body.amount <= 0: raise HTTPException(400, "Amount must be positive")
     with get_db() as conn:
         src = conn.execute("SELECT * FROM users WHERE id=?", (body.fromUserId,)).fetchone()
         dst = conn.execute("SELECT * FROM users WHERE id=?", (body.toUserId,)).fetchone()
         if not src or not dst: raise HTTPException(404, "User not found")
-        if p['role'] != 'admin' and src['id'] != p['userId']:
+        if p['role'] != 'admin' and src['id'] != p['id']:
             raise HTTPException(403, "Not authorized")
         if (src['balance'] or 0) < body.amount:
             raise HTTPException(400, "Insufficient balance")
@@ -117,8 +107,7 @@ async def balance_transfer(request: Request, body: BalanceTransfer):
 @router.get("/audit-logs")
 async def get_audit_logs(request: Request, days: int = Query(7, ge=1, le=90),
                           action: Optional[str] = Query(None), actor: Optional[str] = Query(None),
-                          limit: int = Query(200, ge=1, le=500)):
-    Depends(require_role(["admin", "manager"]))
+                          limit: int = Query(200, ge=1, le=500), p=Depends(require_role(["admin", "manager"]))):
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     conds, params = ["created_at >= ?"], [cutoff]
     if action: conds.append("action LIKE ?"); params.append(f"%{action}%")
@@ -141,26 +130,23 @@ class PricingCreate(BaseModel):
     profitMargin: Optional[float] = 50.0
 
 @router.get("/pricing")
-async def list_pricing(request: Request):
-    Depends(get_current_user)
+async def list_pricing(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM pricing_rules ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/pricing")
-async def create_pricing(request: Request, body: PricingCreate):
-    p = Depends(get_current_user)
+async def create_pricing(request: Request, body: PricingCreate, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         rid = generate_id()
         conn.execute("""INSERT INTO pricing_rules (id,name,scope,role,range_name,rate,profit_margin,created_by)
                         VALUES (?,?,?,?,?,?,?,?)""",
-                     (rid, body.name, body.scope, body.role, body.rangeName, body.rate, body.profitMargin, p['userId']))
+                     (rid, body.name, body.scope, body.role, body.rangeName, body.rate, body.profitMargin, p['id']))
         row = conn.execute("SELECT * FROM pricing_rules WHERE id=?", (rid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.put("/pricing/{rid}")
-async def update_pricing(request: Request, rid: str, body: PricingCreate):
-    Depends(get_current_user)
+async def update_pricing(request: Request, rid: str, body: PricingCreate, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM pricing_rules WHERE id=?", (rid,)).fetchone():
             raise HTTPException(404, "Not found")
@@ -170,8 +156,7 @@ async def update_pricing(request: Request, rid: str, body: PricingCreate):
     return {"data": dict(row)}
 
 @router.delete("/pricing/{rid}")
-async def delete_pricing(request: Request, rid: str):
-    Depends(require_role(["admin", "manager"]))
+async def delete_pricing(request: Request, rid: str, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM pricing_rules WHERE id=?", (rid,)).fetchone():
             raise HTTPException(404, "Not found")
@@ -191,11 +176,10 @@ class TicketUpdate(BaseModel):
 
 @router.get("/tickets")
 async def list_tickets(request: Request, status: Optional[str] = Query(None),
-                        priority: Optional[str] = Query(None)):
-    p = Depends(get_current_user)
+                        priority: Optional[str] = Query(None), p=Depends(get_current_user)):
     conds, params = [], []
     if p['role'] != 'admin':
-        conds.append("user_id = ?"); params.append(p['userId'])
+        conds.append("user_id = ?"); params.append(p['id'])
     if status: conds.append("status = ?"); params.append(status)
     if priority: conds.append("priority = ?"); params.append(priority)
     where = " AND ".join(conds) if conds else "1=1"
@@ -204,24 +188,21 @@ async def list_tickets(request: Request, status: Optional[str] = Query(None),
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/tickets")
-async def create_ticket(request: Request, body: TicketCreate):
-    p = Depends(get_current_user)
+async def create_ticket(request: Request, body: TicketCreate, p=Depends(get_current_user)):
     with get_db() as conn:
-        user = conn.execute("SELECT username FROM users WHERE id=?", (p['userId'],)).fetchone()
         tid = generate_id()
         conn.execute("""INSERT INTO support_tickets (id,user_id,username,subject,message,priority,status)
                         VALUES (?,?,?,?,?,?,?)""",
-                     (tid, p['userId'], user['username'] if user else p.get('username',''), body.subject, body.message, body.priority, 'open'))
+                     (tid, p['id'], p['username'], body.subject, body.message, body.priority, 'open'))
         row = conn.execute("SELECT * FROM support_tickets WHERE id=?", (tid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.put("/tickets/{tid}")
-async def update_ticket(request: Request, tid: str, body: TicketUpdate):
-    p = Depends(get_current_user)
+async def update_ticket(request: Request, tid: str, body: TicketUpdate, p=Depends(get_current_user)):
     with get_db() as conn:
         t = conn.execute("SELECT * FROM support_tickets WHERE id=?", (tid,)).fetchone()
         if not t: raise HTTPException(404, "Ticket not found")
-        if p['role'] != 'admin' and t['user_id'] != p['userId']:
+        if p['role'] != 'admin' and t['user_id'] != p['id']:
             raise HTTPException(403, "Not authorized")
         upd = {}
         if body.status: upd['status'] = body.status
@@ -240,29 +221,24 @@ class BlacklistCreate(BaseModel):
     description: Optional[str] = None
 
 @router.get("/blacklist")
-async def list_blacklist(request: Request):
-    Depends(get_current_user)
+async def list_blacklist(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM blacklisted_apps ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/blacklist")
-async def add_blacklist(request: Request, body: BlacklistCreate):
-    p = Depends(get_current_user)
-    if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
+async def add_blacklist(request: Request, body: BlacklistCreate, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         if conn.execute("SELECT id FROM blacklisted_apps WHERE app_name=?", (body.appName,)).fetchone():
             raise HTTPException(409, "App already blacklisted")
         bid = generate_id()
         conn.execute("INSERT INTO blacklisted_apps (id,app_name,pattern,description,is_active,created_by) VALUES (?,?,?,?,1,?)",
-                     (bid, body.appName, body.pattern, body.description, p['userId']))
+                     (bid, body.appName, body.pattern, body.description, p['id']))
         row = conn.execute("SELECT * FROM blacklisted_apps WHERE id=?", (bid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.put("/blacklist/{bid}")
-async def update_blacklist(request: Request, bid: str, body: BlacklistCreate):
-    p = Depends(get_current_user)
-    if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
+async def update_blacklist(request: Request, bid: str, body: BlacklistCreate, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM blacklisted_apps WHERE id=?", (bid,)).fetchone():
             raise HTTPException(404, "Not found")
@@ -272,9 +248,7 @@ async def update_blacklist(request: Request, bid: str, body: BlacklistCreate):
     return {"data": dict(row)}
 
 @router.patch("/blacklist/{bid}/toggle")
-async def toggle_blacklist(request: Request, bid: str):
-    p = Depends(get_current_user)
-    if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
+async def toggle_blacklist(request: Request, bid: str, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         r = conn.execute("SELECT * FROM blacklisted_apps WHERE id=?", (bid,)).fetchone()
         if not r: raise HTTPException(404, "Not found")
@@ -283,9 +257,7 @@ async def toggle_blacklist(request: Request, bid: str):
     return {"data": dict(row)}
 
 @router.delete("/blacklist/{bid}")
-async def delete_blacklist(request: Request, bid: str):
-    p = Depends(get_current_user)
-    if p['role'] not in ('admin', 'manager'): raise HTTPException(403, "Admin/Manager only")
+async def delete_blacklist(request: Request, bid: str, p=Depends(require_role(['admin', 'manager']))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM blacklisted_apps WHERE id=?", (bid,)).fetchone():
             raise HTTPException(404, "Not found")
