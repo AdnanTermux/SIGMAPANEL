@@ -5,6 +5,28 @@ from sms_processor import process_incoming_sms
 
 router = APIRouter(prefix="/api/webhook", tags=["webhook"])
 
+@router.post("/receive")
+@router.get("/receive")
+async def webhook_receive(request: Request):
+    try:
+        if request.method == "POST":
+            ct = request.headers.get("content-type", "")
+            if "application/json" in ct:
+                payload = await request.json()
+            else:
+                payload = dict(await request.form())
+        else:
+            payload = dict(request.query_params)
+
+        if not payload:
+             return JSONResponse(status_code=400, content={"error": "Empty payload"})
+
+        result = process_incoming_sms(payload)
+        return JSONResponse(content={"status": "ok", "result": "processed"})
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.post("/sms")
 async def webhook_sms(request: Request):
     try:

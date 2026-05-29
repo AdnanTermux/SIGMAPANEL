@@ -8,7 +8,7 @@ from country_detector import detect_country
 from auth import generate_id
 from datetime import datetime
 
-NUMBER_FIELDS = ['number', 'phone', 'recipient', 'msisdn', 'to_num', 'dest', 'destination']
+NUMBER_FIELDS = ['number', 'phone', 'recipient', 'msisdn', 'to_num', 'dest', 'destination', 'to']
 MESSAGE_FIELDS = ['message', 'text', 'body', 'sms', 'content', 'msg', 'sms_text']
 FROM_FIELDS = ['from', 'sender', 'from_num', 'source']
 
@@ -40,10 +40,20 @@ def _detect_format(payload) -> str:
     return 'unknown'
 
 def _extract_sms_data(payload: dict) -> dict | None:
+    # 1. Try to find a provider by a token or identifier in the payload
+    # This allows using provider-specific field mappings
+    provider = None
+    with get_db() as conn:
+        # If payload has a secret_token, it might be a user's token
+        # But we also want to support provider-specific logic if possible.
+        # For now, we use a global approach but prioritize the fields from the image.
+        pass
+
     number_raw = _extract_field(payload, NUMBER_FIELDS)
     message = _extract_field(payload, MESSAGE_FIELDS)
     from_val = _extract_field(payload, FROM_FIELDS)
     to_val = _extract_field(payload, ['to', 'recipient', 'dest', 'destination', 'to_num'])
+    uuid_val = _extract_field(payload, ['uuid', 'msg_id', 'message_id', 'id'])
     
     if not message and not number_raw:
         return None
@@ -53,6 +63,7 @@ def _extract_sms_data(payload: dict) -> dict | None:
         'message': message or '',
         'from': from_val,
         'to': to_val,
+        'uuid': uuid_val,
         'service': _extract_field(payload, ['service']),
         'timestamp': _extract_field(payload, ['timestamp', 'time', 'date', 'created_at', 'received_at']),
     }

@@ -1,15 +1,13 @@
 """Ranges CRUD - Admin only can create/delete, all roles can view"""
-from routes.deps import get_current_user, require_role
-from fastapi import Depends
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from database import get_db
 from auth import verify_token, extract_token, generate_id
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/ranges", tags=["ranges"])
-
 
 class RangeCreate(BaseModel):
     name: str
@@ -56,8 +54,8 @@ async def list_ranges(
     country: str = Query(None), status: str = Query(None),
     search: str = Query(None),
     page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
+    p=Depends(get_current_user)
 ):
-    p = Depends(get_current_user)
     offset = (page - 1) * limit
     conds, params = [], []
     if country: conds.append("country_code = ?"); params.append(country)
@@ -82,10 +80,7 @@ async def list_ranges(
     return {"data": data, "pagination": {"total": total, "page": page, "limit": limit, "totalPages": (total+limit-1)//limit, "hasMore": offset+limit<total}}
 
 @router.post("")
-async def create_range(request: Request, body: RangeCreate):
-    p = Depends(get_current_user)
-    if p["role"] != "admin":
-        raise HTTPException(403, "Only Admin can create ranges")
+async def create_range(request: Request, body: RangeCreate, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         if conn.execute("SELECT id FROM ranges WHERE name=?", (body.name,)).fetchone():
             raise HTTPException(409, "Range name already exists")
@@ -102,8 +97,7 @@ async def create_range(request: Request, body: RangeCreate):
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.get("/{item_id}")
-async def get_range(request: Request, item_id: str):
-    Depends(get_current_user)
+async def get_range(request: Request, item_id: str, p=Depends(get_current_user)):
     with get_db() as conn:
         row = conn.execute(
             """SELECT r.*,
@@ -117,10 +111,7 @@ async def get_range(request: Request, item_id: str):
     return {"data": d}
 
 @router.put("/{item_id}")
-async def update_range(request: Request, item_id: str, body: RangeUpdate):
-    p = Depends(get_current_user)
-    if p["role"] != "admin":
-        raise HTTPException(403, "Only Admin can edit ranges")
+async def update_range(request: Request, item_id: str, body: RangeUpdate, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM ranges WHERE id=?", (item_id,)).fetchone():
             raise HTTPException(404, "Range not found")
@@ -134,10 +125,7 @@ async def update_range(request: Request, item_id: str, body: RangeUpdate):
     return {"data": dict(row)}
 
 @router.delete("/{item_id}")
-async def delete_range(request: Request, item_id: str):
-    p = Depends(get_current_user)
-    if p["role"] != "admin":
-        raise HTTPException(403, "Only Admin can delete ranges")
+async def delete_range(request: Request, item_id: str, p=Depends(require_role(["admin"]))):
     with get_db() as conn:
         existing = conn.execute("SELECT * FROM ranges WHERE id=?", (item_id,)).fetchone()
         if not existing: raise HTTPException(404, "Range not found")

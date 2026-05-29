@@ -1,8 +1,8 @@
 """SMS Reports routes"""
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from database import get_db
 from auth import verify_token, extract_token
-from routes.deps import get_current_user
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/sms", tags=["sms"])
 
@@ -17,9 +17,8 @@ async def list_sms(
     hasOtp: str = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    payload=Depends(get_current_user)
 ):
-    payload = get_current_user(request)
-    
     offset = (page - 1) * limit
     conditions = []
     params = []
@@ -76,11 +75,9 @@ async def list_sms(
 @router.get("/delivery-logs")
 async def delivery_logs(request: Request, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
-        # This is a simplified DLR log view
         rows = conn.execute("SELECT * FROM sms_received WHERE otp IS NOT NULL ORDER BY received_at DESC LIMIT 100").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.get("/failed")
 async def failed_sms(request: Request, p=Depends(require_role(["admin", "manager"]))):
-    # For now returning an empty list but with real check
     return {"data": []}

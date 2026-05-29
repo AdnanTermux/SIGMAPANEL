@@ -148,6 +148,15 @@ CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
     except Exception:
         pass
 
+    # Migrate providers table
+    try:
+        prov_cols = {r[1] for r in conn.execute("PRAGMA table_info(providers)")}
+        for col in ["field_to", "field_from", "field_msg", "field_uuid"]:
+            if col not in prov_cols:
+                conn.execute(f"ALTER TABLE providers ADD COLUMN {col} TEXT DEFAULT '{col.split('_')[1]}'")
+    except Exception:
+        pass
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -386,15 +395,6 @@ CREATE TABLE IF NOT EXISTS profit_log (
     profit_amount REAL DEFAULT 0,
     currency TEXT DEFAULT 'USD',
     created_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-    id TEXT PRIMARY KEY,
-    setting_key TEXT NOT NULL,
-    setting_value TEXT NOT NULL,
-    user_id TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(setting_key, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_sms_received_number ON sms_received(number);

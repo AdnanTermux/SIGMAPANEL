@@ -1,18 +1,13 @@
 """Provider management routes"""
-from routes.deps import get_current_user, require_role
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from database import get_db
 from auth import verify_token, extract_token, generate_id
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
-
-def _auth(request: Request):
-    token = extract_token(request.headers.get('Authorization'))
-    return verify_token(token) if token else None
-
 
 class ProviderCreate(BaseModel):
     name: str
@@ -44,16 +39,13 @@ class ProviderUpdate(ProviderCreate):
     name: Optional[str] = None
 
 @router.get("")
-async def list_providers(request: Request):
-    p = _auth(request)
-    if not p: raise HTTPException(401, "Authentication required")
+async def list_providers(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM providers ORDER BY created_at DESC").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("")
-async def create_provider(request: Request, body: ProviderCreate):
-    Depends(require_role(["admin", "manager"]))
+async def create_provider(request: Request, body: ProviderCreate, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if conn.execute("SELECT id FROM providers WHERE name=?", (body.name,)).fetchone():
             raise HTTPException(409, "Provider name already exists")
@@ -72,8 +64,7 @@ async def create_provider(request: Request, body: ProviderCreate):
     return JSONResponse(status_code=201, content={"data": dict(row)})
 
 @router.put("/{pid}")
-async def update_provider(request: Request, pid: str, body: ProviderUpdate):
-    Depends(require_role(["admin", "manager"]))
+async def update_provider(request: Request, pid: str, body: ProviderUpdate, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM providers WHERE id=?", (pid,)).fetchone():
             raise HTTPException(404, "Provider not found")
@@ -93,18 +84,15 @@ async def update_provider(request: Request, pid: str, body: ProviderUpdate):
     return {"data": dict(row)}
 
 @router.get("/logs")
-async def provider_logs(request: Request):
-    Depends(require_role(["admin", "manager"]))
+async def provider_logs(request: Request, p=Depends(require_role(["admin", "manager"]))):
     return {"data": []}
 
 @router.get("/throughput")
-async def provider_throughput(request: Request):
-    Depends(require_role(["admin", "manager"]))
+async def provider_throughput(request: Request, p=Depends(require_role(["admin", "manager"]))):
     return {"data": {}}
 
 @router.delete("/{pid}")
-async def delete_provider(request: Request, pid: str):
-    Depends(require_role(["admin", "manager"]))
+async def delete_provider(request: Request, pid: str, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         r = conn.execute("SELECT * FROM providers WHERE id=?", (pid,)).fetchone()
         if not r: raise HTTPException(404, "Provider not found")

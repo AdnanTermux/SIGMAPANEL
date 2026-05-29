@@ -1,7 +1,5 @@
 """Numbers routes - role-based: admin/manager full control, reseller assigns to users, user read-only"""
-from routes.deps import get_current_user, require_role
-from fastapi import Depends
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -9,13 +7,9 @@ import re
 from database import get_db
 from auth import verify_token, extract_token, generate_id
 from datetime import datetime
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/numbers", tags=["numbers"])
-
-def _auth(req: Request):
-    tok = extract_token(req.headers.get("Authorization"))
-    return verify_token(tok) if tok else None
-
 
 class NumberCreate(BaseModel):
     number: str
@@ -67,25 +61,21 @@ async def list_numbers(
     search: str = Query(None),
     rangeName: str = Query(None),
     assignedTo: str = Query(None),
-    available: str = Query(None),   # "true" = only unassigned
+    available: str = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=500),
+    p=Depends(get_current_user)
 ):
-    p = Depends(get_current_user)
     offset = (page - 1) * limit
     conds, params = [], []
-
     role = p["role"]
 
     if role == "sub_reseller":
-        # Sub-resellers only see their own numbers
         conds.append("n.assigned_to = ?")
         params.append(p["username"])
     elif role == "reseller":
-        # Resellers see numbers assigned to them OR to their sub-users
         conds.append("(n.assigned_to = ? OR n.assigned_to IN (SELECT username FROM users WHERE parent_id = ?))")
-        params.extend([p["username"], p["userId"]])
-    # admin and manager see all
+        params.extend([p["username"], p["id"]])
 
     if country:
         conds.append("n.country = ?"); params.append(country)
@@ -123,14 +113,10 @@ async def list_numbers(
     }
 
 @router.post("")
-async def create_number(request: Request, body: NumberCreate):
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin or Manager required to add numbers")
+async def create_number(request: Request, body: NumberCreate, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if conn.execute("SELECT id FROM numbers WHERE number=?", (body.number,)).fetchone():
             raise HTTPException(409, "Number already exists")
-        # Validate prefix if rangeId is provided
         if body.rangeId:
             rng = conn.execute("SELECT number_prefix FROM ranges WHERE id=?", (body.rangeId,)).fetchone()
             if rng and rng['number_prefix']:
@@ -148,10 +134,7 @@ async def create_number(request: Request, body: NumberCreate):
     return JSONResponse(status_code=201, content={"data": dict(row), "number": body.number})
 
 @router.post("/bulk-import")
-async def bulk_import(request: Request, body: BulkImport):
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin or Manager required")
+async def bulk_import(request: Request, body: BulkImport, p=Depends(require_role(["admin", "manager"]))):
     lines = [l.strip() for l in body.numbersText.splitlines() if l.strip()]
     success, skipped, errors = 0, 0, []
     added_numbers = []
@@ -184,35 +167,25 @@ async def bulk_import(request: Request, body: BulkImport):
     return {"success": success, "skipped": skipped, "errors": errors[:20], "total": len(lines), "added_numbers": added_numbers}
 
 @router.post("/assign")
-async def assign_numbers(request: Request, body: AssignBody):
-    """Admin/Manager assign numbers; Reseller assigns to their own users"""
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager", "reseller"):
-        raise HTTPException(403, "Not authorized to assign numbers")
+async def assign_numbers(request: Request, body: AssignBody, p=Depends(require_role(["admin", "manager", "reseller"]))):
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
-        # Reseller can only assign numbers assigned to them
         if p["role"] == "reseller":
             target_user = conn.execute(
                 "SELECT * FROM users WHERE username=? AND parent_id=?",
-                (body.assignTo, p["userId"])
+                (body.assignTo, p["id"])
             ).fetchone()
             if not target_user:
                 raise HTTPException(403, "You can only assign numbers to your own users")
         count = 0
         for nid in body.numberIds:
-            num = conn.execute("SELECT * FROM numbers WHERE id=?", (nid,)).fetchone()
-            if not num: continue
             conn.execute("UPDATE numbers SET assigned_to=?,assigned_at=? WHERE id=?",
                          (body.assignTo, now, nid))
             count += 1
     return {"assigned": count, "to": body.assignTo}
 
 @router.post("/return")
-async def return_numbers(request: Request, body: ReturnBody):
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin or Manager required")
+async def return_numbers(request: Request, body: ReturnBody, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if body.numberIds:
             placeholders = ",".join("?" * len(body.numberIds))
@@ -244,10 +217,7 @@ async def return_numbers(request: Request, body: ReturnBody):
     return {"returned": count}
 
 @router.put("/{item_id}")
-async def update_number(request: Request, item_id: str, body: NumberUpdate):
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin or Manager required")
+async def update_number(request: Request, item_id: str, body: NumberUpdate, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         if not conn.execute("SELECT id FROM numbers WHERE id=?", (item_id,)).fetchone():
             raise HTTPException(404, "Number not found")
@@ -267,10 +237,7 @@ async def update_number(request: Request, item_id: str, body: NumberUpdate):
     return {"data": dict(row)}
 
 @router.delete("/{item_id}")
-async def delete_number(request: Request, item_id: str):
-    p = Depends(get_current_user)
-    if p["role"] not in ("admin", "manager"):
-        raise HTTPException(403, "Admin or Manager required")
+async def delete_number(request: Request, item_id: str, p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         row = conn.execute("SELECT * FROM numbers WHERE id=?", (item_id,)).fetchone()
         if not row: raise HTTPException(404, "Number not found")
