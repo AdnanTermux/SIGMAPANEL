@@ -51,15 +51,24 @@ class QueueManager:
             await self._init_redis()
 
         if not self._redis:
-            return False
+            # Memory fallback for dev/restricted environments
+            if not hasattr(self, '_mem_queues'): self._mem_queues = {}
+            if queue_name not in self._mem_queues: self._mem_queues[queue_name] = asyncio.Queue()
+            await self._mem_queues[queue_name].put(data)
+            return True
 
-        backoff = 0.5
+        backoff = 0.1
         for attempt in range(REDIS_MAX_RETRIES):
             try:
                 await self._redis.lpush(queue_name, json.dumps(data))
                 return True
             except (redis.ConnectionError, redis.TimeoutError) as e:
-                logger.warning(f"Redis push attempt {attempt+1} failed: {e}. Retrying in {backoff}s...")
+                if attempt == REDIS_MAX_RETRIES - 1:
+                    logger.error(f"Redis push failed after {REDIS_MAX_RETRIES} attempts. Falling back to memory.")
+                    if not hasattr(self, '_mem_queues'): self._mem_queues = {}
+                    if queue_name not in self._mem_queues: self._mem_queues[queue_name] = asyncio.Queue()
+                    await self._mem_queues[queue_name].put(data)
+                    return True
                 await asyncio.sleep(backoff)
                 backoff *= 2
             except Exception as e:
@@ -72,8 +81,13 @@ class QueueManager:
             await self._init_redis()
 
         if not self._redis:
-            await asyncio.sleep(timeout)
-            return None
+            # Memory fallback
+            if not hasattr(self, '_mem_queues'): self._mem_queues = {}
+            if queue_name not in self._mem_queues: self._mem_queues[queue_name] = asyncio.Queue()
+            try:
+                return await asyncio.wait_for(self._mem_queues[queue_name].get(), timeout=timeout)
+            except asyncio.TimeoutError:
+                return None
 
         try:
             # We use blpop with a smaller timeout to keep the loop responsive

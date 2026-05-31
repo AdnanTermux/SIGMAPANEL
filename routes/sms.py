@@ -44,7 +44,8 @@ async def list_sms(
         params.append(endDate + "T23:59:59")
     
     # Non-admin only sees their assigned numbers
-    if payload['role'] != 'admin':
+    # test_user can see all infrastructure SMS for testing purposes
+    if payload['role'] not in ['admin', 'test_user']:
         conditions.append("assigned_to = ?")
         params.append(payload['username'])
     

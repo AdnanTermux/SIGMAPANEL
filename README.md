@@ -179,6 +179,25 @@ Explore the restricted test panel without registration:
 -   **Username:** `test123`
 -   **Password:** `test123`
 
+## 🛠 Advanced Features
+
+### Test Panel (Telecom Mode)
+A dedicated dashboard for testing infrastructure access.
+- **Dynamic Rotation:** Automatically displays 10 random active numbers per range.
+- **App Access Check:** Send an OTP to any displayed number and watch it arrive in real-time.
+- **Reporting:** Export test reports to CSV, Excel, or PDF.
+
+### SMPP Server Interconnect
+SIGMAPANEL acts as a full SMPP Server (v3.4).
+- **Multiple Providers:** Supports concurrent transceiver binds.
+- **Throughput Control:** Per-account TPS limiting.
+- **Encoding Support:** Full GSM7 and UCS2 (Unicode) support for global OTP delivery.
+
+### Bulk Resource Management
+- **Smart Allocation:** Assign hundreds of numbers to resellers in a single click.
+- **Global Revocation:** One-click "Kill Switch" to unassign all numbers in case of emergency.
+- **Application Blacklist:** Block specific apps (e.g., Telegram, WhatsApp) globally or per-range to control traffic quality.
+
 ---
 
 Developed with ❤️ for the Global Telecom Community.

@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
     except Exception:
         pass
 
+    # Migrate sms_received table
+    try:
+        sms_cols = {r[1] for r in conn.execute("PRAGMA table_info(sms_received)")}
+        if "is_alphanumeric_cli" not in sms_cols:
+            conn.execute("ALTER TABLE sms_received ADD COLUMN is_alphanumeric_cli INTEGER DEFAULT 0")
+        if "range_name" not in sms_cols:
+            conn.execute("ALTER TABLE sms_received ADD COLUMN range_name TEXT")
+    except Exception:
+        pass
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,

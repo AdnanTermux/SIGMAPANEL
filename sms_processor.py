@@ -157,7 +157,7 @@ def _process_single_sms(data: dict) -> dict:
     # to avoid blocking the main processing if Redis is slow
     async def _async_push():
         from queue_manager import queue_manager
-        await queue_manager.push("sms_queue", res)
+        await self._mock_process(res)
 
     try:
         loop = asyncio.get_event_loop()

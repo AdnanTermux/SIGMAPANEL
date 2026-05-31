@@ -57,6 +57,41 @@ const apiManagement = {
             window.ui.showToast('New token generated', 'success');
             window.router.resolvePage(document.getElementById('page-content'));
         } catch (err) { window.ui.showToast(err.message, 'error'); }
+    },
+
+    async renderTokens(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Manage API Tokens</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Label</th><th>Token Preview</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>Default Production Token</td>
+                            <td><code>sig_live_************</code></td>
+                            <td>2026-05-27</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="action-btn delete">Revoke</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:20px"><button class="fly-btn" onclick="window.ui.showToast('Feature coming soon', 'info')">Create New Token</button></div>
+        </div>`;
+    },
+
+    async renderLiveTest(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Live API Test Center</div></div>
+            <div class="card-body" style="padding:24px">
+                <p style="color:var(--text-secondary); margin-bottom:20px">Send a test OTP to verify your integration end-to-end.</p>
+                <div class="form-group"><label>Target Phone Number</label><input type="text" class="fly-input" placeholder="+12025550123"></div>
+                <div class="form-group"><label>Service/App Name</label><input type="text" class="fly-input" placeholder="MyAwesomeApp"></div>
+                <button class="fly-btn" onclick="window.ui.showToast('Test SMS queued', 'success')">Send Test SMS</button>
+            </div>
+        </div>`;
     }
 };
 

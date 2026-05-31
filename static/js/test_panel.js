@@ -2,7 +2,7 @@ const testPanel = {
     async renderTestNumbers(container) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
-            const data = await window.api.call('/api/numbers?limit=50');
+            const data = await window.api.call('/api/numbers/test-panel');
             const rows = data.data || [];
             container.innerHTML = `
             <div class="card">
@@ -36,7 +36,7 @@ const testPanel = {
                             ${rows.map(n => `
                                 <tr>
                                     <td>${n.range_name || '-'}</td>
-                                    <td><code>${(n.number || '').slice(0, 3)}</code></td>
+                                    <td><code>${n.number_prefix || (n.number || '').slice(0, 3)}</code></td>
                                     <td style="font-weight:700">${n.number}</td>
                                     <td><span style="color:var(--success); font-weight:600">$${n.rate || '0.00'}</span></td>
                                     <td><span class="badge badge-secondary">Unlimited</span></td>

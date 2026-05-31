@@ -243,3 +243,36 @@ async def delete_number(request: Request, item_id: str, p=Depends(require_role([
         if not row: raise HTTPException(404, "Number not found")
         conn.execute("DELETE FROM numbers WHERE id=?", (item_id,))
     return {"message": "Deleted", "number": row["number"]}
+
+@router.get("/test-panel")
+async def list_test_numbers(
+    request: Request,
+    rangeId: str = Query(None),
+    p=Depends(get_current_user)
+):
+    """Provides rotating random test numbers for the Test Panel."""
+    with get_db() as conn:
+        # Get all active ranges
+        ranges_query = "SELECT * FROM ranges WHERE status = 'active'"
+        if rangeId:
+            ranges_query += f" AND id = '{rangeId}'"
+
+        ranges = conn.execute(ranges_query).fetchall()
+
+        result = []
+        for r in ranges:
+            # Get 10 random active numbers for this range
+            numbers = conn.execute(
+                """SELECT n.* FROM numbers n
+                   WHERE n.range_id = ? AND n.status = 'active'
+                   ORDER BY RANDOM() LIMIT 10""",
+                (r["id"],)
+            ).fetchall()
+
+            for n in numbers:
+                row = dict(n)
+                row["range_name"] = r["name"]
+                row["number_prefix"] = r["number_prefix"]
+                result.append(row)
+
+    return {"data": result}

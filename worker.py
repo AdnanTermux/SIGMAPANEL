@@ -22,20 +22,34 @@ async def process_sms_queue():
                 with get_db() as conn:
                     from auth import generate_id
                     from datetime import datetime
+                    from phone_utils import normalize_phone_number
+                    from otp_extractor import extract_otp
+                    from service_detector import detect_service
 
                     sms_id = generate_id()
                     now = datetime.utcnow().isoformat()
 
+                    normalized_number = normalize_phone_number(number)
+                    sender = sender or ""
+                    is_alpha = data.get('is_alphanumeric_cli') or (sender and not sender.replace('+', '').isdigit())
+
+                    service = detect_service(sender, data.get('service'), msg)
+                    otp = data.get('otp') or extract_otp(msg)
+
+                    # Look up number info
+                    existing = conn.execute("SELECT range_name FROM numbers WHERE number = ?", (normalized_number,)).fetchone()
+                    range_name = existing['range_name'] if existing else None
+
                     # Persistence
                     conn.execute(
-                        """INSERT INTO sms_received (id, number, sender, recipient, service, otp, message, is_alphanumeric_cli, received_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (sms_id, number, sender, data.get('recipient'), data.get('service'),
-                         data.get('otp'), msg, 1 if data.get('is_alphanumeric_cli') else 0, now)
+                        """INSERT INTO sms_received (id, number, sender, recipient, service, otp, message, is_alphanumeric_cli, range_name, received_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (sms_id, normalized_number, sender, data.get('recipient'), service,
+                         otp, msg, 1 if is_alpha else 0, range_name, now)
                     )
 
                     # Updates
-                    conn.execute("UPDATE numbers SET total_sms = total_sms + 1, last_sms_at = ? WHERE number = ?", (now, number))
+                    conn.execute("UPDATE numbers SET total_sms = total_sms + 1, last_sms_at = ? WHERE number = ?", (now, normalized_number))
 
             await asyncio.sleep(0.1)
         except asyncio.CancelledError:

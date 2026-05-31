@@ -17,11 +17,11 @@ async def get_stats(request: Request):
 
     role = p["role"]
     username = p["username"]
-    user_id  = p["userId"]
+    user_id  = p["id"]
 
     with get_db() as conn:
         # SMS scope filter
-        if role == "sub_reseller":
+        if role in ["sub_reseller", "test_user"]:
             sms_cond = "assigned_to = ?"
             sms_param = username
         elif role == "reseller":
@@ -48,7 +48,7 @@ async def get_stats(request: Request):
         month_sms = sms_count(f"received_at >= '{month_start}'")
 
         # Numbers scope
-        if role == "sub_reseller":
+        if role in ["sub_reseller", "test_user"]:
             num_cond, num_p = "assigned_to=?", (username,)
         elif role == "reseller":
             num_cond = f"assigned_to IN ({ph})"
@@ -115,10 +115,10 @@ async def recent_sms(
     offset: int = Query(0, ge=0),
 ):
     p = get_current_user(request)
-    role, username, user_id = p["role"], p["username"], p["userId"]
+    role, username, user_id = p["role"], p["username"], p["id"]
 
     with get_db() as conn:
-        if role == "sub_reseller":
+        if role in ["sub_reseller", "test_user"]:
             cond, params = "assigned_to=?", [username]
         elif role == "reseller":
             my = [r["username"] for r in conn.execute("SELECT username FROM users WHERE parent_id=?", (user_id,)).fetchall()]
