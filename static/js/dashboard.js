@@ -9,13 +9,22 @@ const dashboard = {
 
             container.innerHTML = `
             <div class="stats-grid">
-                <div class="stat-card"><div class="stat-card-label">Today's SMS</div><div class="stat-card-value">${stats.todaySms}</div></div>
-                <div class="stat-card"><div class="stat-card-label">This Week</div><div class="stat-card-value">${stats.weekSms}</div></div>
-                <div class="stat-card"><div class="stat-card-label">This Month</div><div class="stat-card-value">${stats.monthSms}</div></div>
-                <div class="stat-card"><div class="stat-card-label">Total Numbers</div><div class="stat-card-value">${stats.totalNumbers}</div><div class="stat-card-change">${stats.activeNumbers} active</div></div>
-                <div class="stat-card"><div class="stat-card-label">Today's Profit</div><div class="stat-card-value">$${stats.todayProfit.toFixed(2)}</div></div>
-                <div class="stat-card"><div class="stat-card-label">Month Profit</div><div class="stat-card-value">$${stats.monthProfit.toFixed(2)}</div></div>
-                <div class="stat-card"><div class="stat-card-label">Total Users</div><div class="stat-card-value">${stats.totalUsers}</div></div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Total Members ${ICONS.chart}</div>
+                    <div class="stat-card-value">${stats.totalUsers}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Active Numbers ${ICONS.chart}</div>
+                    <div class="stat-card-value">${stats.activeNumbers}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Payout / SMS ${ICONS.chart}</div>
+                    <div class="stat-card-value">$0.04</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">New AKTEAM+Sellers ${ICONS.chart}</div>
+                    <div class="stat-card-value">20</div>
+                </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" class="dashboard-charts">

@@ -138,6 +138,8 @@ async def bulk_allocate(request: Request, body: BulkAllocateRequest, p=Depends(r
 
 @router.post("/allocate")
 async def allocate_numbers(request: Request, body: AllocateNumbers, p=Depends(get_current_user)):
+    if p['role'] not in ['admin', 'manager', 'reseller']:
+        raise HTTPException(403, "Only resellers and above can self-allocate numbers")
     from datetime import timedelta
     now = datetime.utcnow()
     expires_map = {"weekly": 7, "monthly": 30, "yearly": 365}

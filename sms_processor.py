@@ -98,7 +98,24 @@ def _process_single_sms(data: dict) -> dict:
         rate = existing['rate'] if existing else 0
         profit_margin = existing['profit_margin'] if existing else 0
         range_id = existing['range_id'] if existing else None
-        profit = rate * (profit_margin / 100)
+
+        # Check daily OTP limit for the range
+        payout_allowed = True
+        if range_id:
+            rng = conn.execute("SELECT otp_limit_per_day, otp_count_today, otp_count_date FROM ranges WHERE id = ?", (range_id,)).fetchone()
+            if rng:
+                today_date = datetime.utcnow().date().isoformat()
+                current_count = rng['otp_count_today'] if rng['otp_count_date'] == today_date else 0
+                if rng['otp_limit_per_day'] > 0 and current_count >= rng['otp_limit_per_day']:
+                    payout_allowed = False
+
+                # Increment range OTP count
+                if rng['otp_count_date'] == today_date:
+                    conn.execute("UPDATE ranges SET otp_count_today = otp_count_today + 1 WHERE id = ?", (range_id,))
+                else:
+                    conn.execute("UPDATE ranges SET otp_count_today = 1, otp_count_date = ? WHERE id = ?", (today_date, range_id))
+
+        profit = rate * (profit_margin / 100) if payout_allowed else 0
         
         now = datetime.utcnow().isoformat()
         sms_id = generate_id()

@@ -10,10 +10,10 @@ const testPanel = {
                     <div class="card-title">Telecom-Style SMS Test Numbers</div>
                     <div class="card-header-actions" style="display:flex; gap:8px">
                         <button class="fly-btn fly-btn-sm" onclick="window.ui.showToast('Copied','success')">Copy</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#22c55e">CSV</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#3b82f6">Excel</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#ef4444">PDF</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#64748b">Print</button>
+                        <button class="fly-btn fly-btn-sm" style="background:#22c55e" onclick="window.numbers.export('csv')">CSV</button>
+                        <button class="fly-btn fly-btn-sm" style="background:#3b82f6" onclick="window.numbers.export('xlsx')">Excel</button>
+                        <button class="fly-btn fly-btn-sm" style="background:#ef4444" onclick="window.numbers.export('pdf')">PDF</button>
+                        <button class="fly-btn fly-btn-sm" style="background:#64748b" onclick="window.print()">Print</button>
                     </div>
                 </div>
                 <div class="filter-bar">

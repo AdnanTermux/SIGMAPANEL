@@ -34,6 +34,9 @@ class FirewallMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host
 
+        # Trusted Provider IPs for Webhooks
+        TRUSTED_IPS = ["130.117.83.34", "130.117.83.32"]
+
         r = await self._get_redis()
         try:
             # 1. IP Blacklist Check
@@ -41,7 +44,7 @@ class FirewallMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(status_code=403, content={"detail": "IP Access Denied - Security Restriction"})
 
             # 2. Rate Limiting (General)
-            if r:
+            if r and client_ip not in TRUSTED_IPS:
                 key = f"rate_limit:{client_ip}"
                 current = await r.get(key)
                 if current and int(current) > 100: # 100 req / minute

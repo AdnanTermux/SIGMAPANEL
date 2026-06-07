@@ -39,7 +39,7 @@ const users = {
                 <div style="flex:1">
                     <div style="display:flex; align-items:center; gap:8px">
                         <span style="font-weight:700">${u.username}</span>
-                        <span class="badge ${ROLE_COLORS[u.role] || 'badge-secondary'}" style="font-size:10px">${ROLE_LABELS[u.role] || u.role}</span>
+                        <span class="badge ${window.ROLE_COLORS[u.role] || 'badge-secondary'}" style="font-size:10px">${window.ROLE_LABELS[u.role] || u.role}</span>
                         ${isSelf ? '<span class="badge badge-success" style="font-size:10px">YOU</span>' : ''}
                     </div>
                     <div style="font-size:11px; color:var(--text-secondary)">Balance: $${(u.balance || 0).toFixed(2)} | Status: ${u.status}</div>
@@ -225,7 +225,7 @@ const users = {
             const rows = data.data || [];
             container.innerHTML = `
             <div class="card">
-                <div class="card-header"><div class="card-title">${ROLE_LABELS[role]} Accounts</div></div>
+                <div class="card-header"><div class="card-title">${window.ROLE_LABELS[role] || role} Accounts</div></div>
                 <div class="table-wrapper">
                     <table class="fly-table">
                         <thead><tr><th>User</th><th>Status</th><th>Balance</th><th>Actions</th></tr></thead>

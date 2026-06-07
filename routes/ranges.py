@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/ranges", tags=["ranges"])
 class RangeCreate(BaseModel):
     name: str
     numberPrefix: str
+    bulkNumbers: Optional[str] = None
     providerId: Optional[str] = None
     countryCode: Optional[str] = None
     countryName: Optional[str] = None
@@ -81,6 +82,7 @@ async def list_ranges(
 
 @router.post("")
 async def create_range(request: Request, body: RangeCreate, p=Depends(require_role(["admin"]))):
+    import re
     with get_db() as conn:
         if conn.execute("SELECT id FROM ranges WHERE name=?", (body.name,)).fetchone():
             raise HTTPException(409, "Range name already exists")
@@ -93,6 +95,25 @@ async def create_range(request: Request, body: RangeCreate, p=Depends(require_ro
              body.rate, body.profitMargin, body.otpLimitPerDay, body.otpDailyResetHour,
              body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status),
         )
+
+        # Handle bulk numbers if provided
+        if body.bulkNumbers:
+            lines = [l.strip() for l in body.bulkNumbers.splitlines() if l.strip()]
+            for line in lines:
+                num = re.sub(r"[\s\-\(\)]", "", line)
+                if not num: continue
+                if not num.startswith("+"): num = "+" + num
+                # Skip if already exists
+                if conn.execute("SELECT id FROM numbers WHERE number=?", (num,)).fetchone():
+                    continue
+                conn.execute(
+                    """INSERT INTO numbers (id,number,country,country_name,range_name,range_id,rate,profit_margin,status,total_sms)
+                       VALUES (?,?,?,?,?,?,?,?,'active',0)""",
+                    (generate_id(), num, body.countryCode, body.countryName, body.name, rid, body.rate, body.profitMargin)
+                )
+
+            conn.execute("UPDATE ranges SET total_numbers=(SELECT COUNT(*) FROM numbers WHERE range_id=?) WHERE id=?", (rid, rid))
+
         row = conn.execute("SELECT * FROM ranges WHERE id=?", (rid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 

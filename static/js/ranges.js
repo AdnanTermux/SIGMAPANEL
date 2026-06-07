@@ -47,9 +47,13 @@ const ranges = {
             <div class="form-row">
                 <div class="form-group"><label>Country Code</label><input type="text" id="rng-cc" class="fly-input" placeholder="US"></div>
                 <div class="form-group"><label>Rate ($)</label><input type="number" id="rng-rate" class="fly-input" step="0.0001" value="0.05"></div>
+            </div>
+            <div class="form-group">
+                <label>Bulk Numbers (one per line)</label>
+                <textarea id="rng-numbers" class="fly-input" style="height:120px" placeholder="+12025550100\n+12025550101"></textarea>
             </div>`;
         const footer = `<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.ranges.save()">Save Range</button>`;
-        window.ui.showModal('Add New Range', body, footer);
+        window.ui.showModal('Add New Range', body, footer, 'large');
     },
 
     async save() {
@@ -57,7 +61,8 @@ const ranges = {
             name: document.getElementById('rng-name').value,
             numberPrefix: document.getElementById('rng-prefix').value,
             countryCode: document.getElementById('rng-cc').value,
-            rate: parseFloat(document.getElementById('rng-rate').value)
+            rate: parseFloat(document.getElementById('rng-rate').value),
+            bulkNumbers: document.getElementById('rng-numbers').value
         };
         try {
             await window.api.call('/api/ranges', { method: 'POST', body: JSON.stringify(payload) });
@@ -66,6 +71,37 @@ const ranges = {
             window.router.resolvePage(document.getElementById('page-content'));
         } catch (err) {
             window.ui.showToast(err.message, 'error');
+        }
+    },
+
+    async renderRatecard(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const data = await window.api.call('/api/ranges?limit=100');
+            const rows = data.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">Telecom Ratecard</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Country</th><th>Prefix</th><th>Range Name</th><th>Payout/SMS</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${rows.map(r => `
+                                <tr>
+                                    <td>${r.country_name || r.country_code || 'Global'}</td>
+                                    <td><code>${r.number_prefix || ''}</code></td>
+                                    <td style="font-weight:700">${r.name}</td>
+                                    <td><span style="color:var(--success); font-weight:700">$${r.rate.toFixed(4)}</span></td>
+                                    <td><span class="badge badge-success">ACTIVE</span></td>
+                                </tr>
+                            `).join('')}
+                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="5">No rates available</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (err) {
+            container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
         }
     }
 };
