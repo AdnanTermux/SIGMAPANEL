@@ -1,6 +1,7 @@
 """SIGMAPANEL - SMS OTP Management System v3"""
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from security_middleware import FirewallMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ from routes.numbers_ext import router as numbers_ext_router
 from routes.api_management import router as api_management_router
 from routes.notifications import router as notifications_router
 from routes.smpp_interconnect import router as smpp_interconnect_router
+from routes.security import router as security_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -45,6 +47,15 @@ async def lifespan(app: FastAPI):
     await queue_manager.close()
 
 app = FastAPI(title="SIGMAPANEL", version="3.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.add_middleware(FirewallMiddleware)
 
 # Health Endpoints
@@ -86,6 +97,7 @@ app.include_router(numbers_ext_router)
 app.include_router(api_management_router)
 app.include_router(notifications_router)
 app.include_router(smpp_interconnect_router)
+app.include_router(security_router)
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

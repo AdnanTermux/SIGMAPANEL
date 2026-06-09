@@ -168,6 +168,79 @@ const numbers = {
         }
     },
 
+    async renderBulkTools(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Bulk Resource Management Tools</div></div>
+            <div class="card-body" style="padding:24px">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px">
+                    <div>
+                        <h4 style="margin-bottom:16px; color:var(--danger)">Infrastructure Revocation</h4>
+                        <div class="form-group">
+                            <label>Revoke by Range</label>
+                            <div style="display:flex; gap:8px">
+                                <input type="text" id="rev-range" class="fly-input" placeholder="Enter Range Name">
+                                <button class="fly-btn fly-btn-danger" onclick="window.numbers.doBulkRevoke('range')">Revoke</button>
+                            </div>
+                        </div>
+                        <button class="fly-btn fly-btn-danger" style="width:100%; margin-top:16px" onclick="window.numbers.doBulkRevoke('global')">Revoke ALL Numbers Globally</button>
+                    </div>
+
+                    <div>
+                        <h4 style="margin-bottom:16px">Permanent Data Purge</h4>
+                        <div class="form-group">
+                            <label>Delete all numbers in Range</label>
+                            <div style="display:flex; gap:8px">
+                                <input type="text" id="del-range" class="fly-input" placeholder="Range Name">
+                                <button class="fly-btn fly-btn-danger" onclick="window.numbers.doBulkDelete('range')">PURGE</button>
+                            </div>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-secondary); margin-top:24px">Note: Revocation unassigns numbers from users. Purge permanently removes them from the database.</p>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    },
+
+    async doBulkRevoke(scope) {
+        const payload = { scope };
+        if (scope === 'range') payload.rangeName = document.getElementById('rev-range').value;
+        if (scope === 'range' && !payload.rangeName) return window.ui.showToast('Please enter range name', 'error');
+        if (!confirm(`Are you sure you want to execute ${scope} revocation?`)) return;
+
+        try {
+            const res = await window.api.call('/api/numbers-ext/bulk-revoke', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            window.ui.showToast(res.message, 'success');
+        } catch (err) { window.ui.showToast(err.message, 'error'); }
+    },
+
+    async doBulkDelete(scope) {
+        const val = document.getElementById('del-range').value;
+        if (!val) return window.ui.showToast('Please enter a range name', 'error');
+        if (!confirm(`DANGER: This will permanently delete all numbers in range ${val}. Continue?`)) return;
+
+        try {
+            await window.api.call(`/api/numbers-ext/bulk-delete?scope=range&value=${val}`, { method: 'POST' });
+            window.ui.showToast('Bulk deletion successful', 'success');
+        } catch (err) { window.ui.showToast(err.message, 'error'); }
+    },
+
+    async renderFailedSms(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Failed SMS & Error Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Recipient</th><th>Provider</th><th>Error Reason</th></tr></thead>
+                    <tbody><tr class="empty-row"><td colspan="4">No failures logged in the last 24 hours</td></tr></tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
     async executeBulk() {
         const userId = document.getElementById('bulk-user-id').value;
         const rangeName = document.getElementById('bulk-range-name').value;

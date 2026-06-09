@@ -291,6 +291,94 @@ const users = {
                 </div>
             </div>`;
         } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
+    },
+
+    async renderAuditLogs(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const res = await window.api.call('/api/dashboard/audit-logs?limit=50');
+            const rows = res.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">System Audit Trails</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>IP Address</th></tr></thead>
+                        <tbody>
+                            ${rows.map(l => `
+                                <tr>
+                                    <td style="font-size:11px">${window.ui.formatDate(l.created_at)}</td>
+                                    <td><strong>${l.actor}</strong></td>
+                                    <td><code>${l.action}</code></td>
+                                    <td>${l.target_type} (${l.target_id || '-'})</td>
+                                    <td><code>${l.ip || '-'}</code></td>
+                                </tr>
+                            `).join('')}
+                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="5">No audit logs found</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
+    },
+
+    async renderActivityLogs(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const res = await window.api.call('/api/dashboard/activity-logs?limit=50');
+            const rows = res.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">User Activity Stream</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Time</th><th>User</th><th>Event</th><th>Detail</th></tr></thead>
+                        <tbody>
+                            ${rows.map(l => `
+                                <tr>
+                                    <td style="font-size:11px">${window.ui.formatDate(l.created_at)}</td>
+                                    <td><strong>${l.actor}</strong></td>
+                                    <td><span class="badge badge-secondary">${l.action}</span></td>
+                                    <td style="font-size:12px">${l.detail || '-'}</td>
+                                </tr>
+                            `).join('')}
+                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="4">No activity logs found</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
+    },
+
+    async renderApprovalQueue(container) {
+        this.renderRegRequests(container);
+    },
+
+    async renderRejectedRequests(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const res = await window.api.call('/api/users/registration-requests?status=rejected');
+            const rows = res.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">Rejected Registration Requests</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Username</th><th>Reason</th><th>Rejected At</th></tr></thead>
+                        <tbody>
+                            ${rows.map(u => `
+                                <tr>
+                                    <td><strong>${u.username}</strong></td>
+                                    <td>Policy Violation</td>
+                                    <td>${window.ui.formatDate(u.created_at)}</td>
+                                </tr>
+                            `).join('')}
+                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="3">No rejected requests found</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
     }
 };
 

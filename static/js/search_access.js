@@ -37,12 +37,18 @@ const searchAccess = {
     renderAppSearch(container) {
         container.innerHTML = `
         <div class="form-group">
-            <label>Search for Application or Service</label>
-            <input type="text" class="search-input" id="app-search-input" placeholder="e.g. Google, WhatsApp, Telegram..." style="width:100%">
+            <label>Select Service to find Top Ranges</label>
+            <div class="service-list" style="margin-bottom:20px">
+                ${['WhatsApp', 'Telegram', 'TikTok', 'Facebook', 'Instagram', 'Discord', 'Binance'].map(s => `
+                    <button class="service-chip" onclick="window.searchAccess.doAppSearch('${s}')">${s}</button>
+                `).join('')}
+                <button class="service-chip" onclick="document.getElementById('app-search-input').focus()">Others...</button>
+            </div>
+            <input type="text" class="search-input" id="app-search-input" placeholder="Or type any app name..." style="width:100%">
         </div>
         <div id="app-search-results" style="margin-top:24px">
             <div class="empty-state">
-                <p>Enter an application name to find supported ranges and success rates.</p>
+                <p>Select a service above or enter an application name to find supported ranges and success rates.</p>
             </div>
         </div>`;
 

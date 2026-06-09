@@ -27,8 +27,7 @@ def get_current_user(request: Request):
         return user
 
 def require_role(roles: list):
-    def role_checker(request: Request):
-        user = get_current_user(request)
+    def role_checker(user=Depends(get_current_user)):
         if user['role'] not in roles:
             raise HTTPException(status_code=403, detail="Permission denied")
         return user

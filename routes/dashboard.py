@@ -1,9 +1,9 @@
 """Dashboard - stats scoped by role"""
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from database import get_db
 from auth import verify_token, extract_token
 from datetime import datetime, timedelta
-from routes.deps import get_current_user
+from routes.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -69,6 +69,18 @@ async def get_stats(request: Request):
         else:
             total_users = 0
 
+        # Providers
+        active_providers = conn.execute("SELECT COUNT(*) FROM providers WHERE status='active'").fetchone()[0]
+
+        # Allocations
+        if role == "admin":
+            total_allocations = conn.execute("SELECT COUNT(*) FROM allocations WHERE status='active'").fetchone()[0]
+        else:
+            total_allocations = conn.execute("SELECT COUNT(*) FROM allocations WHERE user_id=? AND status='active'", (user_id,)).fetchone()[0]
+
+        # DLRs
+        total_dlrs = conn.execute("SELECT COUNT(*) FROM sms_received WHERE otp IS NOT NULL").fetchone()[0]
+
         # Profit
         def profit_sum(extra=""):
             q = "SELECT COALESCE(SUM(profit_amount),0) FROM profit_log"
@@ -103,6 +115,9 @@ async def get_stats(request: Request):
         "totalNumbers": total_numbers,
         "activeNumbers": active_numbers,
         "totalUsers": total_users,
+        "activeProviders": active_providers,
+        "totalAllocations": total_allocations,
+        "totalDlrs": total_dlrs,
         "todaySmsByService": services,
         "weekSmsByDay": week_by_day,
         "role": role,
@@ -156,3 +171,19 @@ async def get_live_activity(request: Request):
         "active_numbers": 120,
         "recent_events": []
     }
+
+@router.get("/audit-logs")
+async def dashboard_audit_logs(request: Request, limit: int = Query(50, ge=1, le=100), p=Depends(require_role(["admin", "manager"]))):
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+    return {"data": [dict(r) for r in rows]}
+
+@router.get("/activity-logs")
+async def dashboard_activity_logs(request: Request, limit: int = Query(50, ge=1, le=100), p=Depends(get_current_user)):
+    # Simulating activity logs from audit logs for now, filtered by user if not admin
+    with get_db() as conn:
+        if p['role'] == 'admin':
+            rows = conn.execute("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM audit_logs WHERE actor_id = ? ORDER BY created_at DESC LIMIT ?", (p['id'], limit)).fetchall()
+    return {"data": [dict(r) for r in rows]}

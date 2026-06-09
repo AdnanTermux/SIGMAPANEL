@@ -6,7 +6,8 @@ import base64
 import secrets
 from datetime import datetime, timedelta
 
-TOKEN_SECRET = "sigmapanel-secret-key-change-in-production"
+import os
+TOKEN_SECRET = os.environ.get("JWT_SECRET", "sigmapanel-secret-key-change-in-production")
 TOKEN_EXPIRY_DAYS = 7
 
 def hash_password(password: str) -> str:

@@ -12,19 +12,19 @@ router = APIRouter(prefix="/api/api-management", tags=["api-management"])
 @router.get("/my-token")
 async def get_my_token(request: Request, p=Depends(get_current_user)):
     with get_db() as conn:
-        user = conn.execute("SELECT api_token FROM users WHERE id=?", (p["userId"],)).fetchone()
+        user = conn.execute("SELECT api_token FROM users WHERE id=?", (p["id"],)).fetchone()
         if not user: raise HTTPException(404, "User not found")
         token = user["api_token"]
         if not token:
             token = "sig_" + secrets.token_urlsafe(32)
-            conn.execute("UPDATE users SET api_token=? WHERE id=?", (token, p["userId"]))
+            conn.execute("UPDATE users SET api_token=? WHERE id=?", (token, p["id"]))
     return {"token": token, "api_base": "/api/webhook/sms"}
 
 @router.post("/regenerate-token")
 async def regenerate_token(request: Request, p=Depends(get_current_user)):
     new_token = "sig_" + secrets.token_urlsafe(32)
     with get_db() as conn:
-        conn.execute("UPDATE users SET api_token=? WHERE id=?", (new_token, p["userId"]))
+        conn.execute("UPDATE users SET api_token=? WHERE id=?", (new_token, p["id"]))
     return {"token": new_token, "message": "Token regenerated"}
 
 @router.get("/admin/tokens")

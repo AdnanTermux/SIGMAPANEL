@@ -67,23 +67,23 @@ const sms = {
                     <canvas id="profit-distribution-chart"></canvas>
                 </div>
             </div>`;
-            this.renderProfitChart();
+            this.renderProfitChart(stats);
         } catch (err) {
             container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
         }
     },
 
-    renderProfitChart() {
+    renderProfitChart(stats) {
         setTimeout(() => {
             const ctx = document.getElementById('profit-distribution-chart')?.getContext('2d');
             if (!ctx) return;
             new Chart(ctx, {
                 type: 'bar',
                 data: {
-                        labels: ['Current Month'],
+                    labels: ['Current Month'],
                     datasets: [{
-                            label: 'Net Profit ($)',
-                            data: [stats.monthProfit],
+                        label: 'Net Profit ($)',
+                        data: [stats.monthProfit],
                         backgroundColor: '#735DFF',
                         borderRadius: 6
                     }]
@@ -240,16 +240,45 @@ const sms = {
     },
 
     async renderDeliveryLogs(container) {
-        container.innerHTML = \`
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const data = await window.api.call('/api/sms/delivery-logs');
+            const rows = data.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">Delivery Receipts & DLR Logs</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Time</th><th>Number</th><th>Service</th><th>OTP</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${rows.map(s => `
+                                <tr>
+                                    <td style="font-size:11px">${window.ui.formatDate(s.received_at)}</td>
+                                    <td><code>${s.number}</code></td>
+                                    <td><span class="badge badge-secondary">${s.service || '-'}</span></td>
+                                    <td><strong>${s.otp || '-'}</strong></td>
+                                    <td><span class="badge badge-success">DELIVERED</span></td>
+                                </tr>
+                            `).join('')}
+                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="5">No DLR records found in history</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
+    },
+
+    async renderFailedSms(container) {
+        container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">Delivery Receipts & DLR Logs</div></div>
+            <div class="card-header"><div class="card-title">Failed SMS & Error Logs</div></div>
             <div class="table-wrapper">
                 <table class="fly-table">
-                    <thead><tr><th>Time</th><th>Msg ID</th><th>Status</th><th>Provider</th><th>Error</th></tr></thead>
-                    <tbody><tr class="empty-row"><td colspan="5">No DLR records found in history</td></tr></tbody>
+                    <thead><tr><th>Time</th><th>Recipient</th><th>Provider</th><th>Error Reason</th></tr></thead>
+                    <tbody><tr class="empty-row"><td colspan="4">No failures logged in the last 24 hours</td></tr></tbody>
                 </table>
             </div>
-        </div>\`;
+        </div>`;
     }
 };
 

@@ -184,7 +184,7 @@ const smpp = {
 
     async loadSessions() {
         try {
-            const data = await window.api.call('/api/smpp-server/sessions');
+            const data = await window.api.call('/api/smpp-interconnect/server-sessions');
             const body = document.getElementById('sessions-body');
             if (!body) return;
             body.innerHTML = data.data.map(s => `
@@ -200,22 +200,7 @@ const smpp = {
     },
 
     async renderAccounts(container) {
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">SMPP Server Accounts (Internal)</div>
-                <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddAccount()">Create Account</button>
-            </div>
-            <div class="table-wrapper">
-                <table class="fly-table">
-                    <thead><tr><th>System ID</th><th>Throughput</th><th>IP Whitelist</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="accounts-body">
-                        <tr class="empty-row"><td colspan="5">Loading accounts...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-        this.loadAccounts();
+        this.renderServerAccounts(container);
     },
 
     async renderHttpProviders(container) {
@@ -263,6 +248,23 @@ const smpp = {
                 </table>
             </div>
         </div>`;
+        this.loadServerFailed();
+    },
+
+    async loadServerFailed() {
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/failed-packets');
+            const body = document.getElementById('srv-failed-body');
+            if (!body) return;
+            body.innerHTML = data.data.map(p => `
+                <tr>
+                    <td style="font-size:11px">${window.ui.formatDate(p.created_at)}</td>
+                    <td><code>${p.ip_address}</code></td>
+                    <td><span class="badge badge-danger">${p.packet_type}</span></td>
+                    <td>${p.reason}</td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="4">No failed packets captured</td></tr>';
+        } catch (e) {}
     },
 
     async renderFailover(container) {
@@ -277,6 +279,307 @@ const smpp = {
                 <button class="fly-btn">Update Cluster Policy</button>
             </div>
         </div>`;
+    },
+
+    async renderServerConnected(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Connected External Providers</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Provider Host/IP</th><th>Connected At</th><th>Status</th></tr></thead>
+                    <tbody id="srv-connected-body">
+                        <tr class="empty-row"><td colspan="3">Awaiting connections...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        this.loadServerDlr();
+    },
+
+    async loadServerDlr() {
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/dlr-logs');
+            const body = document.getElementById('srv-dlr-body');
+            if (!body) return;
+            body.innerHTML = data.data.map(d => `
+                <tr>
+                    <td style="font-size:11px">${window.ui.formatDate(d.received_at)}</td>
+                    <td><code>${d.id.slice(0,8)}</code></td>
+                    <td>${d.number}</td>
+                    <td><span class="badge badge-success">DELIVERED</span></td>
+                    <td>${d.system_id || 'System'}</td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="5">No DLR traffic logged</td></tr>';
+        } catch (e) {}
+    },
+
+    async renderServerSessions(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Live Sessions</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Session ID</th><th>Account</th><th>IP Address</th><th>Bind Type</th><th>Connected</th></tr></thead>
+                    <tbody id="srv-sessions-body">
+                        <tr class="empty-row"><td colspan="5">No active sessions found</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        this.loadServerSessions();
+    },
+
+    async loadServerSessions() {
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/server-sessions');
+            const body = document.getElementById('srv-sessions-body');
+            if (!body) return;
+            body.innerHTML = data.data.map(s => `
+                <tr>
+                    <td><code>${s.id.slice(0,8)}</code></td>
+                    <td><strong>${s.system_id}</strong></td>
+                    <td><code>${s.ip_address}</code></td>
+                    <td><span class="badge badge-secondary">${s.bind_type}</span></td>
+                    <td style="font-size:11px">${window.ui.formatDate(s.connected_at)}</td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="5">No active sessions found</td></tr>';
+        } catch (e) {}
+    },
+
+    async renderServerAccounts(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/accounts');
+            const accounts = data.data || [];
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">SMPP Server Provider Accounts</div>
+                    <button class="fly-btn fly-btn-sm" onclick="window.smpp.showAddServerAccount()">Add Provider Account</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>System ID</th><th>Throughput</th><th>IP Whitelist</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            ${accounts.map(a => `
+                                <tr>
+                                    <td><strong>${a.system_id}</strong></td>
+                                    <td>${a.throughput_limit} SMS/s</td>
+                                    <td><code>${a.ip_whitelist || 'Any'}</code></td>
+                                    <td><span class="badge ${a.status === 'active' ? 'badge-success' : 'badge-danger'}">${a.status.toUpperCase()}</span></td>
+                                    <td>
+                                        <button class="action-btn" onclick="window.smpp.deleteServerAccount('${a.id}')">${ICONS.trash}</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                            ${accounts.length === 0 ? '<tr class="empty-row"><td colspan="5">No server accounts configured</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) {
+            container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`;
+        }
+    },
+
+    async renderServerThroughput(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Real-Time SMPP Server Throughput</div></div>
+            <div style="padding:20px; height:350px">
+                <canvas id="srv-throughput-chart"></canvas>
+            </div>
+        </div>`;
+        this.renderThroughputChart();
+    },
+
+    renderThroughputChart() {
+        setTimeout(() => {
+            const ctx = document.getElementById('srv-throughput-chart')?.getContext('2d');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['-60s', '-50s', '-40s', '-30s', '-20s', '-10s', 'Now'],
+                    datasets: [{
+                        label: 'SMS/sec',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#735DFF',
+                        backgroundColor: 'rgba(115, 93, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+        }, 100);
+    },
+
+    async renderServerLogs(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Global Connection Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Provider</th><th>Event</th><th>Detail</th></tr></thead>
+                    <tbody id="srv-logs-body">
+                        <tr class="empty-row"><td colspan="4">No logs available</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        this.loadServerLogs();
+    },
+
+    async loadServerLogs() {
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/server-logs');
+            const body = document.getElementById('srv-logs-body');
+            if (!body) return;
+            body.innerHTML = data.data.map(l => `
+                <tr>
+                    <td style="font-size:11px">${window.ui.formatDate(l.created_at)}</td>
+                    <td>${l.server_name || 'Unknown'}</td>
+                    <td><span class="badge badge-secondary">${l.event_type}</span></td>
+                    <td style="font-size:12px">${l.detail}</td>
+                </tr>
+            `).join('') || '<tr class="empty-row"><td colspan="4">No logs available</td></tr>';
+        } catch (e) {}
+    },
+
+    async renderServerFailed(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Failed Packet Captures</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Remote IP</th><th>Packet Type</th><th>Reason</th></tr></thead>
+                    <tbody id="srv-failed-body">
+                        <tr class="empty-row"><td colspan="4">No failed packets captured</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderServerDlr(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Delivery Report Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Message ID</th><th>Recipient</th><th>Status</th><th>Provider</th></tr></thead>
+                    <tbody id="srv-dlr-body">
+                        <tr class="empty-row"><td colspan="5">No DLR traffic logged</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderServerQueue(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Message Queue Monitoring</div></div>
+            <div class="stats-grid" style="padding:20px; border-bottom:1px solid var(--border)">
+                <div class="stat-card"><div class="stat-card-label">Queued SMS</div><div class="stat-card-value" id="q-queued">0</div></div>
+                <div class="stat-card"><div class="stat-card-label">Processing</div><div class="stat-card-value" id="q-proc">0</div></div>
+                <div class="stat-card"><div class="stat-card-label">Success Rate</div><div class="stat-card-value" id="q-rate">100%</div></div>
+            </div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Message ID</th><th>Recipient</th><th>Queued At</th><th>Status</th></tr></thead>
+                    <tbody id="srv-queue-body">
+                        <tr class="empty-row"><td colspan="4">Queue is empty</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        this.loadServerQueue();
+    },
+
+    async loadServerQueue() {
+        try {
+            const data = await window.api.call('/api/smpp-interconnect/queue-stats');
+            document.getElementById('q-queued').textContent = data.queued;
+            document.getElementById('q-proc').textContent = data.processing;
+            document.getElementById('q-rate').textContent = data.success_rate + '%';
+        } catch (e) {}
+    },
+
+    async renderServerSecurity(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server: Security & Audit Logs</div></div>
+            <div class="table-wrapper">
+                <table class="fly-table">
+                    <thead><tr><th>Time</th><th>Source IP</th><th>Account</th><th>Event Type</th><th>Action</th></tr></thead>
+                    <tbody><tr class="empty-row"><td colspan="5">No security events detected</td></tr></tbody>
+                </table>
+            </div>
+        </div>`;
+    },
+
+    async renderThroughput(container) {
+        this.renderServerThroughput(container);
+    },
+
+    showAddServerAccount() {
+        window.ui.showModal('Add SMPP Server Provider Account', `
+            <div class="form-group"><label>System ID</label><input type="text" id="sa-sid" class="fly-input" placeholder="e.g. PARTNER_01"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="sa-pass" class="fly-input"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Throughput Limit (SMS/s)</label><input type="number" id="sa-limit" class="fly-input" value="10"></div>
+                <div class="form-group"><label>IP Whitelist (Optional)</label><input type="text" id="sa-ips" class="fly-input" placeholder="0.0.0.0"></div>
+            </div>
+        `, `
+            <button class="fly-btn fly-btn-secondary" onclick="window.ui.closeModal()">Cancel</button>
+            <button class="fly-btn" onclick="window.smpp.doAddServerAccount()">Create Account</button>
+        `);
+    },
+
+    async doAddServerAccount() {
+        const payload = {
+            system_id: document.getElementById('sa-sid').value,
+            password: document.getElementById('sa-pass').value,
+            throughput_limit: parseInt(document.getElementById('sa-limit').value),
+            ip_whitelist: document.getElementById('sa-ips').value
+        };
+        try {
+            await window.api.call('/api/smpp-interconnect/accounts', { method: 'POST', body: JSON.stringify(payload) });
+            window.ui.showToast('Server account created', 'success');
+            window.ui.closeModal();
+            this.renderServerAccounts(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
+    },
+
+    async deleteServerAccount(id) {
+        if (!confirm('Delete this SMPP server account?')) return;
+        try {
+            await window.api.call(`/api/smpp-interconnect/accounts/${id}`, { method: 'DELETE' });
+            window.ui.showToast('Account deleted', 'info');
+            this.renderServerAccounts(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
+    },
+
+    async toggleProvider(id) {
+        try {
+            await window.api.call(`/api/providers/${id}/toggle`, { method: 'POST' });
+            this.renderProviders(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
+    },
+
+    async deleteProvider(id) {
+        if (!confirm('Delete this provider connection?')) return;
+        try {
+            await window.api.call(`/api/providers/${id}`, { method: 'DELETE' });
+            this.renderProviders(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
     }
 };
 

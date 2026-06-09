@@ -138,8 +138,6 @@ async def bulk_allocate(request: Request, body: BulkAllocateRequest, p=Depends(r
 
 @router.post("/allocate")
 async def allocate_numbers(request: Request, body: AllocateNumbers, p=Depends(get_current_user)):
-    if p['role'] not in ['admin', 'manager', 'reseller']:
-        raise HTTPException(403, "Only resellers and above can self-allocate numbers")
     from datetime import timedelta
     now = datetime.utcnow()
     expires_map = {"weekly": 7, "monthly": 30, "yearly": 365}
@@ -196,10 +194,16 @@ async def allocate_numbers(request: Request, body: AllocateNumbers, p=Depends(ge
 @router.get("/allocations")
 async def list_allocations(request: Request, status: Optional[str] = None, p=Depends(get_current_user)):
     with get_db() as conn:
-        conds = [] if p['role'] == 'admin' else [f"user_id='{p['id']}'"]
-        if status: conds.append(f"status='{status}'")
+        conds, params = [], []
+        if p['role'] != 'admin':
+            conds.append("user_id = ?")
+            params.append(p['id'])
+        if status:
+            conds.append("status = ?")
+            params.append(status)
+
         where = " AND ".join(conds) if conds else "1=1"
-        rows = conn.execute(f"SELECT * FROM allocations WHERE {where} ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(f"SELECT * FROM allocations WHERE {where} ORDER BY created_at DESC", params).fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.post("/allocations/{aid}/return")

@@ -2,65 +2,97 @@ const security = {
     // ... existing renderVerification and startVerification ...
 
     async renderDashboard(container) {
-        container.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-card" style="border-left: 4px solid var(--danger)">
-                <div class="stat-card-label">Live Threat Score</div>
-                <div class="stat-card-value">LOW</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Blocked IPs</div>
-                <div class="stat-card-value" id="blocked-ips-count">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Bot Attempts (24h)</div>
-                <div class="stat-card-value">12</div>
-            </div>
-        </div>
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const stats = await window.api.call('/api/security/stats');
+            const events = await window.api.call('/api/security/events?limit=20');
 
-        <div class="card">
-            <div class="card-header"><div class="card-title">Live Security Events</div></div>
-            <div class="table-wrapper">
-                <table class="fly-table">
-                    <thead><tr><th>Time</th><th>IP Address</th><th>Event Type</th><th>Action</th><th>Status</th></tr></thead>
-                    <tbody id="security-events-body">
-                        <tr>
-                            <td style="font-size:11px">Just now</td>
-                            <td><code>192.168.1.1</code></td>
-                            <td><span class="badge badge-warning">Failed Login</span></td>
-                            <td>Captcha Served</td>
-                            <td><span class="badge badge-success">Handled</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-size:11px">2m ago</td>
-                            <td><code>45.23.11.2</code></td>
-                            <td><span class="badge badge-danger">Rate Limit</span></td>
-                            <td>Temporary Ban</td>
-                            <td><span class="badge badge-secondary">Monitoring</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+            container.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left: 4px solid var(--danger)">
+                    <div class="stat-card-label">Live Threat Score</div>
+                    <div class="stat-card-value">${stats.threat_score}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Blocked IPs</div>
+                    <div class="stat-card-value">${stats.blocked_ips}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Recent Events (24h)</div>
+                    <div class="stat-card-value">${stats.recent_events}</div>
+                </div>
             </div>
-        </div>`;
+
+            <div class="card">
+                <div class="card-header"><div class="card-title">Live Infrastructure Security Events</div></div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>Time</th><th>IP Address</th><th>Event Type</th><th>Action</th><th>Status</th></tr></thead>
+                        <tbody id="security-events-body">
+                            ${events.data.map(e => `
+                                <tr>
+                                    <td style="font-size:11px">${window.ui.formatDate(e.created_at)}</td>
+                                    <td><code>${e.ip_address}</code></td>
+                                    <td><span class="badge badge-warning">${e.event_type}</span></td>
+                                    <td>${e.action_taken}</td>
+                                    <td><span class="badge badge-success">${e.severity}</span></td>
+                                </tr>
+                            `).join('')}
+                            ${events.data.length === 0 ? '<tr class="empty-row"><td colspan="5">No infrastructure threats detected</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<p>Error: ${e.message}</p>`; }
     },
 
     async renderBlockedIPs(container) {
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">IP Blacklist Management</div></div>
-            <div class="filter-bar">
-                <input type="text" class="fly-input" placeholder="Enter IP address to block..." id="new-block-ip">
-                <button class="fly-btn" onclick="window.security.blockIP()">Block IP</button>
-            </div>
-            <div class="table-wrapper">
-                <table class="fly-table">
-                    <thead><tr><th>IP Address</th><th>Reason</th><th>Blocked At</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        <tr><td><code>103.44.12.5</code></td><td>Rate limit abuse</td><td>2026-05-27</td><td><button class="action-btn">Unblock</button></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const data = await window.api.call('/api/security/blocked-ips');
+            container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><div class="card-title">IP Blacklist Management</div></div>
+                <div class="filter-bar">
+                    <input type="text" class="fly-input" placeholder="Enter IP address to block..." id="new-block-ip">
+                    <button class="fly-btn" onclick="window.security.blockIP()">Block IP</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="fly-table">
+                        <thead><tr><th>IP Address</th><th>Reason</th><th>Expires At</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            ${data.data.map(b => `
+                                <tr>
+                                    <td><code>${b.ip_address}</code></td>
+                                    <td>${b.reason}</td>
+                                    <td style="font-size:11px">${window.ui.formatDate(b.expires_at)}</td>
+                                    <td><button class="action-btn delete" onclick="window.security.unblockIP('${b.ip_address}')">Unblock</button></td>
+                                </tr>
+                            `).join('')}
+                            ${data.data.length === 0 ? '<tr class="empty-row"><td colspan="4">IP Blacklist is empty</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } catch (e) { container.innerHTML = `<p>Error: ${e.message}</p>`; }
+    },
+
+    async blockIP() {
+        const ip = document.getElementById('new-block-ip').value;
+        if (!ip) return;
+        try {
+            await window.api.call('/api/security/block-ip', { method: 'POST', body: JSON.stringify({ ip }) });
+            window.ui.showToast('IP blocked', 'success');
+            this.renderBlockedIPs(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
+    },
+
+    async unblockIP(ip) {
+        try {
+            await window.api.call(`/api/security/unblock-ip/${ip}`, { method: 'POST' });
+            window.ui.showToast('IP unblocked', 'success');
+            this.renderBlockedIPs(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
     },
 
     async renderThreatLogs(container) {
