@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api/ranges", tags=["ranges"])
 class RangeCreate(BaseModel):
     name: str
     numberPrefix: str
-    bulkNumbers: Optional[str] = None
     providerId: Optional[str] = None
     countryCode: Optional[str] = None
     countryName: Optional[str] = None
@@ -24,6 +23,7 @@ class RangeCreate(BaseModel):
     allocationLimitPerUser: Optional[int] = 100
     allocationPeriod: Optional[str] = "monthly"
     status: Optional[str] = "active"
+    testNumbers: Optional[str] = None
 
 class RangeUpdate(BaseModel):
     name: Optional[str] = None
@@ -39,6 +39,7 @@ class RangeUpdate(BaseModel):
     allocationLimitPerUser: Optional[int] = None
     allocationPeriod: Optional[str] = None
     status: Optional[str] = None
+    testNumbers: Optional[str] = None
 
 FIELD_MAP = {
     "name": "name", "numberPrefix": "number_prefix", "providerId": "provider_id", "countryCode": "country_code",
@@ -47,6 +48,7 @@ FIELD_MAP = {
     "allocationLimitGlobal": "allocation_limit_global",
     "allocationLimitPerUser": "allocation_limit_per_user",
     "allocationPeriod": "allocation_period", "status": "status",
+    "testNumbers": "test_numbers"
 }
 
 @router.get("")
@@ -82,7 +84,6 @@ async def list_ranges(
 
 @router.post("")
 async def create_range(request: Request, body: RangeCreate, p=Depends(require_role(["admin"]))):
-    import re
     with get_db() as conn:
         if conn.execute("SELECT id FROM ranges WHERE name=?", (body.name,)).fetchone():
             raise HTTPException(409, "Range name already exists")
@@ -90,30 +91,12 @@ async def create_range(request: Request, body: RangeCreate, p=Depends(require_ro
         conn.execute(
             """INSERT INTO ranges (id,name,number_prefix,provider_id,country_code,country_name,rate,profit_margin,
                otp_limit_per_day,otp_daily_reset_hour,allocation_limit_global,allocation_limit_per_user,
-               allocation_period,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               allocation_period,status,test_numbers) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (rid, body.name, body.numberPrefix, body.providerId, body.countryCode, body.countryName,
              body.rate, body.profitMargin, body.otpLimitPerDay, body.otpDailyResetHour,
-             body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status),
+             body.allocationLimitGlobal, body.allocationLimitPerUser, body.allocationPeriod, body.status,
+             body.testNumbers),
         )
-
-        # Handle bulk numbers if provided
-        if body.bulkNumbers:
-            lines = [l.strip() for l in body.bulkNumbers.splitlines() if l.strip()]
-            for line in lines:
-                num = re.sub(r"[\s\-\(\)]", "", line)
-                if not num: continue
-                if not num.startswith("+"): num = "+" + num
-                # Skip if already exists
-                if conn.execute("SELECT id FROM numbers WHERE number=?", (num,)).fetchone():
-                    continue
-                conn.execute(
-                    """INSERT INTO numbers (id,number,country,country_name,range_name,range_id,rate,profit_margin,status,total_sms)
-                       VALUES (?,?,?,?,?,?,?,?,'active',0)""",
-                    (generate_id(), num, body.countryCode, body.countryName, body.name, rid, body.rate, body.profitMargin)
-                )
-
-            conn.execute("UPDATE ranges SET total_numbers=(SELECT COUNT(*) FROM numbers WHERE range_id=?) WHERE id=?", (rid, rid))
-
         row = conn.execute("SELECT * FROM ranges WHERE id=?", (rid,)).fetchone()
     return JSONResponse(status_code=201, content={"data": dict(row)})
 

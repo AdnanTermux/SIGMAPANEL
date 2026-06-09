@@ -244,6 +244,59 @@ const settings = {
                 <button class="fly-btn">Save Configuration</button>
             </div>
         </div>`;
+    },
+
+    async renderSmppSettings(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">SMPP Server Infrastructure Settings</div></div>
+            <div class="card-body" style="padding:24px">
+                <div class="form-row">
+                    <div class="form-group"><label>SMPP Listener Port</label><input type="number" class="fly-input" value="2775"></div>
+                    <div class="form-group"><label>Enquire Link Interval (s)</label><input type="number" class="fly-input" value="30"></div>
+                </div>
+                <div class="form-group"><label>System ID Prefix</label><input type="text" class="fly-input" value="SIGMA_"></div>
+                <button class="fly-btn">Apply Infrastructure Settings</button>
+            </div>
+        </div>`;
+    },
+
+    async renderQueueSettings(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Redis & Task Queue Management</div></div>
+            <div class="card-body" style="padding:24px">
+                <div class="form-group">
+                    <label>Redis Connection String</label>
+                    <input type="text" class="fly-input" value="redis://localhost:6379/0">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Max Concurrent Workers</label><input type="number" class="fly-input" value="10"></div>
+                    <div class="form-group"><label>Retry Limit</label><input type="number" class="fly-input" value="3"></div>
+                </div>
+                <button class="fly-btn">Update Queue Config</button>
+            </div>
+        </div>`;
+    },
+
+    async renderBackupRestore(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Database Backup & Disaster Recovery</div></div>
+            <div class="card-body" style="padding:24px">
+                <div style="background:var(--bg-page); padding:20px; border-radius:12px; margin-bottom:24px">
+                    <h4 style="margin-bottom:8px">Manual Database Snapshot</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px">Download a full SQL dump of your SIGMAPANEL instance.</p>
+                    <button class="fly-btn fly-btn-secondary" onclick="window.ui.showToast('Generating backup...', 'info')">Download .SQL Backup</button>
+                </div>
+                <div style="border-top:1px solid var(--border); padding-top:24px">
+                    <h4 style="margin-bottom:8px">Restore from Snapshot</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px">Restore all accounts, numbers and SMS from a previous backup file.</p>
+                    <input type="file" id="restore-file" style="display:none">
+                    <button class="fly-btn fly-btn-danger" onclick="document.getElementById('restore-file').click()">Select Backup File to Restore</button>
+                </div>
+            </div>
+        </div>`;
     }
 };
 

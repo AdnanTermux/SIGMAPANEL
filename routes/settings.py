@@ -34,7 +34,7 @@ async def list_settings(request: Request, key: str = Query(None)):
         tok = extract_token(auth_header)
         p = verify_token(tok) if tok else None
         if p and p["role"] != "admin":
-            conds.append("(user_id IS NULL OR user_id = ?)"); params.append(p["userId"])
+            conds.append("(user_id IS NULL OR user_id = ?)"); params.append(p["id"])
     else:
         # Non-authenticated only sees global settings
         conds.append("user_id IS NULL")

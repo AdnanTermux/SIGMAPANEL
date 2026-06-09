@@ -3,7 +3,10 @@ const testPanel = {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             const data = await window.api.call('/api/numbers/test-panel');
+            const rangesData = await window.api.call('/api/ranges');
+            const ranges = rangesData.data || [];
             const rows = data.data || [];
+
             container.innerHTML = `
             <div class="card">
                 <div class="card-header">
@@ -30,27 +33,41 @@ const testPanel = {
                 <div class="table-wrapper">
                     <table class="fly-table">
                         <thead>
-                            <tr><th>Range</th><th>Prefix</th><th>Test Number</th><th>Payout</th><th>Limits (D/W)</th><th>Status</th><th>Provider</th><th>Last Activity</th></tr>
+                            <tr><th>Range</th><th>Test Number(s)</th><th>Payout</th><th>Limits (D/W)</th><th>Status</th></tr>
                         </thead>
                         <tbody>
-                            ${rows.map(n => `
+                            ${ranges.map(r => {
+                                const tnums = r.test_numbers ? r.test_numbers.split('\n').filter(x => x.trim()) : [];
+                                return `
                                 <tr>
-                                    <td>${n.range_name || '-'}</td>
-                                    <td><code>${n.number_prefix || (n.number || '').slice(0, 3)}</code></td>
-                                    <td style="font-weight:700">${n.number}</td>
-                                    <td><span style="color:var(--success); font-weight:600">$${n.rate || '0.00'}</span></td>
+                                    <td><strong>${r.name}</strong><br><small>${r.number_prefix || ''}</small></td>
+                                    <td>
+                                        ${tnums.length ? tnums.map(tn => `<div style="margin-bottom:4px"><code>${tn}</code></div>`).join('') : '<span style="color:#94a3b8">None assigned</span>'}
+                                    </td>
+                                    <td><span style="color:var(--success); font-weight:600">$${r.rate || '0.00'}</span></td>
                                     <td><span class="badge badge-secondary">Unlimited</span></td>
                                     <td><span class="badge badge-success">Online</span></td>
-                                    <td>${n.service || 'Default'}</td>
-                                    <td style="font-size:11px; color:var(--text-secondary)">${n.updated_at ? window.ui.formatDate(n.updated_at) : '-'}</td>
-                                </tr>
-                            `).join('')}
-                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="8">No infrastructure numbers available</td></tr>' : ''}
+                                </tr>`;
+                            }).join('')}
+                            ${ranges.length === 0 ? '<tr class="empty-row"><td colspan="5">No infrastructure ranges available</td></tr>' : ''}
                         </tbody>
                     </table>
                 </div>
+
+                <div class="card-footer" style="background:#f8fafc; border-top:1px solid var(--border); padding:20px">
+                    <div style="font-weight:600; margin-bottom:12px; font-size:14px">${ICONS.plus} Manual Test Numbers</div>
+                    <p style="font-size:12px; color:#64748b; margin-bottom:15px">Paste specific test numbers you wish to monitor during your testing session.</p>
+                    <textarea id="manual-test-nums" class="fly-input" rows="3" placeholder="+1234567890\n+9876543210" style="margin-bottom:12px"></textarea>
+                    <button class="fly-btn fly-btn-sm" onclick="window.testPanel.saveManualNumbers()">Save for Session</button>
+                </div>
             </div>`;
         } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
+    },
+
+    saveManualNumbers() {
+        const val = document.getElementById('manual-test-nums').value;
+        localStorage.setItem('manual_test_numbers', val);
+        window.ui.showToast('Test numbers saved for this session', 'success');
     },
 
     async renderTestReports(container) {

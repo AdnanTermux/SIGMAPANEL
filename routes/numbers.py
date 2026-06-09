@@ -254,10 +254,12 @@ async def list_test_numbers(
     with get_db() as conn:
         # Get all active ranges
         ranges_query = "SELECT * FROM ranges WHERE status = 'active'"
+        params = []
         if rangeId:
-            ranges_query += f" AND id = '{rangeId}'"
+            ranges_query += " AND id = ?"
+            params.append(rangeId)
 
-        ranges = conn.execute(ranges_query).fetchall()
+        ranges = conn.execute(ranges_query, params).fetchall()
 
         result = []
         for r in ranges:

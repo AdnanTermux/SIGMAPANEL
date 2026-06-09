@@ -81,4 +81,6 @@ async def delivery_logs(request: Request, p=Depends(require_role(["admin", "mana
 
 @router.get("/failed")
 async def failed_sms(request: Request, p=Depends(require_role(["admin", "manager"]))):
-    return {"data": []}
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM failed_sms ORDER BY created_at DESC LIMIT 100").fetchall()
+    return {"data": [dict(r) for r in rows]}

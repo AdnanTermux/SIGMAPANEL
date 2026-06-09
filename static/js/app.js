@@ -26,40 +26,22 @@ const TEST_NAV = [
             { key: 'test-numbers', label: 'SMS Test Numbers', icon: ICONS.phone, roles: ['test_user'] },
             { key: 'test-reports', label: 'SMS Test Reports', icon: ICONS.report, roles: ['test_user'] },
             { key: 'test-live-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['test_user'] },
-            { key: 'test-range-tester', label: 'Range Tester', icon: ICONS.layers, roles: ['test_user'] },
             { key: 'test-traffic-stats', label: 'Traffic Stats', icon: ICONS.chart, roles: ['test_user'] },
-            { key: 'test-provider-monitor', label: 'Provider Monitor', icon: ICONS.server, roles: ['test_user'] },
         ]
     }
 ];
 
 const NAV_STRUCTURE = [
     {
-        group: 'MAIN',
+        group: 'NUMBERS',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'dashboard', label: 'Dashboard', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'my-numbers', label: 'SMS Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'my-numbers', label: 'My Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'self-allocation', label: 'Self Allocation', icon: ICONS.layers, roles: ['reseller', 'sub_reseller'] },
-            { key: 'users', label: 'Clients', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'ratecard', label: 'Ratecard', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'bulk-allocation', label: 'Bulk Allocation', icon: ICONS.plus, roles: ['admin', 'manager'] },
-            { key: 'statements', label: 'Statements', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'api-playground', label: 'CR API', icon: ICONS.api, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'sms-analytics', label: 'SMS Stats', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'credit-notes', label: 'Credit Notes', icon: ICONS.wallet, roles: ['admin', 'manager'] },
-            { key: 'payment-requests', label: 'Payment Requests', icon: ICONS.wallet, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'my-sms', label: 'SMS Report', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'managers', label: 'Client Manager', icon: ICONS.users, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'NUMBERS',
-        roles: ['admin', 'manager'],
-        items: [
-            { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager'] },
-            { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager'] },
+            { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'export-numbers', label: 'Export Numbers', icon: ICONS.transfer, roles: ['admin', 'manager'] },
             { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'blacklist-management', label: 'Blacklist Management', icon: ICONS.ban, roles: ['admin', 'manager'] },
@@ -67,10 +49,13 @@ const NAV_STRUCTURE = [
     },
     {
         group: 'SMS',
-        roles: ['admin', 'manager'],
+        roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
-            { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager'] },
-            { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager'] },
+            { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'profit-stats', label: 'Profit Stats', icon: ICONS.profit, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'live-otp-feed', label: 'Live OTP Feed', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'sms-analytics', label: 'SMS Analytics', icon: ICONS.chart, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
+            { key: 'search-sms', label: 'Search SMS', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'delivery-logs', label: 'Delivery Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
             { key: 'failed-sms', label: 'Failed SMS', icon: ICONS.x, roles: ['admin', 'manager'] },
         ]
@@ -80,6 +65,7 @@ const NAV_STRUCTURE = [
         roles: ['admin', 'manager'],
         items: [
             { key: 'registration-requests', label: 'Registration Requests', icon: ICONS.users, roles: ['admin', 'manager'] },
+            { key: 'payment-requests', label: 'Payment Requests', icon: ICONS.wallet, roles: ['admin', 'manager'] },
             { key: 'approval-queue', label: 'Approval Queue', icon: ICONS.shield, roles: ['admin', 'manager'] },
             { key: 'rejected-requests', label: 'Rejected Requests', icon: ICONS.x, roles: ['admin', 'manager'] },
         ]
@@ -98,20 +84,33 @@ const NAV_STRUCTURE = [
     },
     {
         group: 'MANAGEMENT',
-        roles: ['admin', 'manager'],
+        roles: ['admin', 'manager', 'reseller'],
         items: [
+            { key: 'users', label: 'Users', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'managers', label: 'Managers', icon: ICONS.users, roles: ['admin'] },
             { key: 'resellers', label: 'Resellers', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'sub-resellers', label: 'Sub Resellers', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'account-balances', label: 'Account Balances', icon: ICONS.wallet, roles: ['admin', 'manager'] },
+            { key: 'sub-resellers', label: 'Sub Resellers', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'account-balances', label: 'Account Balances', icon: ICONS.wallet, roles: ['admin', 'manager', 'reseller'] },
+            { key: 'statements', label: 'Statements', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'audit-logs', label: 'Audit Logs', icon: ICONS.shield, roles: ['admin'] },
             { key: 'activity-logs', label: 'Activity Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
             { key: 'permissions', label: 'Permissions', icon: ICONS.key, roles: ['admin'] },
         ]
     },
     {
+        group: 'SECURITY',
+        roles: ['admin'],
+        items: [
+            { key: 'security-dashboard', label: 'Security Overview', icon: ICONS.shield, roles: ['admin'] },
+            { key: 'blocked-ips', label: 'Blocked IPs', icon: ICONS.ban, roles: ['admin'] },
+            { key: 'threat-logs', label: 'Attack Logs', icon: ICONS.report, roles: ['admin'] },
+        ]
+    },
+    {
         group: 'API',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
+            { key: 'api-playground', label: 'API Playground', icon: ICONS.api, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'api-tokens', label: 'API Tokens', icon: ICONS.key, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'documentation', label: 'Documentation', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-test', label: 'Live Test', icon: ICONS.send, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
@@ -122,15 +121,22 @@ const NAV_STRUCTURE = [
         group: 'SMPP SERVER',
         roles: ['admin'],
         items: [
-            { key: 'smpp-sessions', label: 'Connected Providers', icon: ICONS.transfer, roles: ['admin'] },
-            { key: 'smpp-active-sessions', label: 'Active Sessions', icon: ICONS.eye, roles: ['admin'] },
-            { key: 'smpp-accounts', label: 'Provider Accounts', icon: ICONS.users, roles: ['admin'] },
-            { key: 'smpp-throughput', label: 'Throughput Monitoring', icon: ICONS.chart, roles: ['admin'] },
-            { key: 'smpp-conn-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'smpp-failed', label: 'Failed Packets', icon: ICONS.x, roles: ['admin'] },
-            { key: 'smpp-dlr-logs', label: 'DLR Logs', icon: ICONS.sms, roles: ['admin'] },
-            { key: 'smpp-queue', label: 'Queue Monitoring', icon: ICONS.layers, roles: ['admin'] },
-            { key: 'smpp-security', label: 'Security Logs', icon: ICONS.shield, roles: ['admin'] },
+            { key: 'smpp-server-connected', label: 'Connected Providers', icon: ICONS.transfer, roles: ['admin'] },
+            { key: 'smpp-server-sessions', label: 'Active Sessions', icon: ICONS.eye, roles: ['admin'] },
+            { key: 'smpp-server-accounts', label: 'Provider Accounts', icon: ICONS.users, roles: ['admin'] },
+            { key: 'smpp-server-throughput', label: 'Throughput Monitoring', icon: ICONS.chart, roles: ['admin'] },
+            { key: 'smpp-server-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
+            { key: 'smpp-server-failed', label: 'Failed Packets', icon: ICONS.x, roles: ['admin'] },
+            { key: 'smpp-server-dlr', label: 'DLR Logs', icon: ICONS.report, roles: ['admin'] },
+            { key: 'smpp-server-queue', label: 'Queue Monitoring', icon: ICONS.layers, roles: ['admin'] },
+            { key: 'smpp-server-security', label: 'Security Logs', icon: ICONS.shield, roles: ['admin'] },
+        ]
+    },
+    {
+        group: 'INTERCONNECTION',
+        roles: ['admin'],
+        items: [
+            { key: 'smpp-interconnect', label: 'SMPP Interconnect', icon: ICONS.transfer, roles: ['admin'] },
         ]
     },
     {
@@ -157,9 +163,6 @@ function init() {
     window.router.addRoute('self-allocation', (c) => window.numbers.renderSelfAllocation(c));
     window.router.addRoute('bulk-allocation', (c) => window.numbers.renderBulkAllocation(c));
     window.router.addRoute('sms-ranges', (c) => window.ranges.renderRanges(c));
-    window.router.addRoute('ratecard', (c) => window.ranges.renderRatecard(c));
-    window.router.addRoute('statements', (c) => window.sms.renderAnalytics(c));
-    window.router.addRoute('credit-notes', (c) => window.payments.renderRequests(c));
     window.router.addRoute('search-access', (c) => window.searchAccess.render(c));
     window.router.addRoute('live-access', (c) => window.numbers.renderLiveAccess(c));
     window.router.addRoute('bulk-tools', (c) => window.numbers.renderBulkTools(c));
@@ -193,7 +196,7 @@ function init() {
     });
     window.router.addRoute('failed-sms', (c) => {
         window.sms.stopLiveFeed();
-        window.numbers.renderFailedSms(c);
+        window.sms.renderFailedSms(c);
     });
 
     // Management routes
@@ -202,6 +205,14 @@ function init() {
     window.router.addRoute('resellers', (c) => window.users.renderUsersByRole(c, 'reseller'));
     window.router.addRoute('sub-resellers', (c) => window.users.renderUsersByRole(c, 'sub_reseller'));
     window.router.addRoute('account-balances', (c) => window.users.renderBalances(c));
+    window.router.addRoute('statements', (c) => window.payments.renderStatements(c));
+    window.router.addRoute('audit-logs', (c) => window.users.renderAuditLogs(c));
+    window.router.addRoute('activity-logs', (c) => window.users.renderActivityLogs(c));
+
+    // Security routes
+    window.router.addRoute('security-dashboard', (c) => window.security.renderDashboard(c));
+    window.router.addRoute('blocked-ips', (c) => window.security.renderBlockedIPs(c));
+    window.router.addRoute('threat-logs', (c) => window.security.renderThreatLogs(c));
 
     // Provider routes
     window.router.addRoute('smpp-providers', (c) => window.smpp.renderProviders(c));
@@ -209,14 +220,28 @@ function init() {
     window.router.addRoute('provider-status', (c) => window.smpp.renderStatus(c));
     window.router.addRoute('connection-logs', (c) => window.smpp.renderConnectionLogs(c));
     window.router.addRoute('failover-management', (c) => window.smpp.renderFailover(c));
+    window.router.addRoute('throughput-stats', (c) => window.smpp.renderThroughput(c));
 
     // Requests routes
     window.router.addRoute('payment-requests', (c) => window.payments.renderRequests(c));
     window.router.addRoute('registration-requests', (c) => window.users.renderRegRequests(c));
     window.router.addRoute('permissions', (c) => window.users.renderPermissions(c));
+    window.router.addRoute('approval-queue', (c) => window.users.renderApprovalQueue(c));
+    window.router.addRoute('rejected-requests', (c) => window.users.renderRejectedRequests(c));
 
     // Interconnect routes
     window.router.addRoute('smpp-interconnect', (c) => window.smppInterconnect.render(c));
+
+    // SMPP Server routes
+    window.router.addRoute('smpp-server-connected', (c) => window.smpp.renderServerConnected(c));
+    window.router.addRoute('smpp-server-sessions', (c) => window.smpp.renderServerSessions(c));
+    window.router.addRoute('smpp-server-accounts', (c) => window.smpp.renderServerAccounts(c));
+    window.router.addRoute('smpp-server-throughput', (c) => window.smpp.renderServerThroughput(c));
+    window.router.addRoute('smpp-server-logs', (c) => window.smpp.renderServerLogs(c));
+    window.router.addRoute('smpp-server-failed', (c) => window.smpp.renderServerFailed(c));
+    window.router.addRoute('smpp-server-dlr', (c) => window.smpp.renderServerDlr(c));
+    window.router.addRoute('smpp-server-queue', (c) => window.smpp.renderServerQueue(c));
+    window.router.addRoute('smpp-server-security', (c) => window.smpp.renderServerSecurity(c));
 
     // Test Panel routes
     window.router.addRoute('test-numbers', (c) => window.testPanel.renderTestNumbers(c));
@@ -228,6 +253,8 @@ function init() {
 
     // API routes
     window.router.addRoute('api-playground', (c) => window.apiManagement.renderPlayground(c));
+    window.router.addRoute('api-tokens', (c) => window.apiManagement.renderTokens(c));
+    window.router.addRoute('live-test', (c) => window.apiManagement.renderLiveTest(c));
 
     // Settings routes
     window.router.addRoute('general-settings', (c) => window.settings.renderGeneral(c));
@@ -235,6 +262,9 @@ function init() {
     window.router.addRoute('notifications-settings', (c) => window.settings.renderNotifications(c));
     window.router.addRoute('documentation', (c) => window.settings.renderDocumentation(c));
     window.router.addRoute('webhook-config', (c) => window.settings.renderWebhookConfig(c));
+    window.router.addRoute('smpp-settings', (c) => window.settings.renderSmppSettings(c));
+    window.router.addRoute('queue-settings', (c) => window.settings.renderQueueSettings(c));
+    window.router.addRoute('backup-restore', (c) => window.settings.renderBackupRestore(c));
 
     // Fill other routes as placeholders
     [...NAV_STRUCTURE, ...TEST_NAV].forEach(group => {

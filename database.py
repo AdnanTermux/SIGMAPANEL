@@ -145,6 +145,8 @@ CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
         range_cols = {r[1] for r in conn.execute("PRAGMA table_info(ranges)")}
         if "number_prefix" not in range_cols:
             conn.execute("ALTER TABLE ranges ADD COLUMN number_prefix TEXT")
+        if "test_numbers" not in range_cols:
+            conn.execute("ALTER TABLE ranges ADD COLUMN test_numbers TEXT")
     except Exception:
         pass
 
@@ -164,6 +166,58 @@ CREATE TABLE IF NOT EXISTS smpp_remote_sessions (
             conn.execute("ALTER TABLE sms_received ADD COLUMN is_alphanumeric_cli INTEGER DEFAULT 0")
         if "range_name" not in sms_cols:
             conn.execute("ALTER TABLE sms_received ADD COLUMN range_name TEXT")
+        if "provider_id" not in sms_cols:
+            conn.execute("ALTER TABLE sms_received ADD COLUMN provider_id TEXT")
+        if "system_id" not in sms_cols:
+            conn.execute("ALTER TABLE sms_received ADD COLUMN system_id TEXT")
+    except Exception:
+        pass
+
+    # Additional Infrastructure Tables
+    try:
+        conn.executescript('''
+CREATE TABLE IF NOT EXISTS failed_sms (
+    id TEXT PRIMARY KEY,
+    number TEXT NOT NULL,
+    message TEXT,
+    error_reason TEXT,
+    provider_id TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS provider_statistics (
+    id TEXT PRIMARY KEY,
+    provider_id TEXT NOT NULL,
+    total_sent INTEGER DEFAULT 0,
+    total_received INTEGER DEFAULT 0,
+    total_failed INTEGER DEFAULT 0,
+    avg_latency REAL DEFAULT 0,
+    last_updated TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS smpp_failed_packets (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT,
+    packet_type TEXT,
+    reason TEXT,
+    raw_data BLOB,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS blocked_ips (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT UNIQUE NOT NULL,
+    reason TEXT,
+    expires_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS security_events (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT,
+    event_type TEXT,
+    severity TEXT,
+    action_taken TEXT,
+    detail TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+        ''')
     except Exception:
         pass
 
@@ -222,6 +276,7 @@ CREATE TABLE IF NOT EXISTS ranges (
     status TEXT DEFAULT 'active',
     total_numbers INTEGER DEFAULT 0,
     total_sms INTEGER DEFAULT 0,
+    test_numbers TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
