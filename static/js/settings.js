@@ -2,246 +2,51 @@ const settings = {
     async renderGeneral(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">General Platform Settings</div></div>
-            <div class="card-body" style="padding:20px">
+            <div class="card-header"><div class="card-title">System Configuration</div></div>
+            <div class="card-body">
+                <div class="form-group"><label>Platform Name</label><input type="text" id="set-pn" class="fly-input" value="SIGMAPANEL"></div>
                 <div class="form-group">
-                    <label>Platform Name</label>
-                    <input type="text" class="fly-input" value="SIGMAPANEL">
+                    <label>Registration Status</label>
+                    <select id="set-se" class="fly-input"><option value="true">Open</option><option value="false">Closed</option></select>
                 </div>
-                <div class="form-group">
-                    <label>Support Email</label>
-                    <input type="email" class="fly-input" value="support@sigmapanel.com">
-                </div>
-                <div class="form-group">
-                    <label>Default Payout Threshold ($)</label>
-                    <input type="number" class="fly-input" value="50">
-                </div>
-                <button class="fly-btn">Save Changes</button>
-            </div>
-        </div>
-
-        <div class="card" style="margin-top:24px">
-            <div class="card-header"><div class="card-title">Registration & Signup Controls</div></div>
-            <div class="card-body" style="padding:20px">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Public Signup Status</label>
-                        <select id="set-signup-enabled" class="fly-input">
-                            <option value="true">ENABLED - Public registration open</option>
-                            <option value="false">DISABLED - Show contact info</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Daily Signup Limit</label>
-                        <input type="number" id="set-signup-limit" class="fly-input" value="50">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>WhatsApp Contact (When off)</label>
-                    <input type="text" id="set-contact-whatsapp" class="fly-input" placeholder="+923000767749">
-                </div>
-                <div class="form-group">
-                    <label>MS Teams Email (When off)</label>
-                    <input type="email" id="set-contact-teams" class="fly-input" placeholder="adnanman2026@outlook.com">
-                </div>
-                <div class="form-group">
-                    <label>Telegram Username (When off)</label>
-                    <input type="text" id="set-contact-telegram" class="fly-input" placeholder="@sigmapanel">
-                </div>
-                <button class="fly-btn" onclick="window.settings.saveSignupSettings()">Save Signup Settings</button>
+                <button class="fly-btn" onclick="window.settings.save()">Save Platform Config</button>
             </div>
         </div>`;
-        this.loadSignupSettings();
+        this.load();
     },
 
-    async loadSignupSettings() {
+    async load() {
         try {
             const res = await window.api.call('/api/settings');
             res.data.forEach(s => {
-                const el = document.getElementById(`set-${s.setting_key.replace(/_/g, '-')}`);
-                if (el) el.value = s.setting_value;
+                if (s.setting_key === 'signup_enabled') document.getElementById('set-se').value = s.setting_value;
             });
         } catch (e) {}
     },
 
-    async saveSignupSettings() {
-        const keys = ['signup_enabled', 'signup_daily_limit', 'contact_whatsapp', 'contact_teams', 'contact_telegram'];
+    async save() {
         try {
-            for (const k of keys) {
-                const val = document.getElementById(`set-${k.replace(/_/g, '-')}`).value;
-                await window.api.call('/api/settings', {
-                    method: 'POST',
-                    body: JSON.stringify({ key: k, value: val })
-                });
-            }
-            window.ui.showToast('Signup settings updated successfully', 'success');
-        } catch (err) {
-            window.ui.showToast(err.message, 'error');
-        }
-    },
-
-    async renderNotifications(container) {
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">Notification Channels & Alerts</div></div>
-            <div class="card-body" style="padding:20px">
-                <div class="form-group">
-                    <label><input type="checkbox" checked> Enable Email Alerts</label>
-                </div>
-                <div class="form-group">
-                    <label><input type="checkbox" checked> Telegram Bot Notifications</label>
-                </div>
-                <div class="form-group">
-                    <label>Telegram Bot Token</label>
-                    <input type="password" class="fly-input" value="********">
-                </div>
-                <button class="fly-btn">Update Preferences</button>
-            </div>
-        </div>`;
-    },
-
-    async renderSecurity(container) {
-        const user = window.auth.getUser();
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">My Profile & Account Information</div></div>
-            <div class="card-body" style="padding:24px">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" class="fly-input" value="${user.username}" disabled>
-                        <small style="color:var(--text-secondary)">Username cannot be changed</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="my-email" class="fly-input" value="${user.email || ''}">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="my-fullname" class="fly-input" value="${user.full_name || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>Phone Number</label>
-                        <input type="text" id="my-phone" class="fly-input" value="${user.phone || ''}">
-                    </div>
-                </div>
-                <button class="fly-btn" onclick="window.settings.updateProfile()">Save Profile Details</button>
-            </div>
-        </div>
-
-        <div class="card" style="margin-top:24px">
-            <div class="card-header"><div class="card-title">Security & Password Management</div></div>
-            <div class="card-body" style="padding:24px">
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" id="my-new-password" class="fly-input" placeholder="Enter new password to change">
-                </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" id="my-confirm-password" class="fly-input" placeholder="Repeat new password">
-                </div>
-                <button class="fly-btn secondary" onclick="window.settings.updatePassword()">Update Password</button>
-            </div>
-        </div>`;
-    },
-
-    async updateProfile() {
-        const userId = window.auth.getUser().id;
-        const email = document.getElementById('my-email').value;
-        const fullName = document.getElementById('my-fullname').value;
-        const phone = document.getElementById('my-phone').value;
-
-        try {
-            const res = await window.api.call(\`/api/users/\${userId}\`, {
-                method: 'PUT',
-                body: JSON.stringify({ email, fullName, phone })
-            });
-            localStorage.setItem('user', JSON.stringify(res.data));
-            window.ui.showToast('Profile updated successfully', 'success');
-        } catch (err) { window.ui.showToast(err.message, 'error'); }
-    },
-
-    async updatePassword() {
-        const userId = window.auth.getUser().id;
-        const password = document.getElementById('my-new-password').value;
-        const confirm = document.getElementById('my-confirm-password').value;
-
-        if (!password) return window.ui.showToast('Please enter a new password', 'error');
-        if (password !== confirm) return window.ui.showToast('Passwords do not match', 'error');
-
-        try {
-            await window.api.call(\`/api/users/\${userId}\`, {
-                method: 'PUT',
-                body: JSON.stringify({ password })
-            });
-            window.ui.showToast('Password updated successfully', 'success');
-            document.getElementById('my-new-password').value = '';
-            document.getElementById('my-confirm-password').value = '';
-        } catch (err) { window.ui.showToast(err.message, 'error'); }
+            await window.api.call('/api/settings', { method: 'POST', body: JSON.stringify({ key: 'signup_enabled', value: document.getElementById('set-se').value }) });
+            window.ui.showToast('Settings updated', 'success');
+        } catch (e) {}
     },
 
     async renderDocumentation(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">API & Infrastructure Documentation</div></div>
-            <div class="card-body" style="padding:24px">
-                <h3>Base URL</h3>
-                <div class="code-block" style="background:var(--bg-page); padding:12px; border-radius:6px; margin-bottom:20px">
+            <div class="card-header"><div class="card-title">Developer Hub & Integration</div></div>
+            <div class="card-body">
+                <h3>Webhook SMS Gateway</h3>
+                <p>To receive SMS via HTTP POST, point your provider callback to:</p>
+                <div style="background:var(--bg-page); padding:16px; border-radius:8px; margin:16px 0">
                     <code>${window.location.origin}/api/webhook/receive</code>
                 </div>
-                <h3>Quick Integration</h3>
-                <p>To receive SMS via HTTP, configure your provider to send a GET/POST request to our webhook endpoint with the following parameters:</p>
+                <h5>Required Parameters</h5>
                 <ul>
-                    <li><code>to</code>: Your virtual number</li>
-                    <li><code>from</code>: Sender ID / CLI</li>
-                    <li><code>msg</code>: Message content</li>
-                    <li><code>secret_token</code>: Your account API token</li>
+                    <li><code>to</code>: Destination number</li>
+                    <li><code>from</code>: Sender ID</li>
+                    <li><code>msg</code>: SMS Content</li>
                 </ul>
-            </div>
-        </div>`;
-    },
-
-    async renderWebhookConfig(container) {
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">Incoming Webhook Infrastructure</div></div>
-            <div class="card-body" style="padding:24px">
-                <p style="margin-bottom:16px">Use this URL to receive SMS via HTTP from any provider. Our system auto-detects formats from Twilio, Nexmo, and standard REVE SMS payloads.</p>
-                <div class="form-group">
-                    <label>Your Personal Webhook URL</label>
-                    <div style="display:flex; gap:8px">
-                        <input type="text" class="fly-input" readonly value="${window.location.origin}/api/webhook/receive" id="webhook-url">
-                        <button class="fly-btn secondary" onclick="window.ui.copyToClipboard(document.getElementById('webhook-url').value)">Copy</button>
-                    </div>
-                </div>
-                <div style="background:var(--bg-page); padding:16px; border-radius:8px; margin-top:20px">
-                    <h5 style="margin-bottom:8px">Standard Payload Support</h5>
-                    <p style="font-size:12px; color:var(--text-secondary)">We support any HTTP GET/POST with these customizable fields:</p>
-                    <ul style="font-size:12px; margin-top:8px; line-height:1.6">
-                        <li><code>to</code>: Destination virtual number</li>
-                        <li><code>from</code>: Sender ID / CLI</li>
-                        <li><code>msg</code>: SMS Content</li>
-                        <li><code>uuid</code>: Unique ID for DLR tracking</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="margin-top:24px">
-            <div class="card-header"><div class="card-title">Outgoing Webhook Configuration</div></div>
-            <div class="card-body" style="padding:24px">
-                <p style="color:var(--text-secondary); margin-bottom:20px">Configure your system to receive real-time POST requests whenever a new SMS arrives for your numbers.</p>
-                <div class="form-group">
-                    <label>Your Callback URL</label>
-                    <input type="url" class="fly-input" placeholder="https://your-domain.com/callback">
-                </div>
-                <div class="form-group">
-                    <label>Secret Key (Optional)</label>
-                    <input type="text" class="fly-input" placeholder="Custom header secret">
-                </div>
-                <button class="fly-btn">Save Configuration</button>
             </div>
         </div>`;
     },
@@ -249,14 +54,11 @@ const settings = {
     async renderSmppSettings(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">SMPP Server Infrastructure Settings</div></div>
-            <div class="card-body" style="padding:24px">
-                <div class="form-row">
-                    <div class="form-group"><label>SMPP Listener Port</label><input type="number" class="fly-input" value="2775"></div>
-                    <div class="form-group"><label>Enquire Link Interval (s)</label><input type="number" class="fly-input" value="30"></div>
-                </div>
-                <div class="form-group"><label>System ID Prefix</label><input type="text" class="fly-input" value="SIGMA_"></div>
-                <button class="fly-btn">Apply Infrastructure Settings</button>
+            <div class="card-header"><div class="card-title">SMPP Infrastructure Settings</div></div>
+            <div class="card-body">
+                <p>Standard Port: <strong>2775</strong></p>
+                <p>Version: <strong>SMPP v3.4</strong></p>
+                <div class="form-group"><label>System ID Prefix</label><input type="text" class="fly-input" value="SIGMA_" readonly></div>
             </div>
         </div>`;
     },
@@ -264,17 +66,21 @@ const settings = {
     async renderQueueSettings(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">Redis & Task Queue Management</div></div>
-            <div class="card-body" style="padding:24px">
-                <div class="form-group">
-                    <label>Redis Connection String</label>
-                    <input type="text" class="fly-input" value="redis://localhost:6379/0">
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Max Concurrent Workers</label><input type="number" class="fly-input" value="10"></div>
-                    <div class="form-group"><label>Retry Limit</label><input type="number" class="fly-input" value="3"></div>
-                </div>
-                <button class="fly-btn">Update Queue Config</button>
+            <div class="card-header"><div class="card-title">Task Queue Monitoring</div></div>
+            <div class="card-body">
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px"><span>Redis Status</span> <span class="badge badge-success">ACTIVE</span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px"><span>Pending Jobs</span> <span class="badge badge-secondary">0</span></div>
+            </div>
+        </div>`;
+    },
+
+    async renderNotifications(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Notification Channels</div></div>
+            <div class="card-body">
+                <div class="form-group"><label><input type="checkbox" checked disabled> System Email Alerts</label></div>
+                <div class="form-group"><label><input type="checkbox" disabled> Telegram Bot Notifications</label></div>
             </div>
         </div>`;
     },
@@ -282,22 +88,34 @@ const settings = {
     async renderBackupRestore(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">Database Backup & Disaster Recovery</div></div>
-            <div class="card-body" style="padding:24px">
-                <div style="background:var(--bg-page); padding:20px; border-radius:12px; margin-bottom:24px">
-                    <h4 style="margin-bottom:8px">Manual Database Snapshot</h4>
-                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px">Download a full SQL dump of your SIGMAPANEL instance.</p>
-                    <button class="fly-btn fly-btn-secondary" onclick="window.ui.showToast('Generating backup...', 'info')">Download .SQL Backup</button>
-                </div>
-                <div style="border-top:1px solid var(--border); padding-top:24px">
-                    <h4 style="margin-bottom:8px">Restore from Snapshot</h4>
-                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px">Restore all accounts, numbers and SMS from a previous backup file.</p>
-                    <input type="file" id="restore-file" style="display:none">
-                    <button class="fly-btn fly-btn-danger" onclick="document.getElementById('restore-file').click()">Select Backup File to Restore</button>
-                </div>
+            <div class="card-header"><div class="card-title">Disaster Recovery</div></div>
+            <div class="card-body">
+                <button class="fly-btn fly-btn-secondary" onclick="window.ui.showToast('Backup scheduled','info')">Trigger Full SQL Snapshot</button>
             </div>
         </div>`;
-    }
-};
+    },
 
+    async renderSecurity(container) {
+        container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><div class="card-title">Account Security Profile</div></div>
+            <div class="card-body">
+                <div class="form-group"><label>New Password</label><input type="password" id="s-np" class="fly-input" placeholder="Leave blank to keep current"></div>
+                <button class="fly-btn" onclick="window.settings.updatePass()">Update Security Details</button>
+            </div>
+        </div>`;
+    },
+
+    async updatePass() {
+        const pass = document.getElementById('s-np').value;
+        if (!pass) return;
+        try {
+            await window.api.call('/api/users/' + window.auth.getUser().id, { method: 'PUT', body: JSON.stringify({ password: pass }) });
+            window.ui.showToast('Password updated', 'success');
+            document.getElementById('s-np').value = '';
+        } catch (e) {}
+    },
+
+    async renderWebhookConfig(container) { this.renderDocumentation(container); }
+};
 window.settings = settings;

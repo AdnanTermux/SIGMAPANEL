@@ -22,6 +22,7 @@ GENERIC_NACK = 0x00000000
 ESME_ROK = 0x00000000
 ESME_RINVBNDSTS = 0x00000001
 ESME_RBINDFAIL = 0x0000000D
+ESME_RTHROTTLED = 0x00000058
 
 class SMPPSession:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
@@ -30,10 +31,14 @@ class SMPPSession:
         self.system_id: Optional[str] = None
         self.authenticated = False
         self.peername = writer.get_extra_info('peername')
+        self.ip_address = str(self.peername[0])
         self.session_id = None
+        self.account_info = None
+        self.msg_count_this_second = 0
+        self.last_second = int(datetime.utcnow().timestamp())
 
     async def handle(self):
-        logger.info(f"New SMPP connection from {self.peername}")
+        logger.info(f"New SMPP connection from {self.ip_address}")
         try:
             while True:
                 header = await self.reader.readexactly(16)
@@ -45,7 +50,7 @@ class SMPPSession:
 
                 await self.process_pdu(command_id, sequence_number, body)
         except asyncio.IncompleteReadError:
-            logger.info(f"Connection closed by ESME {self.peername}")
+            logger.info(f"Connection closed by {self.system_id or self.ip_address}")
         except Exception as e:
             logger.error(f"Error in SMPP session: {e}")
         finally:
@@ -55,6 +60,8 @@ class SMPPSession:
         if self.session_id:
             with get_db() as conn:
                 conn.execute("DELETE FROM smpp_server_sessions WHERE id=?", (self.session_id,))
+                conn.execute("INSERT INTO smpp_server_logs (id, system_id, ip_address, event_type, detail) VALUES (?,?,?,?,?)",
+                             (self.session_id + "_exit", self.system_id, self.ip_address, "DISCONNECT", "Session terminated"))
         self.writer.close()
         try: await self.writer.wait_closed()
         except: pass
@@ -68,11 +75,15 @@ class SMPPSession:
             await self.handle_deliver_sm(seq, body)
         elif command_id == ENQUIRE_LINK:
             await self.send_pdu(ENQUIRE_LINK | 0x80000000, ESME_ROK, seq, b'')
+            # Update last activity
+            if self.session_id:
+                with get_db() as conn:
+                    conn.execute("UPDATE smpp_server_sessions SET last_activity=datetime('now') WHERE id=?", (self.session_id,))
         elif command_id == UNBIND:
             await self.send_pdu(UNBIND | 0x80000000, ESME_ROK, seq, b'')
             self.writer.close()
         else:
-            await self.send_pdu(GENERIC_NACK, 0x00000003, seq, b'') # Invalid Command ID
+            await self.send_pdu(GENERIC_NACK, 0x00000003, seq, b'')
 
     async def handle_bind(self, command_id: int, seq: int, body: bytes):
         parts = body.split(b'\x00')
@@ -82,15 +93,33 @@ class SMPPSession:
         with get_db() as conn:
             acc = conn.execute("SELECT * FROM smpp_server_accounts WHERE system_id = ? AND password = ? AND status = 'active'",
                                (self.system_id, password)).fetchone()
+
             if acc:
+                # IP Whitelist check
+                if acc['ip_whitelist'] and self.ip_address not in acc['ip_whitelist'].split(','):
+                    logger.warning(f"Unauthorized IP {self.ip_address} for System ID {self.system_id}")
+                    await self.send_pdu(command_id | 0x80000000, ESME_RBINDFAIL, seq, b'')
+                    self.writer.close()
+                    return
+
                 self.authenticated = True
+                self.account_info = dict(acc)
                 from auth import generate_id
                 self.session_id = generate_id()
-                conn.execute("INSERT INTO smpp_server_sessions (id, system_id, ip_address, bind_type) VALUES (?,?,?,?)",
-                             (self.session_id, self.system_id, str(self.peername[0]), hex(command_id)))
-                logger.info(f"Bind successful: {self.system_id}")
+                bind_type_str = {BIND_TRANSMITTER: "TX", BIND_RECEIVER: "RX", BIND_TRANSCEIVER: "TRX"}.get(command_id, "UNK")
+
+                conn.execute("INSERT INTO smpp_server_sessions (id, system_id, ip_address, bind_type, status) VALUES (?,?,?,?,?)",
+                             (self.session_id, self.system_id, self.ip_address, bind_type_str, "active"))
+
+                conn.execute("INSERT INTO smpp_server_logs (id, system_id, ip_address, event_type, detail) VALUES (?,?,?,?,?)",
+                             (self.session_id + "_bind", self.system_id, self.ip_address, "BIND_SUCCESS", f"Authenticated as {bind_type_str}"))
+
+                logger.info(f"Bind successful: {self.system_id} ({bind_type_str})")
             else:
-                logger.warning(f"Bind failed: {self.system_id}")
+                logger.warning(f"Bind failed: {self.system_id} from {self.ip_address}")
+                from auth import generate_id
+                conn.execute("INSERT INTO smpp_server_logs (id, system_id, ip_address, event_type, detail) VALUES (?,?,?,?,?)",
+                             (generate_id(), self.system_id, self.ip_address, "BIND_FAILURE", "Invalid credentials"))
 
         if not self.authenticated:
             await self.send_pdu(command_id | 0x80000000, ESME_RBINDFAIL, seq, b'')
@@ -99,12 +128,26 @@ class SMPPSession:
 
         await self.send_pdu(command_id | 0x80000000, ESME_ROK, seq, parts[0] + b'\x00')
 
+    def check_throughput(self) -> bool:
+        if not self.account_info: return True
+        limit = self.account_info.get('throughput_limit', 10)
+        now = int(datetime.utcnow().timestamp())
+        if now == self.last_second:
+            self.msg_count_this_second += 1
+        else:
+            self.last_second = now
+            self.msg_count_this_second = 1
+        return self.msg_count_this_second <= limit
+
     async def handle_submit_sm(self, seq: int, body: bytes):
         if not self.authenticated:
             await self.send_pdu(0x80000004, ESME_RINVBNDSTS, seq, b'')
             return
 
-        # Parsing SUBMIT_SM (Standard SMPP 3.4)
+        if not self.check_throughput():
+            await self.send_pdu(0x80000004, ESME_RTHROTTLED, seq, b'')
+            return
+
         try:
             offset = 0
             while body[offset] != 0: offset += 1 # service_type
@@ -122,38 +165,30 @@ class SMPPSession:
             dst_addr = body[dst_addr_start:offset].decode('utf-8', 'ignore')
             offset += 1
             esm_class, proto, priority = body[offset:offset+3]
-            offset += 5 # skip dates
+            offset += 5
             reg_delivery, replace_if, data_coding, default_msg_id, sm_len = body[offset:offset+5]
             offset += 5
             short_message = body[offset:offset+sm_len]
 
-            # Alphanumeric CLI (TON=5) preservation
             is_alpha = (src_ton == 5)
-
-            # Decoding based on Data Coding
-            # 0: SMSC Default (GSM7), 8: UCS2 (Unicode)
             if data_coding == 8:
                 message = short_message.decode('utf-16-be', 'ignore')
             else:
-                message = short_message.decode('ascii', 'ignore') # Treat as GSM7/ASCII
+                message = short_message.decode('ascii', 'ignore')
 
-            logger.info(f"SMPP SRV SUBMIT_SM: {src_addr} -> {dst_addr} [{message}]")
+            logger.info(f"SMPP SUBMIT_SM from {self.system_id}: {src_addr} -> {dst_addr}")
 
-            # Routing/Processing logic
             from queue_manager import queue_manager
             await queue_manager.push("sms_queue", {
-                "type": "sms_submit",
                 "from": src_addr,
                 "to": dst_addr,
                 "msg": message,
                 "is_alphanumeric_cli": is_alpha,
-                "data_coding": data_coding,
                 "system_id": self.system_id,
-                "timestamp": datetime.utcnow().isoformat()
+                "source": "SMPP_SERVER"
             })
 
-            # Respond with Message ID
-            msg_id = f"{seq}".encode() + b'\x00'
+            msg_id = f"{datetime.utcnow().timestamp()}".encode() + b'\x00'
             await self.send_pdu(0x80000004, ESME_ROK, seq, msg_id)
 
         except Exception as e:
@@ -161,17 +196,15 @@ class SMPPSession:
             await self.send_pdu(0x80000004, 0x00000008, seq, b'')
 
     async def handle_deliver_sm(self, seq: int, body: bytes):
-        """
-        Processes DELIVER_SM PDUs received from upstream providers.
-        Typically used for MO (Mobile Originated) SMS or DLRs (Delivery Reports).
-        """
         if not self.authenticated:
             await self.send_pdu(0x80000005, ESME_RINVBNDSTS, seq, b'')
             return
 
         try:
+            # We treat incoming deliver_sm as MO SMS or DLR
+            # For simplicity, similar parsing as submit_sm
             offset = 0
-            while body[offset] != 0: offset += 1 # service_type
+            while body[offset] != 0: offset += 1 # skip service_type
             offset += 1
             src_ton, src_npi = body[offset], body[offset+1]
             offset += 2
@@ -186,49 +219,37 @@ class SMPPSession:
             dst_addr = body[dst_addr_start:offset].decode('utf-8', 'ignore')
             offset += 1
             esm_class, proto, priority = body[offset:offset+3]
-            offset += 5 # skip dates
+            offset += 5
             reg_delivery, replace_if, data_coding, default_msg_id, sm_len = body[offset:offset+5]
             offset += 5
             short_message = body[offset:offset+sm_len]
 
-            # Check if this is a Delivery Receipt (DLR)
             is_dlr = (esm_class & 0x04) or (esm_class == 4)
 
             if is_dlr:
                 dlr_text = short_message.decode('ascii', 'ignore')
-                logger.info(f"SMPP SRV DLR: {dlr_text}")
-                # ID:123 SUB:001 DLVRD:001 STAT:DELIVRD ERR:000
                 from queue_manager import queue_manager
                 await queue_manager.push("dlr_queue", {
-                    "type": "dlr",
                     "raw": dlr_text,
                     "system_id": self.system_id,
                     "timestamp": datetime.utcnow().isoformat()
                 })
             else:
-                # Handle as MO (Mobile Originated) SMS
-                if data_coding == 8:
-                    message = short_message.decode('utf-16-be', 'ignore')
-                else:
-                    message = short_message.decode('ascii', 'ignore')
+                if data_coding == 8: message = short_message.decode('utf-16-be', 'ignore')
+                else: message = short_message.decode('ascii', 'ignore')
 
-                logger.info(f"SMPP SRV MO_SMS: {src_addr} -> {dst_addr}")
                 from queue_manager import queue_manager
                 await queue_manager.push("sms_queue", {
-                    "type": "mo_sms",
                     "from": src_addr,
                     "to": dst_addr,
                     "msg": message,
-                    "data_coding": data_coding,
                     "system_id": self.system_id,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "source": "SMPP_SERVER_MO"
                 })
 
-            # Respond with Message ID (usually empty string for DELIVER_SM_RESP)
             await self.send_pdu(0x80000005, ESME_ROK, seq, b'\x00')
-
         except Exception as e:
-            logger.error(f"Deliver SM parse error: {e}")
+            logger.error(f"Deliver SM error: {e}")
             await self.send_pdu(0x80000005, 0x00000008, seq, b'')
 
     async def send_pdu(self, command_id: int, status: int, seq: int, body: bytes):
@@ -248,7 +269,7 @@ class SMPPServer:
 
     async def start(self):
         server = await asyncio.start_server(self.handle_client, self.host, self.port)
-        logger.info(f"Production SMPP Server running on port {self.port}")
+        logger.info(f"Production SMPP Server listening on {self.host}:{self.port}")
         async with server: await server.serve_forever()
 
     async def handle_client(self, reader, writer):
@@ -256,5 +277,5 @@ class SMPPServer:
         await session.handle()
 
 if __name__ == "__main__":
-    init_db() # Ensure tables exist
+    init_db()
     asyncio.run(SMPPServer().start())

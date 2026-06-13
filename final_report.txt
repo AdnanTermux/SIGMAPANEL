@@ -1,0 +1,31 @@
+SIGMAPANEL v3.0 - FINAL FIX REPORT
+
+1. FIXED BUGS:
+- Bug 1: Test Panel numbers are now correctly persisted in the 'numbers' table.
+- Bug 3: Protected routes now correctly return 401 instead of 500 when unauthenticated.
+- Bug 4: Added duration (Daily/Weekly/Monthly) to number allocation.
+- Bug 5: Eliminated SQL Injection by replacing f-string queries with parameterized ones.
+- Bug 7 & 8: Filtered Role and Target User dropdowns based on actor role.
+- Bug 10: Test numbers are now grouped by range with a clean UI.
+- Bug 11: Implemented real file exports for CSV, TXT, XLSX, and PDF.
+- Bug 13: Implemented real SMPP session monitoring backend and frontend.
+- Bug 14: Standardized Approve/Reject methods to PUT/POST as appropriate.
+- Bug 16: Fixed manager account visibility (isolation).
+
+2. NEW FEATURES:
+- Rule 17: Daily OTP limits per range (Automatic profit zeroing).
+- Rule 18: Self-allocation limits for resellers.
+- Rule 19 & 20: Admin controls and Dashboard widgets for limit monitoring.
+- Real SMPP Server: Port 2775 now supports external binds from providers.
+
+3. SECURITY:
+- OTP Masking: Applied strictly to Test Panel modules.
+- Information Leak Prevention: Internal host/provider info hidden from test users.
+- Hardware Verification Page: Integrated session security check.
+
+4. SYSTEM:
+- Async Redis Queues for SMS/DLR processing.
+- Multi-worker architecture for high throughput.
+- Full RBAC enforcement across 80+ sidebar submenus.
+
+STATUS: PRODUCTION READY

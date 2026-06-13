@@ -226,14 +226,14 @@ const sms = {
         const body = document.getElementById('search-results-body');
 
         try {
-            const data = await window.api.call(\`/api/sms?number=\${to}&search=\${msg}\`);
+            const data = await window.api.call(\`/api/sms?number=${to}&search=${msg}\`);
             area.style.display = 'block';
             body.innerHTML = data.data.map(s => `
                 <tr>
-                    <td>\${window.ui.formatDate(s.received_at)}</td>
-                    <td>\${s.sender || s.number}</td>
-                    <td>\${s.number}</td>
-                    <td>\${s.message}</td>
+                    <td>${window.ui.formatDate(s.received_at)}</td>
+                    <td>${s.sender || s.number}</td>
+                    <td>${s.number}</td>
+                    <td>${s.message}</td>
                 </tr>
             `).join('') || '<tr><td colspan="4">No results found</td></tr>';
         } catch (err) { window.ui.showToast(err.message, 'error'); }

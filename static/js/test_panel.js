@@ -2,268 +2,82 @@ const testPanel = {
     async renderTestNumbers(container) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
-            const data = await window.api.call('/api/numbers/test-panel');
-            const rangesData = await window.api.call('/api/ranges');
-            const ranges = rangesData.data || [];
-            const rows = data.data || [];
-
+            const res = await window.api.call('/api/numbers/test-panel');
+            const data = res.data || [];
+            const grouped = data.reduce((acc, n) => {
+                if (!acc[n.range_name]) acc[n.range_name] = [];
+                acc[n.range_name].push(n);
+                return acc;
+            }, {});
             container.innerHTML = `
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Telecom-Style SMS Test Numbers</div>
-                    <div class="card-header-actions" style="display:flex; gap:8px">
-                        <button class="fly-btn fly-btn-sm" onclick="window.ui.showToast('Copied','success')">Copy</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#22c55e" onclick="window.numbers.export('csv')">CSV</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#3b82f6" onclick="window.numbers.export('xlsx')">Excel</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#ef4444" onclick="window.numbers.export('pdf')">PDF</button>
-                        <button class="fly-btn fly-btn-sm" style="background:#64748b" onclick="window.print()">Print</button>
-                    </div>
+                <div class="card-header"><div class="card-title">Live Telecom Test Inventory</div></div>
+                <div class="card-body">
+                    ${Object.keys(grouped).map(range => `
+                        <div class="range-group" style="margin-bottom:24px">
+                            <h4 style="background:var(--bg-page); padding:10px 16px; border-radius:8px; border-left:4px solid var(--primary); margin-bottom:12px">${range}</h4>
+                            <div class="table-wrapper"><table class="fly-table"><thead><tr><th>Number</th><th>Rate</th><th>Status</th></tr></thead><tbody>
+                                ${grouped[range].map(n => `<tr><td><code>${n.number}</code></td><td>$${n.rate}</td><td><span class="badge badge-success">READY</span></td></tr>`).join('')}
+                            </tbody></table></div>
+                        </div>`).join('') || '<div class="empty-state">No test numbers found</div>'}
                 </div>
-                <div class="filter-bar">
-                    <div style="display:flex; align-items:center; gap:8px">
-                        <label style="font-size:12px; font-weight:600">Range:</label>
-                        <select class="filter-select" style="min-width:180px"><option>All Active Ranges</option></select>
-                        <button class="fly-btn fly-btn-sm">Filter</button>
-                    </div>
-                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px">
-                        <label style="font-size:12px; font-weight:600">Search:</label>
-                        <input type="text" class="search-input" placeholder="Search number..." style="margin:0">
-                    </div>
-                </div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead>
-                            <tr><th>Range</th><th>Test Number(s)</th><th>Payout</th><th>Limits (D/W)</th><th>Status</th></tr>
-                        </thead>
-                        <tbody>
-                            ${ranges.map(r => {
-                                const tnums = r.test_numbers ? r.test_numbers.split('\n').filter(x => x.trim()) : [];
-                                return `
-                                <tr>
-                                    <td><strong>${r.name}</strong><br><small>${r.number_prefix || ''}</small></td>
-                                    <td>
-                                        ${tnums.length ? tnums.map(tn => `<div style="margin-bottom:4px"><code>${tn}</code></div>`).join('') : '<span style="color:#94a3b8">None assigned</span>'}
-                                    </td>
-                                    <td><span style="color:var(--success); font-weight:600">$${r.rate || '0.00'}</span></td>
-                                    <td><span class="badge badge-secondary">Unlimited</span></td>
-                                    <td><span class="badge badge-success">Online</span></td>
-                                </tr>`;
-                            }).join('')}
-                            ${ranges.length === 0 ? '<tr class="empty-row"><td colspan="5">No infrastructure ranges available</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="card-footer" style="background:#f8fafc; border-top:1px solid var(--border); padding:20px">
-                    <div style="font-weight:600; margin-bottom:12px; font-size:14px">${ICONS.plus} Manual Test Numbers</div>
-                    <p style="font-size:12px; color:#64748b; margin-bottom:15px">Paste specific test numbers you wish to monitor during your testing session.</p>
-                    <textarea id="manual-test-nums" class="fly-input" rows="3" placeholder="+1234567890\n+9876543210" style="margin-bottom:12px"></textarea>
-                    <button class="fly-btn fly-btn-sm" onclick="window.testPanel.saveManualNumbers()">Save for Session</button>
+                <div style="padding:24px; border-top:1px solid var(--border)">
+                    <h4>Session Monitoring Numbers</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px">Paste numbers here to track in real-time during this session.</p>
+                    <textarea id="tp-paste" class="fly-input" rows="4" placeholder="+1234567890\n+9876543210"></textarea>
+                    <button class="fly-btn fly-btn-sm" style="margin-top:8px" onclick="window.testPanel.saveSessionNumbers()">Add to Session</button>
                 </div>
             </div>`;
-        } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
+        } catch (e) { container.innerHTML = '<p>Error: ' + e.message + '</p>'; }
     },
-
-    saveManualNumbers() {
-        const val = document.getElementById('manual-test-nums').value;
-        localStorage.setItem('manual_test_numbers', val);
-        window.ui.showToast('Test numbers saved for this session', 'success');
+    async saveSessionNumbers() {
+        const text = document.getElementById('tp-paste').value;
+        if (!text.trim()) return window.ui.showToast('Please enter numbers', 'error');
+        try {
+            await window.api.call('/api/numbers-ext/bulk-import', { method: 'POST', body: JSON.stringify({ numbersText: text, rangeName: 'TEST_SESSION' }) });
+            window.ui.showToast('Numbers added to infrastructure', 'success');
+            document.getElementById('tp-paste').value = '';
+            this.renderTestNumbers(document.getElementById('page-content'));
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
     },
-
     async renderTestReports(container) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             const data = await window.api.call('/api/sms?limit=50');
-            const rows = data.data || [];
             container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Telecom-Style SMS Reports</div></div>
-                <div class="filter-bar" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px">
-                    <div class="form-group" style="margin:0"><label style="font-size:11px">Date From</label><input type="date" class="fly-input" style="padding:4px 8px"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:11px">Date To</label><input type="date" class="fly-input" style="padding:4px 8px"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:11px">Range</label><select class="fly-input" style="padding:4px 8px"><option>All Ranges</option></select></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:11px">Search CLI/Num</label><input type="text" class="fly-input" style="padding:4px 8px" placeholder="Search..."></div>
-                    <div style="display:flex; align-items:flex-end"><button class="fly-btn fly-btn-sm" style="width:100%">Filter Reports</button></div>
-                </div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead>
-                            <tr><th>Date/Time</th><th>Range</th><th>Number</th><th>CLI (Sender)</th><th>SMS Content</th><th>Provider</th><th>Status</th></tr>
-                        </thead>
-                        <tbody>
-                            ${rows.map(s => `
-                                <tr>
-                                    <td style="font-size:11px">${window.ui.formatDate(s.received_at)}</td>
-                                    <td>${s.range_name || '-'}</td>
-                                    <td><code>${s.number}</code></td>
-                                    <td><span class="badge badge-secondary">${s.service || '-'}</span></td>
-                                    <td class="message-text">${window.ui.escapeHtml(s.message)}</td>
-                                    <td>Route-Main</td>
-                                    <td><span class="badge badge-success">Delivered</span></td>
-                                </tr>
-                            `).join('')}
-                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="7">No infrastructure reports available</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
+            <div class="card"><div class="card-header"><div class="card-title">Test Signal Reports</div></div><div class="table-wrapper"><table class="fly-table"><thead><tr><th>Time</th><th>Target</th><th>CLI (Masked)</th><th>Content</th></tr></thead><tbody>
+                ${data.data.map(s => `<tr><td>${window.ui.formatDate(s.received_at)}</td><td><code>${s.number}</code></td><td><span class="badge badge-secondary">${window.ui.maskService(s.service)}</span></td><td class="message-text">${window.ui.escapeHtml(s.message)}</td></tr>`).join('') || '<tr class="empty-row"><td colspan="4">No reports</td></tr>'}
+            </tbody></table></div></div>`;
+        } catch (e) { container.innerHTML = '<p>Error: ' + e.message + '</p>'; }
     },
-
     async renderLiveFeed(container) {
         container.innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">Real-Time Telecom OTP Feed</div>
-                <div class="badge badge-success">LIVE STREAM</div>
-            </div>
-            <div class="table-wrapper">
-                <table class="fly-table">
-                    <thead><tr><th>Time</th><th>Provider</th><th>Range</th><th>CLI</th><th>Message Preview</th></tr></thead>
-                    <tbody id="test-live-body">
-                        <tr class="empty-row"><td colspan="5">Awaiting live traffic...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
+        <div class="card"><div class="card-header"><div class="card-title">Live Test Feed (Masked)</div><div class="badge badge-success">STREAM ACTIVE</div></div><div class="table-wrapper"><table class="fly-table"><thead><tr><th>Time</th><th>Target</th><th>CLI</th><th>OTP</th></tr></thead><tbody id="test-live-body"><tr class="empty-row"><td colspan="4">Listening...</td></tr></tbody></table></div></div>`;
         this.startLiveFeed();
     },
-
     startLiveFeed() {
-        const body = document.getElementById('test-live-body');
-        if (!body) return;
-        if (this._interval) clearInterval(this._interval);
-
-        this._interval = setInterval(async () => {
-            if (!document.getElementById('test-live-body')) {
-                clearInterval(this._interval);
-                return;
-            }
+        this.stopLiveFeed();
+        this._feedInterval = setInterval(async () => {
+            const body = document.getElementById('test-live-body');
+            if (!body) { this.stopLiveFeed(); return; }
             try {
-                const data = await window.api.call('/api/sms?limit=10');
-                if (data.data && data.data.length) {
-                    body.innerHTML = data.data.map(s => `
-                        <tr>
-                            <td style="font-size:11px">${window.ui.formatDate(s.received_at)}</td>
-                            <td><span style="font-weight:600">Route-Direct</span></td>
-                            <td>${s.range_name || '-'}</td>
-                            <td><span class="badge badge-secondary">${s.service || '-'}</span></td>
-                            <td class="message-text">${window.ui.escapeHtml(s.message)}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    body.innerHTML = '<tr class="empty-row"><td colspan="5">Listening for telecom traffic...</td></tr>';
+                const res = await window.api.call('/api/sms?limit=10');
+                if (res.data.length) {
+                    body.innerHTML = res.data.map(s => `<tr><td>${window.ui.formatDate(s.received_at)}</td><td><code>${s.number}</code></td><td><span class="badge badge-secondary">${window.ui.maskService(s.service)}</span></td><td><span class="otp-code">${s.otp || '-'}</span></td></tr>`).join('');
                 }
             } catch (e) {}
-        }, 10000);
+        }, 5000);
     },
-
+    stopLiveFeed() { if (this._feedInterval) clearInterval(this._feedInterval); },
     async renderTrafficStats(container) {
-        container.innerHTML = `
-        <div class="card">
-            <div class="card-header"><div class="card-title">Real-Time Traffic Analytics</div></div>
-            <div style="padding:24px; height:300px">
-                <canvas id="test-traffic-chart"></canvas>
-            </div>
-            <div class="stats-grid" style="padding:20px; border-top:1px solid var(--border)">
-                <div class="stat-card">
-                    <div class="stat-card-label">Success Rate</div>
-                    <div class="stat-card-value">94.2%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-label">Avg Delay</div>
-                    <div class="stat-card-value">8s</div>
-                </div>
-            </div>
-        </div>`;
-        this.renderTrafficChart();
-    },
-
-    renderTrafficChart() {
+        container.innerHTML = '<div class="card"><div class="card-header"><div class="card-title">Signal Traffic Stats</div></div><div style="padding:24px; height:300px"><canvas id="test-tp-chart"></canvas></div></div>';
         setTimeout(async () => {
-            const ctx = document.getElementById('test-traffic-chart')?.getContext('2d');
-            if (!ctx) return;
             try {
                 const stats = await window.api.call('/api/dashboard/stats');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: stats.weekSmsByDay.map(d => d.date.slice(5)),
-                        datasets: [{
-                            label: 'SMS Volume',
-                            data: stats.weekSmsByDay.map(d => d.count),
-                            borderColor: '#735DFF',
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } }
-                    }
-                });
+                const ctx = document.getElementById('test-tp-chart')?.getContext('2d');
+                if (ctx) new Chart(ctx, { type: 'line', data: { labels: stats.weekSmsByDay.map(d => d.date.slice(5)), datasets: [{ label: 'Signals', data: stats.weekSmsByDay.map(d => d.count), borderColor: '#735DFF' }] }, options: { responsive: true, maintainAspectRatio: false } });
             } catch (e) {}
         }, 100);
-    },
-
-    async renderProviderMonitor(container) {
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-        try {
-            const data = await window.api.call('/api/providers');
-            const providers = data.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Infrastructure Provider Status</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Provider ID</th><th>Gateway</th><th>Type</th><th>Latency</th><th>Status</th></tr></thead>
-                        <tbody>
-                            ${providers.map(p => `
-                                <tr>
-                                    <td><strong>${p.name}</strong></td>
-                                    <td><code>${p.smpp_host || p.api_url || '-'}</code></td>
-                                    <td>${p.type.toUpperCase()}</td>
-                                    <td>0.4s</td>
-                                    <td><span class="badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}">${p.status.toUpperCase()}</span></td>
-                                </tr>
-                            `).join('')}
-                            ${providers.length === 0 ? '<tr class="empty-row"><td colspan="5">No providers configured in infrastructure</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
-    },
-
-    async renderRangeTester(container) {
-        try {
-            const res = await window.api.call('/api/ranges');
-            const ranges = res.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Range Delivery Tester</div></div>
-                <div class="card-body" style="padding:20px">
-                    <div class="form-row">
-                        <div class="form-group"><label>Select App</label><input type="text" id="test-app" class="fly-input" placeholder="e.g. WhatsApp"></div>
-                        <div class="form-group"><label>Select Range</label>
-                            <select id="test-range" class="fly-input">
-                                ${ranges.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-                                ${ranges.length === 0 ? '<option value="">No ranges available</option>' : ''}
-                            </select>
-                        </div>
-                    </div>
-                    <button class="fly-btn" onclick="window.testPanel.triggerTest()">Trigger Test Request</button>
-                </div>
-            </div>`;
-        } catch (e) { container.innerHTML = '<p>Error loading range tester</p>'; }
-    },
-
-    triggerTest() {
-        const app = document.getElementById('test-app').value;
-        const range = document.getElementById('test-range').value;
-        if (!app || !range) return window.ui.showToast('Please fill all fields', 'error');
-        window.ui.showToast(`Test request sent for ${app} on selected range`, 'success');
     }
 };
-
 window.testPanel = testPanel;
