@@ -1,10 +1,9 @@
 """API Management - Token display, docs, live OTP feed"""
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from database import get_db
 from auth import verify_token, extract_token
 from routes.deps import get_current_user, require_role
-from fastapi import Depends
 import secrets
 
 router = APIRouter(prefix="/api/api-management", tags=["api-management"])
@@ -58,12 +57,3 @@ async def api_docs(request: Request):
             {"method": "GET", "path": "/api/numbers?available=true", "desc": "List available numbers"},
         ]
     }
-
-@router.get("/live-otp")
-async def live_otp(request: Request, limit: int = Query(50, ge=1, le=200), p=Depends(get_current_user)):
-    with get_db() as conn:
-        if p["role"] in ("admin", "manager"):
-            rows = conn.execute("SELECT s.number, s.sender, s.service, s.otp, s.message, s.received_at FROM sms_received s WHERE s.otp IS NOT NULL AND s.otp != '' ORDER BY s.received_at DESC LIMIT ?", (limit,)).fetchall()
-        else:
-            rows = conn.execute("SELECT s.number, s.sender, s.service, s.otp, s.message, s.received_at FROM sms_received s WHERE s.assigned_to=? AND s.otp IS NOT NULL AND s.otp != '' ORDER BY s.received_at DESC LIMIT ?", (p["username"], limit)).fetchall()
-    return {"data": [dict(r) for r in rows]}

@@ -4,382 +4,150 @@ const users = {
         try {
             const res = await window.api.call('/api/users?limit=100');
             const allUsers = res.data || [];
-
-            // Filter to top level for the main list
             const user = window.auth.getUser();
-            const topLevel = allUsers.filter(u => u.parent_id === user.id || u.id === user.id);
-
             container.innerHTML = `
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">User Management & Hierarchy</div>
-                    <button class="fly-btn fly-btn-sm" onclick="window.users.showAddModal()">Add New Account</button>
-                </div>
-                <div class="card-body">
-                    <div class="hierarchy-container">
-                        ${this.renderHierarchyNode(user, allUsers)}
-                    </div>
-                </div>
+                <div class="card-header"><div class="card-title">User Management & Hierarchy</div><button class="fly-btn fly-btn-sm" onclick="window.users.showAddModal()">Add Account</button></div>
+                <div class="card-body"><div class="hierarchy-container">${this.renderHierarchyNode(user, allUsers)}</div></div>
             </div>`;
-        } catch (err) {
-            container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
-        }
+        } catch (err) { container.innerHTML = '<p>Error: ' + err.message + '</p>'; }
     },
 
     renderHierarchyNode(u, allUsers, depth = 0) {
         const children = allUsers.filter(child => child.parent_id === u.id);
         const isSelf = u.id === window.auth.getUser().id;
-
         return `
         <div class="hierarchy-node" style="margin-left: ${depth * 20}px; border-left: 2px solid var(--border); padding: 12px 0 12px 16px">
             <div class="hierarchy-user-card" style="display:flex; align-items:center; gap:12px; background:var(--bg-card); border:1px solid var(--border); padding:10px 16px; border-radius:8px">
-                <div class="avatar" style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px">
-                    ${(u.username || 'U').charAt(0).toUpperCase()}
-                </div>
+                <div class="avatar" style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px">${(u.username || 'U').charAt(0).toUpperCase()}</div>
                 <div style="flex:1">
-                    <div style="display:flex; align-items:center; gap:8px">
-                        <span style="font-weight:700">${u.username}</span>
-                        <span class="badge ${window.ROLE_COLORS[u.role] || 'badge-secondary'}" style="font-size:10px">${window.ROLE_LABELS[u.role] || u.role}</span>
-                        ${isSelf ? '<span class="badge badge-success" style="font-size:10px">YOU</span>' : ''}
-                    </div>
+                    <div style="display:flex; align-items:center; gap:8px"><span style="font-weight:700">${u.username}</span> <span class="badge ${window.ROLE_COLORS[u.role] || 'badge-secondary'}">${window.ROLE_LABELS[u.role] || u.role}</span> ${isSelf ? '<span class="badge badge-success">YOU</span>' : ''}</div>
                     <div style="font-size:11px; color:var(--text-secondary)">Balance: $${(u.balance || 0).toFixed(2)} | Status: ${u.status}</div>
                 </div>
-                <div class="node-actions" style="display:flex; gap:4px">
-                    <button class="action-btn" onclick="window.users.adjustBalance('${u.id}', '${u.username}')" title="Adjust Balance">$</button>
-                    ${!isSelf ? `<button class="action-btn delete" onclick="window.users.delete('${u.id}', '${u.username}')">${ICONS.trash}</button>` : ''}
-                </div>
+                <div class="node-actions"><button class="action-btn" onclick="window.users.showEditModal('${u.id}')">${ICONS.edit}</button></div>
             </div>
-            <div class="hierarchy-children">
-                ${children.map(child => this.renderHierarchyNode(child, allUsers, depth + 1)).join('')}
-            </div>
+            <div class="hierarchy-children">${children.map(child => this.renderHierarchyNode(child, allUsers, depth + 1)).join('')}</div>
         </div>`;
     },
 
-    adjustBalance(userId, username) {
-        const body = `
-            <p>Adjusting balance for <strong>${username}</strong></p>
-            <div class="form-group">
-                <label>Amount (Use negative to deduct)</label>
-                <input type="number" id="adj-amount" class="fly-input" step="0.01" value="0.00">
-            </div>
-            <div class="form-group">
-                <label>Reason/Note</label>
-                <input type="text" id="adj-note" class="fly-input" placeholder="Manual top-up">
-            </div>`;
-        const footer = `<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.users.doAdjust('${userId}')">Apply Adjustment</button>`;
-        window.ui.showModal('Adjust Balance', body, footer, 'small');
-    },
-
-    async doAdjust(userId) {
-        const amount = document.getElementById('adj-amount').value;
-        const note = document.getElementById('adj-note').value;
-        try {
-            await window.api.call('/api/transactions/balance-adjust', {
-                method: 'POST',
-                body: JSON.stringify({ userId, amount: parseFloat(amount), note })
-            });
-            window.ui.showToast('Balance adjusted successfully', 'success');
-            window.ui.closeModal();
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) {
-            window.ui.showToast(err.message, 'error');
-        }
-    },
-
     showAddModal() {
-        const body = `
-            <div class="form-row">
-                <div class="form-group"><label>Username *</label><input type="text" id="u-username" class="fly-input" placeholder="3-50 chars"></div>
-                <div class="form-group"><label>Password *</label><input type="password" id="u-password" class="fly-input" placeholder="Min 6 chars"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Email</label><input type="email" id="u-email" class="fly-input"></div>
-                <div class="form-group"><label>Role</label>
-                    <select id="u-role" class="fly-input">
-                        <option value="sub_reseller">Client</option>
-                        <option value="reseller">Reseller</option>
-                        <option value="manager">Manager</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Full Name</label><input type="text" id="u-fullname" class="fly-input"></div>
-                <div class="form-group"><label>Balance ($)</label><input type="number" id="u-balance" class="fly-input" step="0.01" value="0"></div>
-            </div>`;
-        const footer = `<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.users.save()">Create Account</button>`;
-        window.ui.showModal('Add New User', body, footer);
+        const role = window.auth.getUser().role;
+        let options = '';
+        if (role === 'admin') options = '<option value="admin">Admin</option><option value="manager">Manager</option><option value="reseller">Reseller</option><option value="sub_reseller">Client</option><option value="test_user">Test User</option>';
+        else if (role === 'manager') options = '<option value="reseller">Reseller</option><option value="sub_reseller">Client</option>';
+        else if (role === 'reseller') options = '<option value="sub_reseller">Client</option>';
+
+        window.ui.showModal('Create New Account', `
+            <div class="form-row"><div class="form-group"><label>Username</label><input type="text" id="u-username" class="fly-input"></div><div class="form-group"><label>Password</label><input type="password" id="u-password" class="fly-input"></div></div>
+            <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="u-email" class="fly-input"></div><div class="form-group"><label>Role</label><select id="u-role" class="fly-input">${options}</select></div></div>
+        `, '<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.users.save()">Create</button>');
     },
 
     async save() {
-        const payload = {
-            username: document.getElementById('u-username').value,
-            password: document.getElementById('u-password').value,
-            email: document.getElementById('u-email').value || null,
-            role: document.getElementById('u-role').value,
-            fullName: document.getElementById('u-fullname').value || null,
-            balance: parseFloat(document.getElementById('u-balance').value) || 0
-        };
-
+        const payload = { username: document.getElementById('u-username').value, password: document.getElementById('u-password').value, email: document.getElementById('u-email').value, role: document.getElementById('u-role').value };
         try {
-            await window.api.call('/api/users', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-            window.ui.showToast('User created successfully', 'success');
+            await window.api.call('/api/users', { method: 'POST', body: JSON.stringify(payload) });
+            window.ui.showToast('User created', 'success');
             window.ui.closeModal();
             window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) {
-            window.ui.showToast(err.message, 'error');
-        }
-    },
-
-    async delete(id, username) {
-        if (!confirm(`Are you sure you want to delete user ${username}? This cannot be undone.`)) return;
-        try {
-            await window.api.call(`/api/users/${id}`, { method: 'DELETE' });
-            window.ui.showToast('User deleted', 'success');
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) {
-            window.ui.showToast(err.message, 'error');
-        }
+        } catch (e) { window.ui.showToast(e.message, 'error'); }
     },
 
     async renderRegRequests(container) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             const res = await window.api.call('/api/users/registration-requests');
-            const rows = res.data || [];
             container.innerHTML = `
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Public Registration Requests</div>
-                </div>
+                <div class="card-header"><div class="card-title">Registration Approval Queue</div></div>
                 <div class="table-wrapper">
                     <table class="fly-table">
-                        <thead><tr><th>Username</th><th>Profile</th><th>Requested At</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>User</th><th>Email</th><th>Actions</th></tr></thead>
                         <tbody>
-                            ${rows.length ? rows.map(u => `
-                                <tr>
-                                    <td>
-                                        <div style="font-weight:700">${u.username}</div>
-                                        <div style="font-size:11px; color:var(--text-secondary)">${u.email || 'No email'}</div>
-                                    </td>
-                                    <td style="font-size:12px; max-width:300px">
-                                        <div><strong>Name:</strong> ${u.full_name || '-'}</div>
-                                        <div><strong>Prof:</strong> ${u.profession || '-'}</div>
-                                        <div><strong>Payment:</strong> ${u.payment_method} (${u.payment_detail})</div>
-                                    </td>
-                                    <td>${window.ui.formatDate(u.created_at)}</td>
-                                    <td class="actions-cell">
-                                        <button class="action-btn" onclick="window.users.approveReg('${u.id}', '${u.username}')" style="color:var(--success)">Approve</button>
-                                        <button class="action-btn delete" onclick="window.users.rejectReg('${u.id}', '${u.username}')">Reject</button>
-                                    </td>
-                                </tr>
-                            `).join('') : '<tr class="empty-row"><td colspan="4">No pending registration requests</td></tr>'}
+                            ${res.data.map(r => `<tr><td><strong>${r.username}</strong></td><td>${r.email}</td><td><button class="action-btn" onclick="window.users.approveReg('${r.id}')">Approve</button> <button class="action-btn delete" onclick="window.users.rejectReg('${r.id}')">Reject</button></td></tr>`).join('') || '<tr><td colspan="3">Queue empty</td></tr>'}
                         </tbody>
                     </table>
                 </div>
             </div>`;
-        } catch (err) {
-            container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`;
-        }
+        } catch (e) { container.innerHTML = '<p>Error loading queue</p>'; }
     },
 
-    async approveReg(requestId, username) {
-        if (!confirm(`Approve registration and create account for ${username}?`)) return;
-        try {
-            await window.api.call(`/api/users/registration-requests/${requestId}/approve`, { method: 'POST' });
-            window.ui.showToast(`Account created for ${username}`, 'success');
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) { window.ui.showToast(err.message, 'error'); }
+    async approveReg(id) {
+        try { await window.api.call(`/api/users/registration-requests/${id}/approve`, { method: 'POST' }); window.ui.showToast('Approved', 'success'); this.renderRegRequests(document.getElementById('page-content')); }
+        catch (e) { window.ui.showToast(e.message, 'error'); }
     },
 
-    async rejectReg(requestId, username) {
-        if (!confirm(`Reject registration request for ${username}?`)) return;
-        try {
-            await window.api.call(`/api/users/registration-requests/${requestId}/reject`, { method: 'POST' });
-            window.ui.showToast('Request rejected', 'info');
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) { window.ui.showToast(err.message, 'error'); }
+    async rejectReg(id) {
+        try { await window.api.call(`/api/users/registration-requests/${id}/reject`, { method: 'POST' }); window.ui.showToast('Rejected', 'info'); this.renderRegRequests(document.getElementById('page-content')); }
+        catch (e) { window.ui.showToast(e.message, 'error'); }
     },
 
-    async approve(id, username) {
-        if (!confirm(`Approve account for ${username}?`)) return;
-        try {
-            await window.api.call(`/api/users/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify({ status: 'active' })
-            });
-            window.ui.showToast(`Account approved for ${username}`, 'success');
-            window.router.resolvePage(document.getElementById('page-content'));
-        } catch (err) {
-            window.ui.showToast(err.message, 'error');
-        }
-    },
-
-    async renderUsersByRole(container, role) {
+    async renderBalances(container) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
-            const data = await window.api.call(`/api/users?role=${role}`);
-            const rows = data.data || [];
+            const res = await window.api.call('/api/users?limit=100');
             container.innerHTML = `
             <div class="card">
-                <div class="card-header"><div class="card-title">${window.ROLE_LABELS[role] || role} Accounts</div></div>
+                <div class="card-header"><div class="card-title">Balance Management</div></div>
                 <div class="table-wrapper">
                     <table class="fly-table">
-                        <thead><tr><th>User</th><th>Status</th><th>Balance</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            ${rows.length ? rows.map(u => `
-                                <tr>
-                                    <td><strong>${u.username}</strong><br><small>${u.email || ''}</small></td>
-                                    <td><span class="badge ${u.status === 'active' ? 'badge-success' : 'badge-danger'}">${u.status}</span></td>
-                                    <td>$${(u.balance || 0).toFixed(2)}</td>
-                                    <td class="actions-cell">
-                                        <button class="action-btn" onclick="window.users.edit('${u.id}')">${ICONS.edit}</button>
-                                    </td>
-                                </tr>
-                            `).join('') : `<tr class="empty-row"><td colspan="4">No ${role}s found</td></tr>`}
-                        </tbody>
+                        <thead><tr><th>User</th><th>Current Balance</th><th>Actions</th></tr></thead>
+                        <tbody>${res.data.map(u => `<tr><td><strong>${u.username}</strong></td><td>$${u.balance.toFixed(2)}</td><td><button class="action-btn" onclick="window.users.showAdjustModal('${u.id}', '${u.username}')">Adjust</button></td></tr>`).join('')}</tbody>
                     </table>
                 </div>
             </div>`;
-        } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
+        } catch (e) {}
     },
 
-    async renderPermissions(container) {
+    showAdjustModal(id, name) {
+        window.ui.showModal('Adjust Balance: ' + name, `
+            <div class="form-group"><label>Amount (Negative to deduct)</label><input type="number" id="adj-amount" class="fly-input" value="0" step="0.01"></div>
+            <div class="form-group"><label>Note</label><input type="text" id="adj-note" class="fly-input" placeholder="Manual adjustment"></div>
+        `, '<button class="fly-btn secondary" onclick="window.ui.closeModal()">Cancel</button><button class="fly-btn" onclick="window.users.doAdjust(\'' + id + '\')">Apply</button>');
+    },
+
+    async doAdjust(id) {
+        const payload = { userId: id, amount: parseFloat(document.getElementById('adj-amount').value), note: document.getElementById('adj-note').value };
+        try { await window.api.call('/api/transactions/balance-adjust', { method: 'POST', body: JSON.stringify(payload) }); window.ui.showToast('Balance updated', 'success'); window.ui.closeModal(); this.renderBalances(document.getElementById('page-content')); }
+        catch (e) { window.ui.showToast(e.message, 'error'); }
+    },
+
+    async renderAuditLogs(container) {
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const res = await window.api.call('/api/dashboard/audit-logs');
+            container.innerHTML = `
+            <div class="card"><div class="card-header"><div class="card-title">Infrastructure Audit Trails</div></div><div class="table-wrapper"><table class="fly-table"><thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead><tbody>${res.data.map(l => `<tr><td>${window.ui.formatDate(l.created_at)}</td><td>${l.actor}</td><td>${l.action}</td></tr>`).join('') || '<tr><td colspan="3">No logs</td></tr>'}</tbody></table></div></div>`;
+        } catch (e) {}
+    },
+
+    async renderActivityLogs(container) { this.renderAuditLogs(container); },
+    async renderPermissions(container) { this.renderRBAC(container); },
+
+    async renderRBAC(container) {
         container.innerHTML = `
         <div class="card">
-            <div class="card-header"><div class="card-title">Role-Based Access Control (RBAC)</div></div>
+            <div class="card-header"><div class="card-title">Permissions & Module Access Control</div></div>
             <div class="table-wrapper">
                 <table class="fly-table">
-                    <thead><tr><th>Role</th><th>Can Create</th><th>Can View Analytics</th><th>Can Manage SMPP</th></tr></thead>
+                    <thead><tr><th>Feature</th><th>Admin</th><th>Manager</th><th>Reseller</th><th>Client</th></tr></thead>
                     <tbody>
-                        <tr><td>Admin</td><td>All</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Manager</td><td>Resellers, Clients</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Reseller</td><td>Clients</td><td>Limited</td><td>❌</td></tr>
-                        <tr><td>Client</td><td>None</td><td>Self</td><td>❌</td></tr>
+                        <tr><td>Add Providers</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Bulk Allocate</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Self Allocation</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+                        <tr><td>View All SMS</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>`;
     },
 
-    async renderBalances(container) {
+    async renderUsersByRole(container, role) {
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
-            const data = await window.api.call('/api/users?limit=100');
-            const rows = data.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Accounting & Balances</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Account</th><th>Role</th><th>Balance</th><th>Credit Limit</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            ${rows.map(u => `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td><span class="badge badge-secondary">${u.role}</span></td>
-                                    <td style="font-weight:700">$${(u.balance || 0).toFixed(4)}</td>
-                                    <td>$${(u.credit_limit || 0).toFixed(2)}</td>
-                                    <td><button class="fly-btn fly-btn-sm" onclick="window.users.adjustBalance('${u.id}', '${u.username}')">Adjust</button></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (err) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err.message}</p></div>`; }
-    },
-
-    async renderAuditLogs(container) {
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-        try {
-            const res = await window.api.call('/api/dashboard/audit-logs?limit=50');
-            const rows = res.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">System Audit Trails</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>IP Address</th></tr></thead>
-                        <tbody>
-                            ${rows.map(l => `
-                                <tr>
-                                    <td style="font-size:11px">${window.ui.formatDate(l.created_at)}</td>
-                                    <td><strong>${l.actor}</strong></td>
-                                    <td><code>${l.action}</code></td>
-                                    <td>${l.target_type} (${l.target_id || '-'})</td>
-                                    <td><code>${l.ip || '-'}</code></td>
-                                </tr>
-                            `).join('')}
-                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="5">No audit logs found</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
-    },
-
-    async renderActivityLogs(container) {
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-        try {
-            const res = await window.api.call('/api/dashboard/activity-logs?limit=50');
-            const rows = res.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">User Activity Stream</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Time</th><th>User</th><th>Event</th><th>Detail</th></tr></thead>
-                        <tbody>
-                            ${rows.map(l => `
-                                <tr>
-                                    <td style="font-size:11px">${window.ui.formatDate(l.created_at)}</td>
-                                    <td><strong>${l.actor}</strong></td>
-                                    <td><span class="badge badge-secondary">${l.action}</span></td>
-                                    <td style="font-size:12px">${l.detail || '-'}</td>
-                                </tr>
-                            `).join('')}
-                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="4">No activity logs found</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
-    },
-
-    async renderApprovalQueue(container) {
-        this.renderRegRequests(container);
-    },
-
-    async renderRejectedRequests(container) {
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-        try {
-            const res = await window.api.call('/api/users/registration-requests?status=rejected');
-            const rows = res.data || [];
-            container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><div class="card-title">Rejected Registration Requests</div></div>
-                <div class="table-wrapper">
-                    <table class="fly-table">
-                        <thead><tr><th>Username</th><th>Reason</th><th>Rejected At</th></tr></thead>
-                        <tbody>
-                            ${rows.map(u => `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td>Policy Violation</td>
-                                    <td>${window.ui.formatDate(u.created_at)}</td>
-                                </tr>
-                            `).join('')}
-                            ${rows.length === 0 ? '<tr class="empty-row"><td colspan="3">No rejected requests found</td></tr>' : ''}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        } catch (e) { container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${e.message}</p></div>`; }
+            const res = await window.api.call('/api/users?role=' + role);
+            container.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">${role.toUpperCase()} Accounts</div></div><div class="table-wrapper"><table class="fly-table"><thead><tr><th>User</th><th>Status</th><th>Balance</th></tr></thead><tbody>${res.data.map(u => `<tr><td><strong>${u.username}</strong></td><td>${u.status}</td><td>$${u.balance.toFixed(2)}</td></tr>`).join('') || '<tr><td colspan="3">No data</td></tr>'}</tbody></table></div></div>`;
+        } catch (e) {}
     }
 };
-
 window.users = users;

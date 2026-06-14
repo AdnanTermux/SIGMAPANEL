@@ -1,22 +1,9 @@
 /**
- * SIGMAPANEL Main Entry Point
+ * SIGMAPANEL Main Entry Point - Enterprise Structure
  */
 
-window.ROLE_LABELS = {
-    admin: 'Admin',
-    manager: 'Manager',
-    reseller: 'Reseller',
-    sub_reseller: 'Client',
-    test_user: 'Test Account'
-};
-
-window.ROLE_COLORS = {
-    admin: 'badge-danger',
-    manager: 'badge-warning',
-    reseller: 'badge-primary',
-    sub_reseller: 'badge-secondary',
-    test_user: 'badge-success'
-};
+window.ROLE_LABELS = { admin: 'Admin', manager: 'Manager', reseller: 'Reseller', sub_reseller: 'Client', test_user: 'Test Account' };
+window.ROLE_COLORS = { admin: 'badge-danger', manager: 'badge-warning', reseller: 'badge-primary', sub_reseller: 'badge-secondary', test_user: 'badge-success' };
 
 const TEST_NAV = [
     {
@@ -33,7 +20,7 @@ const TEST_NAV = [
 
 const NAV_STRUCTURE = [
     {
-        group: 'NUMBERS',
+        group: 'NUMBERS GROUP',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'my-numbers', label: 'My Numbers', icon: ICONS.phone, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
@@ -42,13 +29,13 @@ const NAV_STRUCTURE = [
             { key: 'sms-ranges', label: 'SMS Ranges', icon: ICONS.layers, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'search-access', label: 'Search Access', icon: ICONS.search, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'live-access', label: 'Live Access', icon: ICONS.eye, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'export-numbers', label: 'Export Numbers', icon: ICONS.transfer, roles: ['admin', 'manager'] },
             { key: 'upload-numbers', label: 'Upload Numbers', icon: ICONS.plus, roles: ['admin', 'manager'] },
             { key: 'blacklist-management', label: 'Blacklist Management', icon: ICONS.ban, roles: ['admin', 'manager'] },
+            { key: 'bulk-tools', label: 'Revoke Numbers', icon: ICONS.x, roles: ['admin', 'manager'] },
         ]
     },
     {
-        group: 'SMS',
+        group: 'SMS GROUP',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'my-sms', label: 'My SMS', icon: ICONS.sms, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
@@ -61,53 +48,39 @@ const NAV_STRUCTURE = [
         ]
     },
     {
-        group: 'REQUESTS',
+        group: 'SMPP SERVER',
+        roles: ['admin'],
+        items: [
+            { key: 'smpp-server-dash', label: 'Dashboard', icon: ICONS.dashboard, roles: ['admin'] },
+            { key: 'smpp-server-accounts', label: 'SMPP Accounts', icon: ICONS.users, roles: ['admin'] },
+            { key: 'smpp-server-sessions', label: 'SMPP Sessions', icon: ICONS.eye, roles: ['admin'] },
+            { key: 'smpp-server-connected', label: 'Connected Clients', icon: ICONS.transfer, roles: ['admin'] },
+            { key: 'smpp-server-dlr', label: 'DLR Monitor', icon: ICONS.report, roles: ['admin'] },
+            { key: 'smpp-server-throughput', label: 'Throughput Monitor', icon: ICONS.chart, roles: ['admin'] },
+            { key: 'smpp-server-security', label: 'Security Center', icon: ICONS.shield, roles: ['admin'] },
+            { key: 'smpp-server-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
+        ]
+    },
+    {
+        group: 'REQUESTS GROUP',
         roles: ['admin', 'manager'],
         items: [
             { key: 'registration-requests', label: 'Registration Requests', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'payment-requests', label: 'Payment Requests', icon: ICONS.wallet, roles: ['admin', 'manager'] },
-            { key: 'approval-queue', label: 'Approval Queue', icon: ICONS.shield, roles: ['admin', 'manager'] },
-            { key: 'rejected-requests', label: 'Rejected Requests', icon: ICONS.x, roles: ['admin', 'manager'] },
+            { key: 'payout-requests', label: 'Payout Requests', icon: ICONS.wallet, roles: ['admin', 'manager'] },
         ]
     },
     {
-        group: 'PROVIDERS',
-        roles: ['admin'],
-        items: [
-            { key: 'smpp-providers', label: 'SMPP Providers', icon: ICONS.server, roles: ['admin'] },
-            { key: 'http-providers', label: 'HTTP Providers', icon: ICONS.server, roles: ['admin'] },
-            { key: 'provider-status', label: 'Provider Status', icon: ICONS.chart, roles: ['admin'] },
-            { key: 'connection-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'throughput-stats', label: 'Throughput Stats', icon: ICONS.chart, roles: ['admin'] },
-            { key: 'failover-management', label: 'Failover Management', icon: ICONS.shield, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'MANAGEMENT',
+        group: 'MANAGEMENT GROUP',
         roles: ['admin', 'manager', 'reseller'],
         items: [
             { key: 'users', label: 'Users', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'managers', label: 'Managers', icon: ICONS.users, roles: ['admin'] },
-            { key: 'resellers', label: 'Resellers', icon: ICONS.users, roles: ['admin', 'manager'] },
-            { key: 'sub-resellers', label: 'Sub Resellers', icon: ICONS.users, roles: ['admin', 'manager', 'reseller'] },
             { key: 'account-balances', label: 'Account Balances', icon: ICONS.wallet, roles: ['admin', 'manager', 'reseller'] },
-            { key: 'statements', label: 'Statements', icon: ICONS.report, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'audit-logs', label: 'Audit Logs', icon: ICONS.shield, roles: ['admin'] },
-            { key: 'activity-logs', label: 'Activity Logs', icon: ICONS.report, roles: ['admin', 'manager'] },
             { key: 'permissions', label: 'Permissions', icon: ICONS.key, roles: ['admin'] },
         ]
     },
     {
-        group: 'SECURITY',
-        roles: ['admin'],
-        items: [
-            { key: 'security-dashboard', label: 'Security Overview', icon: ICONS.shield, roles: ['admin'] },
-            { key: 'blocked-ips', label: 'Blocked IPs', icon: ICONS.ban, roles: ['admin'] },
-            { key: 'threat-logs', label: 'Attack Logs', icon: ICONS.report, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'API',
+        group: 'API GROUP',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'api-playground', label: 'API Playground', icon: ICONS.api, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
@@ -118,36 +91,12 @@ const NAV_STRUCTURE = [
         ]
     },
     {
-        group: 'SMPP SERVER',
-        roles: ['admin'],
-        items: [
-            { key: 'smpp-server-connected', label: 'Connected Providers', icon: ICONS.transfer, roles: ['admin'] },
-            { key: 'smpp-server-sessions', label: 'Active Sessions', icon: ICONS.eye, roles: ['admin'] },
-            { key: 'smpp-server-accounts', label: 'Provider Accounts', icon: ICONS.users, roles: ['admin'] },
-            { key: 'smpp-server-throughput', label: 'Throughput Monitoring', icon: ICONS.chart, roles: ['admin'] },
-            { key: 'smpp-server-logs', label: 'Connection Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'smpp-server-failed', label: 'Failed Packets', icon: ICONS.x, roles: ['admin'] },
-            { key: 'smpp-server-dlr', label: 'DLR Logs', icon: ICONS.report, roles: ['admin'] },
-            { key: 'smpp-server-queue', label: 'Queue Monitoring', icon: ICONS.layers, roles: ['admin'] },
-            { key: 'smpp-server-security', label: 'Security Logs', icon: ICONS.shield, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'INTERCONNECTION',
-        roles: ['admin'],
-        items: [
-            { key: 'smpp-interconnect', label: 'SMPP Interconnect', icon: ICONS.transfer, roles: ['admin'] },
-        ]
-    },
-    {
-        group: 'SETTINGS',
+        group: 'SETTINGS GROUP',
         roles: ['admin', 'manager', 'reseller', 'sub_reseller'],
         items: [
             { key: 'general-settings', label: 'General Settings', icon: ICONS.settings, roles: ['admin', 'manager'] },
             { key: 'security-settings', label: 'Security', icon: ICONS.shield, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
-            { key: 'notifications-settings', label: 'Notifications', icon: ICONS.bell, roles: ['admin', 'manager', 'reseller', 'sub_reseller'] },
             { key: 'smpp-settings', label: 'SMPP Settings', icon: ICONS.server, roles: ['admin'] },
-            { key: 'queue-settings', label: 'Queue Settings', icon: ICONS.layers, roles: ['admin'] },
             { key: 'backup-restore', label: 'Backup & Restore', icon: ICONS.shield, roles: ['admin'] },
         ]
     }
@@ -155,157 +104,87 @@ const NAV_STRUCTURE = [
 
 function init() {
   try {
-    // Add routes
     window.router.addRoute('dashboard', (c) => window.dashboard.render(c));
 
-    // Numbers routes
+    // Numbers
     window.router.addRoute('my-numbers', (c) => window.numbers.renderMyNumbers(c));
     window.router.addRoute('self-allocation', (c) => window.numbers.renderSelfAllocation(c));
     window.router.addRoute('bulk-allocation', (c) => window.numbers.renderBulkAllocation(c));
     window.router.addRoute('sms-ranges', (c) => window.ranges.renderRanges(c));
     window.router.addRoute('search-access', (c) => window.searchAccess.render(c));
     window.router.addRoute('live-access', (c) => window.numbers.renderLiveAccess(c));
-    window.router.addRoute('bulk-tools', (c) => window.numbers.renderBulkTools(c));
-    window.router.addRoute('export-numbers', (c) => window.numbers.renderExport(c));
     window.router.addRoute('upload-numbers', (c) => window.numbers.renderUpload(c));
     window.router.addRoute('blacklist-management', (c) => window.numbers.renderBlacklist(c));
+    window.router.addRoute('bulk-tools', (c) => window.numbers.renderBulkTools(c));
 
-    // SMS routes
-    window.router.addRoute('my-sms', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderMySms(c);
-    });
-    window.router.addRoute('profit-stats', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderProfitStats(c);
-    });
-    window.router.addRoute('live-otp-feed', (c) => {
-        window.sms.renderLiveOtpFeed(c);
-    });
-    window.router.addRoute('sms-analytics', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderAnalytics(c);
-    });
-    window.router.addRoute('search-sms', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderSearchSms(c);
-    });
-    window.router.addRoute('delivery-logs', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderDeliveryLogs(c);
-    });
-    window.router.addRoute('failed-sms', (c) => {
-        window.sms.stopLiveFeed();
-        window.sms.renderFailedSms(c);
-    });
+    // SMS
+    window.router.addRoute('my-sms', (c) => { window.sms.stopLiveFeed(); window.sms.renderMySms(c); });
+    window.router.addRoute('profit-stats', (c) => { window.sms.stopLiveFeed(); window.sms.renderProfitStats(c); });
+    window.router.addRoute('live-otp-feed', (c) => { window.sms.renderLiveOtpFeed(c); });
+    window.router.addRoute('sms-analytics', (c) => { window.sms.stopLiveFeed(); window.sms.renderAnalytics(c); });
+    window.router.addRoute('search-sms', (c) => { window.sms.stopLiveFeed(); window.sms.renderSearchSms(c); });
+    window.router.addRoute('delivery-logs', (c) => { window.sms.stopLiveFeed(); window.sms.renderDeliveryLogs(c); });
+    window.router.addRoute('failed-sms', (c) => { window.sms.stopLiveFeed(); window.sms.renderFailedSms(c); });
 
-    // Management routes
-    window.router.addRoute('users', (c) => window.users.renderUsers(c));
-    window.router.addRoute('managers', (c) => window.users.renderUsersByRole(c, 'manager'));
-    window.router.addRoute('resellers', (c) => window.users.renderUsersByRole(c, 'reseller'));
-    window.router.addRoute('sub-resellers', (c) => window.users.renderUsersByRole(c, 'sub_reseller'));
-    window.router.addRoute('account-balances', (c) => window.users.renderBalances(c));
-    window.router.addRoute('statements', (c) => window.payments.renderStatements(c));
-    window.router.addRoute('audit-logs', (c) => window.users.renderAuditLogs(c));
-    window.router.addRoute('activity-logs', (c) => window.users.renderActivityLogs(c));
-
-    // Security routes
-    window.router.addRoute('security-dashboard', (c) => window.security.renderDashboard(c));
-    window.router.addRoute('blocked-ips', (c) => window.security.renderBlockedIPs(c));
-    window.router.addRoute('threat-logs', (c) => window.security.renderThreatLogs(c));
-
-    // Provider routes
-    window.router.addRoute('smpp-providers', (c) => window.smpp.renderProviders(c));
-    window.router.addRoute('http-providers', (c) => window.smpp.renderHttpProviders(c));
-    window.router.addRoute('provider-status', (c) => window.smpp.renderStatus(c));
-    window.router.addRoute('connection-logs', (c) => window.smpp.renderConnectionLogs(c));
-    window.router.addRoute('failover-management', (c) => window.smpp.renderFailover(c));
-    window.router.addRoute('throughput-stats', (c) => window.smpp.renderThroughput(c));
-
-    // Requests routes
-    window.router.addRoute('payment-requests', (c) => window.payments.renderRequests(c));
-    window.router.addRoute('registration-requests', (c) => window.users.renderRegRequests(c));
-    window.router.addRoute('permissions', (c) => window.users.renderPermissions(c));
-    window.router.addRoute('approval-queue', (c) => window.users.renderApprovalQueue(c));
-    window.router.addRoute('rejected-requests', (c) => window.users.renderRejectedRequests(c));
-
-    // Interconnect routes
-    window.router.addRoute('smpp-interconnect', (c) => window.smppInterconnect.render(c));
-
-    // SMPP Server routes
-    window.router.addRoute('smpp-server-connected', (c) => window.smpp.renderServerConnected(c));
-    window.router.addRoute('smpp-server-sessions', (c) => window.smpp.renderServerSessions(c));
+    // SMPP Server
+    window.router.addRoute('smpp-server-dash', (c) => window.smpp.renderDashboard(c));
     window.router.addRoute('smpp-server-accounts', (c) => window.smpp.renderServerAccounts(c));
-    window.router.addRoute('smpp-server-throughput', (c) => window.smpp.renderServerThroughput(c));
+    window.router.addRoute('smpp-server-sessions', (c) => window.smpp.renderServerSessions(c));
+    window.router.addRoute('smpp-server-connected', (c) => window.smpp.renderServerSessions(c));
     window.router.addRoute('smpp-server-logs', (c) => window.smpp.renderServerLogs(c));
-    window.router.addRoute('smpp-server-failed', (c) => window.smpp.renderServerFailed(c));
     window.router.addRoute('smpp-server-dlr', (c) => window.smpp.renderServerDlr(c));
-    window.router.addRoute('smpp-server-queue', (c) => window.smpp.renderServerQueue(c));
+    window.router.addRoute('smpp-server-throughput', (c) => window.smpp.renderThroughput(c));
     window.router.addRoute('smpp-server-security', (c) => window.smpp.renderServerSecurity(c));
 
-    // Test Panel routes
+    // Management
+    window.router.addRoute('users', (c) => window.users.renderUsers(c));
+    window.router.addRoute('account-balances', (c) => window.users.renderBalances(c));
+    window.router.addRoute('audit-logs', (c) => window.users.renderAuditLogs(c));
+    window.router.addRoute('permissions', (c) => window.users.renderRBAC(c));
+
+    // Requests
+    window.router.addRoute('registration-requests', (c) => window.users.renderRegRequests(c));
+    window.router.addRoute('payout-requests', (c) => window.payments.renderPayoutRequests(c));
+
+    // API
+    window.router.addRoute('api-playground', (c) => window.apiManagement.renderPlayground(c));
+    window.router.addRoute('api-tokens', (c) => window.apiManagement.renderTokens(c));
+    window.router.addRoute('documentation', (c) => window.settings.renderDocumentation(c));
+    window.router.addRoute('live-test', (c) => window.apiManagement.renderLiveTest(c));
+    window.router.addRoute('webhook-config', (c) => window.settings.renderWebhookConfig(c));
+
+    // Settings
+    window.router.addRoute('general-settings', (c) => window.settings.renderGeneral(c));
+    window.router.addRoute('security-settings', (c) => window.settings.renderSecurity(c));
+    window.router.addRoute('smpp-settings', (c) => window.settings.renderSmppSettings(c));
+    window.router.addRoute('backup-restore', (c) => window.settings.renderBackupRestore(c));
+
+    // Test Panel
     window.router.addRoute('test-numbers', (c) => window.testPanel.renderTestNumbers(c));
     window.router.addRoute('test-reports', (c) => window.testPanel.renderTestReports(c));
     window.router.addRoute('test-live-feed', (c) => window.testPanel.renderLiveFeed(c));
-    window.router.addRoute('test-range-tester', (c) => window.testPanel.renderRangeTester(c));
     window.router.addRoute('test-traffic-stats', (c) => window.testPanel.renderTrafficStats(c));
-    window.router.addRoute('test-provider-monitor', (c) => window.testPanel.renderProviderMonitor(c));
 
-    // API routes
-    window.router.addRoute('api-playground', (c) => window.apiManagement.renderPlayground(c));
-    window.router.addRoute('api-tokens', (c) => window.apiManagement.renderTokens(c));
-    window.router.addRoute('live-test', (c) => window.apiManagement.renderLiveTest(c));
-
-    // Settings routes
-    window.router.addRoute('general-settings', (c) => window.settings.renderGeneral(c));
-    window.router.addRoute('security-settings', (c) => window.settings.renderSecurity(c));
-    window.router.addRoute('notifications-settings', (c) => window.settings.renderNotifications(c));
-    window.router.addRoute('documentation', (c) => window.settings.renderDocumentation(c));
-    window.router.addRoute('webhook-config', (c) => window.settings.renderWebhookConfig(c));
-    window.router.addRoute('smpp-settings', (c) => window.settings.renderSmppSettings(c));
-    window.router.addRoute('queue-settings', (c) => window.settings.renderQueueSettings(c));
-    window.router.addRoute('backup-restore', (c) => window.settings.renderBackupRestore(c));
-
-    // Fill other routes as placeholders
+    // Fallback
     [...NAV_STRUCTURE, ...TEST_NAV].forEach(group => {
         group.items.forEach(item => {
             if (!window.router.routes[item.key]) {
                 window.router.addRoute(item.key, (c) => {
-                    c.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">${item.label}</div></div><div class="card-body"><div class="empty-state"><h3>Coming Soon</h3><p>The ${item.label} page is being professionally developed.</p></div></div></div>`;
+                    c.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">${item.label}</div></div><div class="card-body"><div class="empty-state"><h3>No data available</h3><p>The ${item.label} module is awaiting infrastructure data.</p></div></div></div>`;
                 });
             }
         });
     });
 
-    if (window.auth.isLoggedIn()) {
-        window.router.init();
-    } else {
-        // Handle direct signup URL or other auth pages
-        const path = window.location.pathname;
-        if (path === '/signup') {
-            window.auth.renderSignup();
-        } else {
-            window.security.renderVerification();
-        }
-    }
-  } catch (err) {
-    console.error('SIGMAPANEL initialization failed:', err);
-    document.getElementById('app').innerHTML = `
-      <div style="padding:20px; text-align:center; color:#ef4444">
-        <h3>Critical Initialization Error</h3>
-        <p>${err.message}</p>
-        <button onclick="location.reload()" class="fly-btn" style="margin-top:10px">Reload Panel</button>
-      </div>`;
-  }
+    if (window.auth.isLoggedIn()) { window.router.init(); }
+    else { const path = window.location.pathname; if (path === '/signup') window.auth.renderSignup(); else window.security.renderVerification(); }
+  } catch (err) { console.error('SIGMAPANEL init error:', err); }
 }
 
 function renderDashboardShell() {
   try {
     const user = window.auth.getUser();
-    if (!user) {
-        window.auth.renderLogin();
-        return;
-    }
+    if (!user) { window.auth.renderLogin(); return; }
 
     if (!document.querySelector('.dashboard-layout')) {
         const role = user.role || 'sub_reseller';
@@ -318,20 +197,11 @@ function renderDashboardShell() {
                 const items = group.items.filter(item => !item.roles || item.roles.includes(role));
                 if (items.length === 0) return '';
                 const isCollapsed = collapsedGroups[group.group];
-                const groupIcon = isCollapsed ? ICONS.plus : ICONS.chevronDown;
-
                 return `
                 <div class="sidebar-group ${isCollapsed ? 'collapsed' : ''}" data-group="${group.group}">
-                    <div class="sidebar-group-header">
-                        <span>${group.group}</span>
-                        <span class="group-toggle">${groupIcon}</span>
-                    </div>
+                    <div class="sidebar-group-header"><span>${group.group}</span><span class="group-toggle">${isCollapsed ? ICONS.plus : ICONS.chevronDown}</span></div>
                     <div class="sidebar-group-items">
-                        ${items.map(item => `
-                            <button class="sidebar-nav-item ${window.router.currentPage === item.key ? 'active' : ''}" data-page="${item.key}">
-                                ${item.icon} ${item.label}
-                            </button>
-                        `).join('')}
+                        ${items.map(item => `<button class="sidebar-nav-item ${window.router.currentPage === item.key ? 'active' : ''}" data-page="${item.key}">${item.icon} ${item.label}</button>`).join('')}
                     </div>
                 </div>`;
             }).join('');
@@ -341,48 +211,25 @@ function renderDashboardShell() {
             <button class="mobile-menu-btn" id="mobile-menu-btn">${ICONS.menu}</button>
             <div class="sidebar-overlay" id="sidebar-overlay"></div>
             <aside class="sidebar" id="sidebar">
-                <div class="sidebar-logo">
-                    <div class="sidebar-logo-icon">${ICONS.send}</div>
-                    <div><h1>SIGMAPANEL</h1><p>Telecom Infrastructure</p></div>
-                </div>
+                <div class="sidebar-logo"><div class="sidebar-logo-icon">${ICONS.send}</div><div><h1>SIGMAPANEL</h1><p>Telecom Infrastructure</p></div></div>
                 <nav class="sidebar-nav">${sidebarNav}</nav>
                 <div class="sidebar-user">
-                    <div class="sidebar-user-info">
-                        <div class="sidebar-user-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
-                        <div>
-                            <div class="sidebar-user-name">${user.fullName || user.username || 'User'}</div>
-                            <div class="sidebar-user-role">${window.ROLE_LABELS[user.role] || user.role}</div>
-                        </div>
-                    </div>
+                    <div class="sidebar-user-info"><div class="sidebar-user-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div><div><div class="sidebar-user-name">${user.fullName || user.username}</div><div class="sidebar-user-role">${window.ROLE_LABELS[user.role] || user.role}</div></div></div>
                     <button class="sidebar-logout" id="logout-btn">${ICONS.logout} Logout</button>
                 </div>
             </aside>
             <div class="main-content">
                 <header class="top-bar">
                     <h2 class="top-bar-title" id="page-title">Dashboard</h2>
-                    <div class="top-bar-actions">
-                        <button id="notif-btn" style="position:relative;padding:8px;background:none;border:none;cursor:pointer;color:#6B7280">${ICONS.bell}</button>
-                        <div class="top-bar-user">
-                            <div class="top-bar-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div>
-                            <div class="top-bar-user-name">
-                                <div style="font-size:12px;font-weight:600">${user.username}</div>
-                                <div style="font-size:10px;color:#6B7280;text-transform:uppercase">${user.role}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="top-bar-actions"><div class="top-bar-user"><div class="top-bar-avatar">${(user.username || 'U').charAt(0).toUpperCase()}</div><div class="top-bar-user-name"><div>${user.username}</div><div style="font-size:10px; color:#6B7280">${user.role}</div></div></div></div>
                 </header>
                 <main class="page-content" id="page-content"></main>
             </div>
-        </div>
-        <div id="toast-container"></div>`;
+        </div><div id="toast-container"></div><div id="modal-root"></div>`;
 
-        // Listeners
         document.addEventListener('click', (e) => {
             const navBtn = e.target.closest('.sidebar-nav-item');
-            if (navBtn) {
-                window.router.navigateTo(navBtn.dataset.page);
-                return;
-            }
+            if (navBtn) { window.router.navigateTo(navBtn.dataset.page); return; }
             const groupHeader = e.target.closest('.sidebar-group-header');
             if (groupHeader) {
                 const group = groupHeader.parentElement;
@@ -395,42 +242,20 @@ function renderDashboardShell() {
                 groupHeader.querySelector('.group-toggle').innerHTML = isCollapsed ? ICONS.plus : ICONS.chevronDown;
                 return;
             }
-            if (e.target.closest('#logout-btn')) { window.auth.logout(); return; }
-            if (e.target.closest('#mobile-menu-btn')) {
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebar-overlay').classList.toggle('open');
-                return;
-            }
-            if (e.target.closest('#sidebar-overlay')) {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebar-overlay').classList.remove('open');
-                return;
-            }
+            if (e.target.closest('#logout-btn')) window.auth.logout();
+            if (e.target.closest('#mobile-menu-btn')) { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
+            if (e.target.closest('#sidebar-overlay')) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
         });
     }
 
-    document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.page === window.router.currentPage);
-    });
-
-    if (window._inactivityTimer) clearTimeout(window._inactivityTimer);
-    window._inactivityTimer = setTimeout(() => {
-        if (window.auth.isLoggedIn()) {
-            window.ui.showToast('Session expired', 'info');
-            window.auth.logout();
-        }
-    }, 30 * 60 * 1000);
-
+    document.querySelectorAll('.sidebar-nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.page === window.router.currentPage));
     const content = document.getElementById('page-content');
     window.router.resolvePage(content);
 
     const currentNav = user.role === 'test_user' ? TEST_NAV : NAV_STRUCTURE;
     const currentItem = currentNav.flatMap(g => g.items).find(i => i.key === window.router.currentPage);
     if (currentItem) document.getElementById('page-title').textContent = currentItem.label;
-
-  } catch (err) {
-    console.error('Dashboard shell rendering failed:', err);
-  }
+  } catch (err) { console.error('Shell error:', err); }
 }
 
 window.renderDashboardShell = renderDashboardShell;

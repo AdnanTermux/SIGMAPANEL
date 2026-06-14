@@ -10,77 +10,46 @@ router = APIRouter(prefix="/api/sms", tags=["sms"])
 async def list_sms(
     request: Request,
     service: str = Query(None),
-    country: str = Query(None),
     number: str = Query(None),
-    startDate: str = Query(None),
-    endDate: str = Query(None),
-    hasOtp: str = Query(None),
+    search: str = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    payload=Depends(get_current_user)
+    p=Depends(get_current_user)
 ):
     offset = (page - 1) * limit
-    conditions = []
-    params = []
+    conds, params = [], []
+
+    if p['role'] not in ['admin', 'manager', 'test_user']:
+        conds.append("assigned_to = ?")
+        params.append(p['username'])
     
     if service:
-        conditions.append("service LIKE ?")
-        params.append(f"%{service}%")
-    if country:
-        conditions.append("country = ?")
-        params.append(country)
+        conds.append("service LIKE ?"); params.append(f"%{service}%")
     if number:
-        conditions.append("number LIKE ?")
-        params.append(f"%{number}%")
-    if hasOtp == 'true':
-        conditions.append("otp IS NOT NULL")
-    elif hasOtp == 'false':
-        conditions.append("otp IS NULL")
-    if startDate:
-        conditions.append("received_at >= ?")
-        params.append(startDate)
-    if endDate:
-        conditions.append("received_at <= ?")
-        params.append(endDate + "T23:59:59")
+        conds.append("number LIKE ?"); params.append(f"%{number}%")
+    if search:
+        conds.append("(message LIKE ? OR sender LIKE ? OR number LIKE ?)")
+        params.extend([f"%{search}%"] * 3)
     
-    # Non-admin only sees their assigned numbers
-    # test_user can see all infrastructure SMS for testing purposes
-    if payload['role'] not in ['admin', 'test_user']:
-        conditions.append("assigned_to = ?")
-        params.append(payload['username'])
-    
-    where = " AND ".join(conditions) if conditions else "1=1"
+    where = " AND ".join(conds) if conds else "1=1"
     
     with get_db() as conn:
-        sms_list = conn.execute(
-            f"SELECT * FROM sms_received WHERE {where} ORDER BY received_at DESC LIMIT ? OFFSET ?",
-            params + [limit, offset]
-        ).fetchall()
-        
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM sms_received WHERE {where}",
-            params
-        ).fetchone()[0]
+        rows = conn.execute(f"SELECT * FROM sms_received WHERE {where} ORDER BY received_at DESC LIMIT ? OFFSET ?", params + [limit, offset]).fetchall()
+        total = conn.execute(f"SELECT COUNT(*) FROM sms_received WHERE {where}", params).fetchone()[0]
     
     return {
-        "data": [dict(row) for row in sms_list],
-        "pagination": {
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "totalPages": (total + limit - 1) // limit,
-            "hasMore": offset + limit < total,
-        },
+        "data": [dict(r) for r in rows],
+        "pagination": { "total": total, "page": page, "limit": limit, "totalPages": (total + limit - 1) // limit, "hasMore": offset + limit < total }
     }
 
 @router.get("/delivery-logs")
-async def delivery_logs(request: Request, p=Depends(require_role(["admin", "manager"]))):
+async def delivery_logs(p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM sms_received WHERE otp IS NOT NULL ORDER BY received_at DESC LIMIT 100").fetchall()
     return {"data": [dict(r) for r in rows]}
 
 @router.get("/failed")
-async def failed_sms(request: Request, p=Depends(require_role(["admin", "manager"]))):
+async def failed_sms(p=Depends(require_role(["admin", "manager"]))):
     with get_db() as conn:
-        rows = conn.execute("SELECT * FROM failed_sms ORDER BY created_at DESC LIMIT 100").fetchall()
+        rows = conn.execute("SELECT * FROM firewall_events WHERE event_type='SMS_FAILED' ORDER BY created_at DESC LIMIT 100").fetchall()
     return {"data": [dict(r) for r in rows]}
